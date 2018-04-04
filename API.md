@@ -15,40 +15,58 @@ To access the API you need to generate a valid access token, based on [JWT](http
 ## API entry points
 |Service|WebSocket URL
 |---|---
-|Consumer Zello|https://zello.io/ws
-|ZelloWork|https://zellowork.io/ws/[network name]
-|Zello Enterprise Server|https://[your server domain]/ws
+|Consumer Zello|wss://zello.io/ws
+|ZelloWork|wss://zellowork.io/ws/[network name]
+|Zello Enterprise Server|wss://[your server domain]/ws
+
+Note that the protocol only supports secure connections over TLS.
 
 ## Authentication
 
 
 ## WebSocket commands protocol
 
-This API uses JSON-formatted WebSocket text messages for control protocol and WebSocket binary messages for voice data.
-The list of common command attributes includes:
+This API uses persistent WebSocket connection with JSON-formatted WebSocket text messages for control protocol and WebSocket binary messages for voice data.
+
+Each control request contains a command and an optional sequence number. 
 
 * `command` Command name
 * `seq` Sequence number
 
-Each request contains a command and an optional sequence number. A sequence number is required only if a response is expected. Both server and client maintain their own counters to ensure that unique sequence numbers are used with commands that include a sequence number.
+A sequence number is required only if a response is expected. Both server and client maintain their own counters to ensure that unique sequence numbers are used with commands that include a sequence number.
 
 ## Logon
 
+
 ### `logon`
-Request:
+
+Authenticates the client and connects to a channel. This must be the first command the client sends after establishing WebSocket connection. To stop the session and disconnect from the channel simply close the connection.
+
+#### Attributes
+
+| Name | Type | Value  / Description
+|---|---|---
+| `command` | string | `logon`
+| `seq` | integer | Command sequence number
+| `auth_token` | string | (optional) API authentication token. If omitted `refresh_token` is required. See [Authentication](#authentication)
+| `refresh_token` | string | (optional) API refresh token. If omitted `auth_token ` is required. See [Authentication](#authentication)
+| `username` | string | (optional) Username to logon with. If not proided the client will connect anonymously.
+| `password` | string | (optional) Password to logon with. Required if username is provided.
+| `channel` | string | The name of the channel to connect to. 
+
+#### Request:
 
 ```json
 {
   "command": "logon",
   "seq": 1,
   "auth_token": "[json web token]",
-  "refresh_token": "[refresh json web token]",
-  "username": "shelock",
+  "username": "sherlock",
   "password": "secret",
   "channel": "Baker Street 221B"
 }
 ``` 
-Response:
+#### Response:
 
 ```json
 {
@@ -65,8 +83,12 @@ or
   "error": "error code"
 }
 ```
+Successful response includes `refresh_token` which can be use to quickly reconnect if WebSocket connection is broken due to brief network interruption. 
 
-## Sending messages
+## Streaming voice messages
+
+After successfully connecting to the channel and reciving [channel status](#on_channel_status) you can start sending voice messages. Each message is sent as stream, which begins with `start_stream` command followed by the sequence of binary packets with audio data and ends with `stop_stream` command. Zello uses [Opus](http://opus-codec.org/) voice codec to compress audio stream.
+
 ### `start_stream`
 Request:
 
