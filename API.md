@@ -50,7 +50,7 @@ Authenticates the client and connects to a channel. This must be the first comma
 | `seq` | integer | Command sequence number
 | `auth_token` | string | (optional) API authentication token. If omitted `refresh_token` is required. See [Authentication](#authentication)
 | `refresh_token` | string | (optional) API refresh token. If omitted `auth_token ` is required. See [Authentication](#authentication)
-| `username` | string | (optional) Username to logon with. If not proided the client will connect anonymously.
+| `username` | string | (optional) Username to logon with. If not provided the client will connect anonymously.
 | `password` | string | (optional) Password to logon with. Required if username is provided.
 | `channel` | string | The name of the channel to connect to. 
 
