@@ -13,16 +13,29 @@ This API supports subset of Zello features and currently focused on sending and 
 To access the API you need to generate a valid access token, based on [JWT](https://jwt.io/) standard. See [Authentication](#authentication).
 
 ## API entry points
-|Service|WebSocket URL
+| Service | WebSocket URL
 |---|---
-|Consumer Zello|wss://zello.io/ws
-|ZelloWork|wss://zellowork.io/ws/[network name]
-|Zello Enterprise Server|wss://[your server domain]/ws
+| Consumer Zello | wss://zello.io/ws
+| ZelloWork | wss://zellowork.io/ws/`network name`
+| Zello Enterprise Server | wss://`your server domain`/ws
 
 Note that the protocol only supports secure connections over TLS.
 
 ## Authentication
 
+The API supports two types of accounts for both Zello and ZelloWork:
+
+Anonymous accounts:
+
+* No need to provide username or password
+* Can access unrestricted channels in listen only mode
+
+Named accounts:
+
+* Must include a valid username and password
+* Have full access to authorized channels
+
+In both cases you need to provide a valid [auth token](AUTH.md).
 
 ## WebSocket commands protocol
 
