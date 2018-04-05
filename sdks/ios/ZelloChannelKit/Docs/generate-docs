@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# Generate SDK reference for ZelloChannelKit
+# Run from zello-embeddable/ios/Docs directory
+./appledoc ../AppledocSettings.plist

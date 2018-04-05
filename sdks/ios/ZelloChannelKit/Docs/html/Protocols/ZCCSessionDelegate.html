@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+
+	<title>ZCCSessionDelegate Protocol Reference</title>
+
+	<link rel="stylesheet" href="../css/style.css">
+	<meta name="viewport" content="initial-scale=1, maximum-scale=1.4">
+	<meta name="generator" content="appledoc 2.2.1 (build 1334)">
+</head>
+<body class="appledoc">
+	<header>
+		<div class="container" class="hide-in-xcode">
+			
+			<h1 id="library-title">
+				<a href="../index.html">Zello Channels SDK </a>
+			</h1>
+
+			<p id="developer-home">
+				<a href="../index.html">Zello</a>
+			</p>
+			
+		</div>
+	</header>
+
+	<aside>
+		<div class="container">
+			<nav>
+				<ul id="header-buttons" role="toolbar">
+					<li><a href="../index.html">Index</a></li>
+<li><a href="../hierarchy.html">Hierarchy</a></li>
+
+					<li id="on-this-page" role="navigation">
+						<label>
+							On This Page
+
+							<div class="chevron">
+								<div class="chevy chevron-left"></div>
+								<div class="chevy chevron-right"></div>
+							</div>
+
+							<select id="jump-to">
+	<option value="top">Jump To&#133;</option>
+	
+	<option value="overview">Overview</option>
+	
+
+	
+	
+	<option value="tasks">Tasks</option>
+	
+	
+
+	
+	
+
+	
+
+	
+	<optgroup label="Instance Methods">
+		
+		<option value="//api/name/session:didFailToConnectWithError:">- session:didFailToConnectWithError:</option>
+		
+		<option value="//api/name/session:incomingVoice:didUpdateProgress:">- session:incomingVoice:didUpdateProgress:</option>
+		
+		<option value="//api/name/session:incomingVoiceDidStart:">- session:incomingVoiceDidStart:</option>
+		
+		<option value="//api/name/session:incomingVoiceDidStop:">- session:incomingVoiceDidStop:</option>
+		
+		<option value="//api/name/session:incomingVoiceWillStart:">- session:incomingVoiceWillStart:</option>
+		
+		<option value="//api/name/session:outgoingVoice:didEncounterError:">- session:outgoingVoice:didEncounterError:</option>
+		
+		<option value="//api/name/session:outgoingVoice:didUpdateProgress:">- session:outgoingVoice:didUpdateProgress:</option>
+		
+		<option value="//api/name/session:outgoingVoiceDidChangeState:">- session:outgoingVoiceDidChangeState:</option>
+		
+		<option value="//api/name/session:willReconnectForReason:">- session:willReconnectForReason:</option>
+		
+		<option value="//api/name/sessionDidConnect:">- sessionDidConnect:</option>
+		
+		<option value="//api/name/sessionDidDisconnect:">- sessionDidDisconnect:</option>
+		
+		<option value="//api/name/sessionDidStartConnecting:">- sessionDidStartConnecting:</option>
+		
+	</optgroup>
+	
+	
+</select>
+						</label>
+					</li>
+				</ul>
+			</nav>
+		</div>
+	</aside>
+
+	<article>
+		<div id="overview_contents" class="container">
+			<div id="content">
+				<main role="main">
+					<h1 class="title">ZCCSessionDelegate Protocol Reference</h1>
+
+					
+					<div class="section section-specification"><table cellspacing="0"><tbody>
+						<tr>
+	<th>Conforms to</th>
+	<td>NSObject</td>
+</tr><tr>
+	<th>Declared in</th>
+	<td>ZCCSession.h</td>
+</tr>
+						</tbody></table></div>
+					
+
+                    
+					
+					<div class="section section-overview">
+						<a title="Overview" name="overview"></a>
+						<h2 class="subtitle subtitle-overview">Overview</h2>
+						<p>When events occur in the Zello session, they are reported to the delegate.</p>
+					</div>
+					
+					
+
+					
+					
+					<div class="section section-tasks">
+						<a title="Tasks" name="tasks"></a>
+						
+
+						
+						
+
+						<div class="task-list">
+							<div class="section-method">
+	<a name="//api/name/sessionDidStartConnecting:" title="sessionDidStartConnecting:"></a>
+	<h3 class="method-title"><code><a href="#//api/name/sessionDidStartConnecting:">&ndash;&nbsp;sessionDidStartConnecting:</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>Called when the session starts connecting</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>- (void)sessionDidStartConnecting:(ZCCSession *)<em>session</em></code></div>
+
+		    
+			
+			<div class="method-subsection arguments-section parameters">
+				<h4 class="method-subtitle parameter-title">Parameters</h4>
+				<table class="argument-def parameter-def">
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>session</code></th>
+						<td><p>the session that is connecting</p></td>
+					</tr>
+				
+				</table>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection discussion-section">
+				<h4 class="method-subtitle">Discussion</h4>
+				<p>Called after the session has begun connecting, before a connection to the server has been
+established.</p>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCSession.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div><div class="section-method">
+	<a name="//api/name/session:didFailToConnectWithError:" title="session:didFailToConnectWithError:"></a>
+	<h3 class="method-title"><code><a href="#//api/name/session:didFailToConnectWithError:">&ndash;&nbsp;session:didFailToConnectWithError:</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>Called if an error is encountered before the session has connected to the channel</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>- (void)session:(ZCCSession *)<em>session</em> didFailToConnectWithError:(NSError *)<em>error</em></code></div>
+
+		    
+			
+			<div class="method-subsection arguments-section parameters">
+				<h4 class="method-subtitle parameter-title">Parameters</h4>
+				<table class="argument-def parameter-def">
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>session</code></th>
+						<td><p>the session that failed to connect</p></td>
+					</tr>
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>error</code></th>
+						<td><p>object describing why the session failed to connect. Most errors will be in the
+<code>ZCCErrorDomain</code> error domain, and the error&rsquo;s <code>code</code> property will be
+a <code>ZCCErrorCode</code> value.</p></td>
+					</tr>
+				
+				</table>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection discussion-section">
+				<h4 class="method-subtitle">Discussion</h4>
+				<p>This method is called when the session fails to connect to the Zello channel. <code>error</code>
+describes the reason for the failure to connect.</p>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCSession.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div><div class="section-method">
+	<a name="//api/name/sessionDidConnect:" title="sessionDidConnect:"></a>
+	<h3 class="method-title"><code><a href="#//api/name/sessionDidConnect:">&ndash;&nbsp;sessionDidConnect:</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>Called when the session finishes connecting to the server and channel</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>- (void)sessionDidConnect:(ZCCSession *)<em>session</em></code></div>
+
+		    
+			
+			<div class="method-subsection arguments-section parameters">
+				<h4 class="method-subtitle parameter-title">Parameters</h4>
+				<table class="argument-def parameter-def">
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>session</code></th>
+						<td><p>the session that has just connected</p></td>
+					</tr>
+				
+				</table>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection discussion-section">
+				<h4 class="method-subtitle">Discussion</h4>
+				<p>After <code>sessionDidConnect:</code> is called, the connection to the server is
+fully established. You can now call <code>-startVoiceMessage</code> to start speaking to the
+channel, and will receive incoming voice messages when other users speak to the channel.</p>
+
+<p><code>sessionDidConnect:</code> <em>is</em> called after an automatic reconnect, so be aware that your
+delegate may see <code>sessionDidConnect:</code> called multiple times without <code><a href="#//api/name/sessionDidDisconnect:">sessionDidDisconnect:</a></code>
+being called. See <code><a href="#//api/name/session:willReconnectForReason:">session:willReconnectForReason:</a></code> for more about automatic reconnection.</p>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCSession.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div><div class="section-method">
+	<a name="//api/name/sessionDidDisconnect:" title="sessionDidDisconnect:"></a>
+	<h3 class="method-title"><code><a href="#//api/name/sessionDidDisconnect:">&ndash;&nbsp;sessionDidDisconnect:</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>Called when the session finishes disconnecting from the server</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>- (void)sessionDidDisconnect:(ZCCSession *)<em>session</em></code></div>
+
+		    
+			
+			<div class="method-subsection arguments-section parameters">
+				<h4 class="method-subtitle parameter-title">Parameters</h4>
+				<table class="argument-def parameter-def">
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>session</code></th>
+						<td><p>the session that has disconnected</p></td>
+					</tr>
+				
+				</table>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection discussion-section">
+				<h4 class="method-subtitle">Discussion</h4>
+				<p>If the session is disconnected due to a network change or other unexpected event,
+this method is <em>not</em> called, and <code><a href="#//api/name/session:willReconnectForReason:">session:willReconnectForReason:</a></code> is called instead.
+In that case, the session automatically attempts to reconnect. You can prevent automatic reconnect
+attempts by implementing <code>session:willReconnectForReason:</code> and returning <code>NO</code>.</p>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCSession.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div><div class="section-method">
+	<a name="//api/name/session:willReconnectForReason:" title="session:willReconnectForReason:"></a>
+	<h3 class="method-title"><code><a href="#//api/name/session:willReconnectForReason:">&ndash;&nbsp;session:willReconnectForReason:</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>Called when the session has become unexpectedly disconnected.</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>- (BOOL)session:(ZCCSession *)<em>session</em> willReconnectForReason:(ZCCReconnectReason)<em>reason</em></code></div>
+
+		    
+			
+			<div class="method-subsection arguments-section parameters">
+				<h4 class="method-subtitle parameter-title">Parameters</h4>
+				<table class="argument-def parameter-def">
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>session</code></th>
+						<td><p>the session that has disconnected</p></td>
+					</tr>
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>reason</code></th>
+						<td><p>The reason the session was disconnected</p></td>
+					</tr>
+				
+				</table>
+			</div>
+			
+
+			
+			<div class="method-subsection return">
+				<h4 class="method-subtitle parameter-title">Return Value</h4>
+				<p>YES to allow the reconnect attempt to continue, NO to prevent the session from attempting
+to reconnect.</p>
+			</div>
+			
+
+			
+
+			
+			<div class="method-subsection discussion-section">
+				<h4 class="method-subtitle">Discussion</h4>
+				<p>When the session becomes unexpectedly disconnected from a network change or other
+event, it will automatically attempt to reconnect with a randomized backoff delay. You can prevent
+the session from reconnecting by implementing this method and returning <code>NO</code>.</p>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCSession.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div><div class="section-method">
+	<a name="//api/name/session:outgoingVoice:didEncounterError:" title="session:outgoingVoice:didEncounterError:"></a>
+	<h3 class="method-title"><code><a href="#//api/name/session:outgoingVoice:didEncounterError:">&ndash;&nbsp;session:outgoingVoice:didEncounterError:</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>Called if an outgoing stream closes with an error</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>- (void)session:(ZCCSession *)<em>session</em> outgoingVoice:(ZCCOutgoingVoiceStream *)<em>stream</em> didEncounterError:(NSError *)<em>error</em></code></div>
+
+		    
+			
+			<div class="method-subsection arguments-section parameters">
+				<h4 class="method-subtitle parameter-title">Parameters</h4>
+				<table class="argument-def parameter-def">
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>session</code></th>
+						<td><p>the session containing the stream</p></td>
+					</tr>
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>stream</code></th>
+						<td><p>the stream that has just closed</p></td>
+					</tr>
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>error</code></th>
+						<td><p>object describing the error that occurred</p></td>
+					</tr>
+				
+				</table>
+			</div>
+			
+
+			
+
+			
+
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCSession.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div><div class="section-method">
+	<a name="//api/name/session:outgoingVoiceDidChangeState:" title="session:outgoingVoiceDidChangeState:"></a>
+	<h3 class="method-title"><code><a href="#//api/name/session:outgoingVoiceDidChangeState:">&ndash;&nbsp;session:outgoingVoiceDidChangeState:</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>Called whenever the state of the outgoing stream changes</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>- (void)session:(ZCCSession *)<em>session</em> outgoingVoiceDidChangeState:(ZCCOutgoingVoiceStream *)<em>stream</em></code></div>
+
+		    
+			
+			<div class="method-subsection arguments-section parameters">
+				<h4 class="method-subtitle parameter-title">Parameters</h4>
+				<table class="argument-def parameter-def">
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>session</code></th>
+						<td><p>the session containing the stream</p></td>
+					</tr>
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>stream</code></th>
+						<td><p>the stream whose state has changed. Its <code>state</code> property reflects the
+new state of the stream.</p></td>
+					</tr>
+				
+				</table>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection discussion-section">
+				<h4 class="method-subtitle">Discussion</h4>
+				<p>The stream&rsquo;s new state is available as <code>stream.state</code></p>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCSession.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div><div class="section-method">
+	<a name="//api/name/session:outgoingVoice:didUpdateProgress:" title="session:outgoingVoice:didUpdateProgress:"></a>
+	<h3 class="method-title"><code><a href="#//api/name/session:outgoingVoice:didUpdateProgress:">&ndash;&nbsp;session:outgoingVoice:didUpdateProgress:</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>Called periodically while transmitting audio to report the progress of the stream</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>- (void)session:(ZCCSession *)<em>session</em> outgoingVoice:(ZCCOutgoingVoiceStream *)<em>stream</em> didUpdateProgress:(NSTimeInterval)<em>position</em></code></div>
+
+		    
+			
+			<div class="method-subsection arguments-section parameters">
+				<h4 class="method-subtitle parameter-title">Parameters</h4>
+				<table class="argument-def parameter-def">
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>session</code></th>
+						<td><p>the session containing the stream that is reporting progress</p></td>
+					</tr>
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>stream</code></th>
+						<td><p>the stream that is reporting its progress</p></td>
+					</tr>
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>position</code></th>
+						<td><p>time in seconds of voice since the stream started. This may not match wall time,
+especially if the stream has a custom voice source that is providing voice data from a file or
+another source that does not run in real-time.</p></td>
+					</tr>
+				
+				</table>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection discussion-section">
+				<h4 class="method-subtitle">Discussion</h4>
+				<p>This callback is called frequently, so avoid doing heavy processing work in response
+to it. The <code>position</code> reported is in media time from the beginning of the stream, not
+wall time.</p>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCSession.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div><div class="section-method">
+	<a name="//api/name/session:incomingVoiceWillStart:" title="session:incomingVoiceWillStart:"></a>
+	<h3 class="method-title"><code><a href="#//api/name/session:incomingVoiceWillStart:">&ndash;&nbsp;session:incomingVoiceWillStart:</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>Implement this method to perform custom handling of incoming voice data</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>- (nullable ZCCIncomingVoiceConfiguration *)session:(ZCCSession *)<em>session</em> incomingVoiceWillStart:(ZCCIncomingVoiceStreamInfo *)<em>streamInfo</em></code></div>
+
+		    
+			
+			<div class="method-subsection arguments-section parameters">
+				<h4 class="method-subtitle parameter-title">Parameters</h4>
+				<table class="argument-def parameter-def">
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>session</code></th>
+						<td><p>the session that is about to open a new incoming voice stream</p></td>
+					</tr>
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>streamInfo</code></th>
+						<td><p>an object describing the voice source. You can use this information to determine
+whether to override the default audio handling.</p></td>
+					</tr>
+				
+				</table>
+			</div>
+			
+
+			
+			<div class="method-subsection return">
+				<h4 class="method-subtitle parameter-title">Return Value</h4>
+				<p>a configuration object specifying a custom voice receiver to handle incoming voice data.
+If you return nil instead of a configuration object, the stream will play through the current
+audio output route as normal.</p>
+			</div>
+			
+
+			
+
+			
+			<div class="method-subsection discussion-section">
+				<h4 class="method-subtitle">Discussion</h4>
+				<p>If this method is implemented by your session delegate, you can override the Zello
+Channels SDK&rsquo;s default processing of incoming voice streams. This method will be called when
+another user begins speaking on the channel. The <code>streamInfo</code> object describes the
+channel and the user who has begun speaking. Your implementation can return <code>nil</code> to
+tell the Zello Channels SDK to play the incoming stream through the device speaker. If you want
+to perform different handling of the audio, you can return a <code><a href="../Classes/ZCCIncomingVoiceConfiguration.html">ZCCIncomingVoiceConfiguration</a></code>
+object instead, with a reference to a custom <code><a href="../Protocols/ZCCVoiceReceiver.html">ZCCVoiceReceiver</a></code>.</p>
+
+<p>If this method is not implemented or returns nil, the Zello Channels SDK will perform its default
+incoming voice handling and play the audio through the current output audio route.</p>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCSession.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div><div class="section-method">
+	<a name="//api/name/session:incomingVoiceDidStart:" title="session:incomingVoiceDidStart:"></a>
+	<h3 class="method-title"><code><a href="#//api/name/session:incomingVoiceDidStart:">&ndash;&nbsp;session:incomingVoiceDidStart:</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>Called when an incoming stream starts</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>- (void)session:(ZCCSession *)<em>session</em> incomingVoiceDidStart:(ZCCIncomingVoiceStream *)<em>stream</em></code></div>
+
+		    
+			
+			<div class="method-subsection arguments-section parameters">
+				<h4 class="method-subtitle parameter-title">Parameters</h4>
+				<table class="argument-def parameter-def">
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>session</code></th>
+						<td><p>the session containing the new stream</p></td>
+					</tr>
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>stream</code></th>
+						<td><p>the new stream</p></td>
+					</tr>
+				
+				</table>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection discussion-section">
+				<h4 class="method-subtitle">Discussion</h4>
+				<p>When another user begins speaking in the channel, this method is called to provide
+your app with the new incoming voice stream.</p>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCSession.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div><div class="section-method">
+	<a name="//api/name/session:incomingVoiceDidStop:" title="session:incomingVoiceDidStop:"></a>
+	<h3 class="method-title"><code><a href="#//api/name/session:incomingVoiceDidStop:">&ndash;&nbsp;session:incomingVoiceDidStop:</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>Called when an incoming stream stops</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>- (void)session:(ZCCSession *)<em>session</em> incomingVoiceDidStop:(ZCCIncomingVoiceStream *)<em>stream</em></code></div>
+
+		    
+			
+			<div class="method-subsection arguments-section parameters">
+				<h4 class="method-subtitle parameter-title">Parameters</h4>
+				<table class="argument-def parameter-def">
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>session</code></th>
+						<td><p>the session containing the stream that just stopped</p></td>
+					</tr>
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>stream</code></th>
+						<td><p>the stream that just stopped</p></td>
+					</tr>
+				
+				</table>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection discussion-section">
+				<h4 class="method-subtitle">Discussion</h4>
+				<p>This method is called when a user that was speaking on the channel stops speaking,
+and the stream containing their voice data closes.</p>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCSession.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div><div class="section-method">
+	<a name="//api/name/session:incomingVoice:didUpdateProgress:" title="session:incomingVoice:didUpdateProgress:"></a>
+	<h3 class="method-title"><code><a href="#//api/name/session:incomingVoice:didUpdateProgress:">&ndash;&nbsp;session:incomingVoice:didUpdateProgress:</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>Called periodically while receiving audio</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>- (void)session:(ZCCSession *)<em>session</em> incomingVoice:(ZCCIncomingVoiceStream *)<em>stream</em> didUpdateProgress:(NSTimeInterval)<em>position</em></code></div>
+
+		    
+			
+			<div class="method-subsection arguments-section parameters">
+				<h4 class="method-subtitle parameter-title">Parameters</h4>
+				<table class="argument-def parameter-def">
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>session</code></th>
+						<td><p>the session containing the stream that is reporting progress</p></td>
+					</tr>
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>stream</code></th>
+						<td><p>the stream that is reporting its progress</p></td>
+					</tr>
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>position</code></th>
+						<td><p>time in seconds of voice since the stream started. This may not match wall time,
+especially if the stream has a custom voice receiver that is not passing audio through to the
+device speaker.</p></td>
+					</tr>
+				
+				</table>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection discussion-section">
+				<h4 class="method-subtitle">Discussion</h4>
+				<p>This callback is called frequently, so avoid doing heavy processing work in response
+to it. The <code>position</code> reported is in media time from the beginning of the stream, not
+wall time.</p>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCSession.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div>
+						</div>
+						
+					</div>
+					
+					
+
+                    
+                    
+          
+				</main>
+
+				<footer>
+					<div class="footer-copyright">
+						
+						<p class="copyright">Copyright &copy; 2018 Zello. All rights reserved. Updated: 2018-04-02</p>
+						
+						
+						<p class="generator">Generated by <a href="http://appledoc.gentlebytes.com">appledoc 2.2.1 (build 1334)</a>.</p>
+						
+					</div>
+				</footer>
+			</div>
+		</div>
+	</article>
+
+	<script src="../js/script.js"></script>
+</body>
+</html>
