@@ -83,7 +83,6 @@
 		A804408A1FD5C01000BFD1BF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A81802651FD7848500F5897F /* RiderTalkViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RiderTalkViewController.h; sourceTree = "<group>"; };
 		A81802661FD7848500F5897F /* RiderTalkViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RiderTalkViewController.m; sourceTree = "<group>"; };
-		A83CD58A1FD61CE6004F0FF6 /* sdk.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = sdk.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		A84FC6011FDA50830057ED6F /* MapKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MapKit.framework; path = System/Library/Frameworks/MapKit.framework; sourceTree = SDKROOT; };
 		A84FC6061FDADF750057ED6F /* TalkViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TalkViewController.h; sourceTree = "<group>"; };
 		A84FC6071FDADF750057ED6F /* TalkViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TalkViewController.m; sourceTree = "<group>"; };
@@ -105,7 +104,6 @@
 		D14E612D204F3C4D00393FCA /* QAViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = QAViewController.m; sourceTree = "<group>"; };
 		D18A3B572051A527003EDE38 /* FileAudioSource.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FileAudioSource.h; sourceTree = "<group>"; };
 		D18A3B582051A527003EDE38 /* FileAudioSource.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FileAudioSource.m; sourceTree = "<group>"; };
-		D1B7533F203CBE76009D9C81 /* SocketRocket.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = SocketRocket.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		D1C6EA9F203754400017797A /* ZelloChannelKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = ZelloChannelKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		D1C8899B204090A200814E5A /* Zello.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Zello.h; sourceTree = "<group>"; };
 		D1C8899C204090A200814E5A /* Zello.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Zello.m; sourceTree = "<group>"; };
@@ -196,10 +194,8 @@
 		A83CD5881FD61CE6004F0FF6 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				D1B7533F203CBE76009D9C81 /* SocketRocket.framework */,
 				D1C6EA9F203754400017797A /* ZelloChannelKit.framework */,
 				A84FC6011FDA50830057ED6F /* MapKit.framework */,
-				A83CD58A1FD61CE6004F0FF6 /* sdk.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";

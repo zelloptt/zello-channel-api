@@ -387,6 +387,11 @@ static void LogWarningForDevelopmentToken(NSString *token) {
 
 - (void)socket:(nonnull ZCCSocket *)socket didReportError:(nonnull NSString *)errorMessage {
   NSLog(@"[ZCC] Error from websocket: %@", errorMessage);
+  if ([errorMessage caseInsensitiveCompare:@"supernode closed connection"] == NSOrderedSame) {
+    [self.runner runSync:^{
+      self.refreshToken = nil;
+    }];
+  }
 }
 
 #pragma mark - Private
