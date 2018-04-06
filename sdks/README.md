@@ -68,7 +68,7 @@ fi
 
 ### Getting an authentication token
 
-In order for your app to logon to the Zello system, you must provide an authentication token. This token identifies you as an app developer and proves that the app has permission to connect to your channels.
+In order for your app to logon to the Zello system, you must provide an authentication token. This token identifies you as an app developer and proves that the app has permission to connect to your channels. See the [Zello Channel API Authentication documentation](https://github.com/zelloptt/zello-channel-api/blob/master/auth/README.md) for more information on how to generate authentication tokens on your system.
 
 #### Development tokens
 > **TODO:** Update link for generating development tokens
@@ -76,9 +76,7 @@ In order for your app to logon to the Zello system, you must provide an authenti
 
 During development, you can use a development authentication token to access the Zello server. You can generate a development token by visiting [the Zello dashboard](https://mesh.zellowork.com/keys.html). Click the "+ Create Key" button and copy the value in the "Sample Development Token" field. Save this value immediately, as you will not be able to look it up again in the Zello console.
 
-> **Q:** Is there a document I can point to that describes how to generate valid production auth tokens?
-
-Development tokens are only valid for use in debug builds of your app. When you are ready to build your app for production, you will need to create authentication tokens on your own server and provide them to the client app as described in _document yet to be written_.
+Development tokens are only valid for use during development of your app. When you are ready to build your app for production, you will need to create authentication tokens on your own server and provide them to the client app as described above. Otherwise, your app may become unable to connect to the Zello Channel server unexpectedly when the development token expires.
 
 ### Creating a session and logging on
 
