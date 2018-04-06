@@ -66,6 +66,7 @@ Authenticates the client and connects to a channel. This must be the first comma
 | `username` | string | (optional) Username to logon with. If not provided the client will connect anonymously.
 | `password` | string | (optional) Password to logon with. Required if username is provided.
 | `channel` | string | The name of the channel to connect to. 
+| `listen_only` | boolean | (optional) Set to `true` to connect in listen-only mode.
 
 #### Request:
 
@@ -192,7 +193,22 @@ Errors and state changes:
 
 |Error Code | Description
 |---|---
-||
+|unknown command | Server didn't recognize the command received from the client.
+|internal server error | An internal error occured within the server. If the error persists please contact us at support@zello.com
+|invalid json | The command received included malformed JSON
+|invalid request | The server couldn't recognize command format.
+|not authorized | Username, password or token are not valid.
+|not logged in | Server received a command before successful `logon`.
+|not enough params | The command doesn't include some of the required attributes.
+|supernode closed connection | The connection to Zello network was closed. You can try re-connecting.
+|channel is not ready | Channel you are trying to talk to is not yet connected. Wait for channel `online` status before sending a message
+|listen only connection | The client tried to send a message over listen-only connection.
+|failed to start stream | Unable to start the stream for unknown reason. You can try again later.
+|failed to stop stream | Unable to stop the stream for unknown reason. This error is safe to ignore.
+|failed to send data | An error occured while trying to send stream data packet.
+|invalid audio packet | Malformed audio packet is received.
+
+
 
 ## Supported features
 
