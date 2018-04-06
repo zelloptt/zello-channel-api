@@ -104,7 +104,22 @@ Successful response includes `refresh_token` which can be use to quickly reconne
 After successfully connecting to the channel and reciving [channel status](#on_channel_status) you can start sending voice messages. Each message is sent as stream, which begins with `start_stream` command followed by the sequence of binary packets with audio data and ends with `stop_stream` command. Zello uses [Opus](http://opus-codec.org/) voice codec to compress audio stream.
 
 ### `start_stream`
-Request:
+
+Starts a new stream to the channel. The successful response includes `stream_id` which must be used in all data packets for this message as well as in `stop_stream` command.
+
+#### Attributes
+
+| Name | Type | Value  / Description
+|---|---|---
+| `command` | string | `start_stream `
+| `seq` | integer | Command sequence number
+| `type` | string | Stream type. Only `audio` is currently supported
+| `codec` | string | The name of audio codec used. Required for `audio` streams. Must be `opus`.
+| `codec_header` | string | base64-encoded codec header buffer. Required for `opus` streams.
+| `packet_duration` | integer | Audio packet duration in milliseconds. Values between 20 ms and 200 ms are supported.
+
+
+#### Request:
 
 ```json
 {
@@ -116,7 +131,7 @@ Request:
   "packet_duration": 200
 }
 ``` 
-Response:
+#### Response:
 
 ```json
 {
@@ -127,6 +142,18 @@ Response:
 ```
 
 ### `stop_stream`
+
+Stops outgoing stream. Send this command after you sent the last data packet. 
+
+#### Attributes
+
+| Name | Type | Value  / Description
+|---|---|---
+| `command` | string | `stop_stream `
+| `stream_id ` | integer | Stream ID as returned in response to `start_stream` command
+
+
+#### Request:
 
 ```json
 {
@@ -183,7 +210,7 @@ Errors and state changes:
 ```json
 {
   "command": "on_error",
-  "error": "Error description"
+  "error": "error code"
 }
 ```
 
