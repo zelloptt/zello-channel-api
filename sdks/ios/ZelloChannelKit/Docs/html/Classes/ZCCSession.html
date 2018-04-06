@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+
+	<title>ZCCSession Class Reference</title>
+
+	<link rel="stylesheet" href="../css/style.css">
+	<meta name="viewport" content="initial-scale=1, maximum-scale=1.4">
+	<meta name="generator" content="appledoc 2.2.1 (build 1334)">
+</head>
+<body class="appledoc">
+	<header>
+		<div class="container" class="hide-in-xcode">
+			
+			<h1 id="library-title">
+				<a href="../index.html">Zello Channels SDK </a>
+			</h1>
+
+			<p id="developer-home">
+				<a href="../index.html">Zello</a>
+			</p>
+			
+		</div>
+	</header>
+
+	<aside>
+		<div class="container">
+			<nav>
+				<ul id="header-buttons" role="toolbar">
+					<li><a href="../index.html">Index</a></li>
+<li><a href="../hierarchy.html">Hierarchy</a></li>
+
+					<li id="on-this-page" role="navigation">
+						<label>
+							On This Page
+
+							<div class="chevron">
+								<div class="chevy chevron-left"></div>
+								<div class="chevy chevron-right"></div>
+							</div>
+
+							<select id="jump-to">
+	<option value="top">Jump To&#133;</option>
+	
+	<option value="overview">Overview</option>
+	
+
+	
+	
+	<option value="tasks">Tasks</option>
+	
+	
+
+	
+	
+	<optgroup label="Properties">
+		
+		<option value="//api/name/activeStreams">activeStreams</option>
+		
+		<option value="//api/name/address">address</option>
+		
+		<option value="//api/name/channel">channel</option>
+		
+		<option value="//api/name/delegate">delegate</option>
+		
+		<option value="//api/name/password">password</option>
+		
+		<option value="//api/name/requestTimeout">requestTimeout</option>
+		
+		<option value="//api/name/state">state</option>
+		
+		<option value="//api/name/username">username</option>
+		
+	</optgroup>
+	
+
+	
+
+	
+	<optgroup label="Instance Methods">
+		
+		<option value="//api/name/connect">- connect</option>
+		
+		<option value="//api/name/disconnect">- disconnect</option>
+		
+		<option value="//api/name/init">- init</option>
+		
+		<option value="//api/name/initWithURL:authToken:channel:callbackQueue:">- initWithURL:authToken:channel:callbackQueue:</option>
+		
+		<option value="//api/name/initWithURL:authToken:username:password:channel:callbackQueue:">- initWithURL:authToken:username:password:channel:callbackQueue:</option>
+		
+		<option value="//api/name/startVoiceMessage">- startVoiceMessage</option>
+		
+		<option value="//api/name/startVoiceMessageWithSource:">- startVoiceMessageWithSource:</option>
+		
+	</optgroup>
+	
+	
+</select>
+						</label>
+					</li>
+				</ul>
+			</nav>
+		</div>
+	</aside>
+
+	<article>
+		<div id="overview_contents" class="container">
+			<div id="content">
+				<main role="main">
+					<h1 class="title">ZCCSession Class Reference</h1>
+
+					
+					<div class="section section-specification"><table cellspacing="0"><tbody>
+						<tr>
+	<th>Inherits from</th>
+	<td>NSObject</td>
+</tr><tr>
+	<th>Declared in</th>
+	<td>ZCCSession.h</td>
+</tr>
+						</tbody></table></div>
+					
+
+                    
+					
+					<div class="section section-overview">
+						<a title="Overview" name="overview"></a>
+						<h2 class="subtitle subtitle-overview">Overview</h2>
+						<p>ZCCSession represents the connection to the Zello Channels server. Each session you create
+connects to a single server and channel specified when the server is created. If you are
+connecting as a specific user, you must also specify the username and password when you create
+the session.</p>
+					</div>
+					
+					
+
+					
+					
+					<div class="section section-tasks">
+						<a title="Tasks" name="tasks"></a>
+						
+
+						
+						
+
+						<div class="task-list">
+							<div class="section-method">
+	<a name="//api/name/delegate" title="delegate"></a>
+	<h3 class="method-title"><code><a href="#//api/name/delegate">&nbsp;&nbsp;delegate</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>The delegate receives callbacks when the connection or stream states change</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>@property (atomic, weak, nullable) id&lt;ZCCSessionDelegate&gt; delegate</code></div>
+
+		    
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection discussion-section">
+				<h4 class="method-subtitle">Discussion</h4>
+				<p>The delegate receives callbacks when the connection or stream states change</p>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCSession.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div><div class="section-method">
+	<a name="//api/name/username" title="username"></a>
+	<h3 class="method-title"><code><a href="#//api/name/username">&nbsp;&nbsp;username</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>If not set in the initializer, will be the empty string</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>@property (nonatomic, copy, readonly) NSString *username</code></div>
+
+		    
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection discussion-section">
+				<h4 class="method-subtitle">Discussion</h4>
+				<p>If not set in the initializer, will be the empty string</p>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCSession.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div><div class="section-method">
+	<a name="//api/name/password" title="password"></a>
+	<h3 class="method-title"><code><a href="#//api/name/password">&nbsp;&nbsp;password</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>If not set in the initializer, will be the empty string</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>@property (nonatomic, copy, readonly) NSString *password</code></div>
+
+		    
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection discussion-section">
+				<h4 class="method-subtitle">Discussion</h4>
+				<p>If not set in the initializer, will be the empty string</p>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCSession.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div><div class="section-method">
+	<a name="//api/name/channel" title="channel"></a>
+	<h3 class="method-title"><code><a href="#//api/name/channel">&nbsp;&nbsp;channel</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>The name of the channel to connect to</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>@property (nonatomic, copy, readonly) NSString *channel</code></div>
+
+		    
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection discussion-section">
+				<h4 class="method-subtitle">Discussion</h4>
+				<p>The name of the channel to connect to</p>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCSession.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div><div class="section-method">
+	<a name="//api/name/address" title="address"></a>
+	<h3 class="method-title"><code><a href="#//api/name/address">&nbsp;&nbsp;address</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>The URL of the server to connect to</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>@property (nonatomic, readonly) NSURL *address</code></div>
+
+		    
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection discussion-section">
+				<h4 class="method-subtitle">Discussion</h4>
+				<p>The URL of the server to connect to</p>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCSession.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div><div class="section-method">
+	<a name="//api/name/state" title="state"></a>
+	<h3 class="method-title"><code><a href="#//api/name/state">&nbsp;&nbsp;state</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>The current state of the session object</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>@property (atomic, readonly) ZCCSessionState state</code></div>
+
+		    
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection discussion-section">
+				<h4 class="method-subtitle">Discussion</h4>
+				<p>The current state of the session object</p>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCSession.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div><div class="section-method">
+	<a name="//api/name/activeStreams" title="activeStreams"></a>
+	<h3 class="method-title"><code><a href="#//api/name/activeStreams">&nbsp;&nbsp;activeStreams</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>Collection of active streams</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>@property (atomic, readonly, nonnull) NSArray&lt;ZCCVoiceStream*&gt; *activeStreams</code></div>
+
+		    
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection discussion-section">
+				<h4 class="method-subtitle">Discussion</h4>
+				<p>Collection of active streams</p>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCSession.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div><div class="section-method">
+	<a name="//api/name/requestTimeout" title="requestTimeout"></a>
+	<h3 class="method-title"><code><a href="#//api/name/requestTimeout">&nbsp;&nbsp;requestTimeout</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>Requests to the Zello Channels server will fail with a timed out error if requestTimeout elapses
+without a response from the server. Defaults to 30 seconds.</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>@property (atomic) NSTimeInterval requestTimeout</code></div>
+
+		    
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection discussion-section">
+				<h4 class="method-subtitle">Discussion</h4>
+				<p>Requests to the Zello Channels server will fail with a timed out error if requestTimeout elapses
+without a response from the server. Defaults to 30 seconds.</p>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCSession.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div><div class="section-method">
+	<a name="//api/name/init" title="init"></a>
+	<h3 class="method-title"><code><a href="#//api/name/init">&ndash;&nbsp;init</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>Unavailable default initializer; use a more specific one</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>- (instancetype)init</code></div>
+
+		    
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection discussion-section">
+				<h4 class="method-subtitle">Discussion</h4>
+				<p>Use -initWithURL:channel:callbackQueue: or -initWithURL:username:password:channel:callbackQueue:
+instead.</p>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCSession.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div><div class="section-method">
+	<a name="//api/name/initWithURL:authToken:username:password:channel:callbackQueue:" title="initWithURL:authToken:username:password:channel:callbackQueue:"></a>
+	<h3 class="method-title"><code><a href="#//api/name/initWithURL:authToken:username:password:channel:callbackQueue:">&ndash;&nbsp;initWithURL:authToken:username:password:channel:callbackQueue:</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>Initializes a connection session to the Zello channels server.</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>- (instancetype)initWithURL:(NSURL *)<em>url</em> authToken:(NSString *)<em>token</em> username:(nullable NSString *)<em>username</em> password:(nullable NSString *)<em>password</em> channel:(NSString *)<em>channel</em> callbackQueue:(nullable dispatch_queue_t)<em>queue</em></code></div>
+
+		    
+			
+			<div class="method-subsection arguments-section parameters">
+				<h4 class="method-subtitle parameter-title">Parameters</h4>
+				<table class="argument-def parameter-def">
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>url</code></th>
+						<td><p>the address of the server to connect to</p></td>
+					</tr>
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>token</code></th>
+						<td><p>JWT value to authenticate your app to the Zello channels server</p></td>
+					</tr>
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>username</code></th>
+						<td><p>the username of the account that is connecting. If nil, the session will attempt
+to connect anonymously.</p></td>
+					</tr>
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>password</code></th>
+						<td><p>the account&rsquo;s password</p></td>
+					</tr>
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>channel</code></th>
+						<td><p>the name of the channel to connect to</p></td>
+					</tr>
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>queue</code></th>
+						<td><p>the queue that ZCCSessionDelegate callbacks are called on. If nil, the delegate
+callbacks will be called on the main queue.</p></td>
+					</tr>
+				
+				</table>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection discussion-section">
+				<h4 class="method-subtitle">Discussion</h4>
+				<p>Initializes a connection session to the Zello channels server.</p>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCSession.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div><div class="section-method">
+	<a name="//api/name/initWithURL:authToken:channel:callbackQueue:" title="initWithURL:authToken:channel:callbackQueue:"></a>
+	<h3 class="method-title"><code><a href="#//api/name/initWithURL:authToken:channel:callbackQueue:">&ndash;&nbsp;initWithURL:authToken:channel:callbackQueue:</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>Initializes an anonymous connection session to the Zello channels server.</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>- (instancetype)initWithURL:(NSURL *)<em>url</em> authToken:(NSString *)<em>token</em> channel:(NSString *)<em>channel</em> callbackQueue:(nullable dispatch_queue_t)<em>queue</em></code></div>
+
+		    
+			
+			<div class="method-subsection arguments-section parameters">
+				<h4 class="method-subtitle parameter-title">Parameters</h4>
+				<table class="argument-def parameter-def">
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>url</code></th>
+						<td><p>the address of the server to connect to</p></td>
+					</tr>
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>token</code></th>
+						<td><p>JWT value to authenticate your app to the Zello channels server</p></td>
+					</tr>
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>channel</code></th>
+						<td><p>the name of the channel to connect to</p></td>
+					</tr>
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>queue</code></th>
+						<td><p>the queue that ZCCSessionDelegate callbacks are called on. If nil, the delegate
+callbacks will be called on the main queue.</p></td>
+					</tr>
+				
+				</table>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection discussion-section">
+				<h4 class="method-subtitle">Discussion</h4>
+				<p>Initializes an anonymous connection session to the Zello channels server.</p>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCSession.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div><div class="section-method">
+	<a name="//api/name/disconnect" title="disconnect"></a>
+	<h3 class="method-title"><code><a href="#//api/name/disconnect">&ndash;&nbsp;disconnect</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>Asynchronously disconnect from the server.</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>- (void)disconnect</code></div>
+
+		    
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection discussion-section">
+				<h4 class="method-subtitle">Discussion</h4>
+				<p>Asynchronously disconnect from the server.</p>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCSession.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div><div class="section-method">
+	<a name="//api/name/connect" title="connect"></a>
+	<h3 class="method-title"><code><a href="#//api/name/connect">&ndash;&nbsp;connect</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>Asynchronously connect to the server.</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>- (void)connect</code></div>
+
+		    
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection discussion-section">
+				<h4 class="method-subtitle">Discussion</h4>
+				<p>Asynchronously connect to the server.</p>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCSession.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div><div class="section-method">
+	<a name="//api/name/startVoiceMessage" title="startVoiceMessage"></a>
+	<h3 class="method-title"><code><a href="#//api/name/startVoiceMessage">&ndash;&nbsp;startVoiceMessage</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>Creates and starts a voice stream to the server.</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>- (nullable ZCCOutgoingVoiceStream *)startVoiceMessage</code></div>
+
+		    
+			
+
+			
+			<div class="method-subsection return">
+				<h4 class="method-subtitle parameter-title">Return Value</h4>
+				<p>the stream that will be handling the voice message. If microphone permission has not been
+granted to the app, returns nil.</p>
+			</div>
+			
+
+			
+
+			
+			<div class="method-subsection discussion-section">
+				<h4 class="method-subtitle">Discussion</h4>
+				<p>Creates and starts a voice stream to the server.</p>
+
+<p>The stream is created synchronously but started asynchronously, so it won&rsquo;t actually begin
+transmitting until a session:outgoingVoiceDidChangeState: message is sent to the delegate.</p>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCSession.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div><div class="section-method">
+	<a name="//api/name/startVoiceMessageWithSource:" title="startVoiceMessageWithSource:"></a>
+	<h3 class="method-title"><code><a href="#//api/name/startVoiceMessageWithSource:">&ndash;&nbsp;startVoiceMessageWithSource:</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>Creates and starts a voice stream to the server using a custom voice source instead of the device
+microphone. The Zello Channels SDK maintains a strong reference to the provided ZCCVoiceSource
+object until the outgoing stream closes.</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>- (ZCCOutgoingVoiceStream *)startVoiceMessageWithSource:(ZCCOutgoingVoiceConfiguration *)<em>sourceConfiguration</em></code></div>
+
+		    
+			
+			<div class="method-subsection arguments-section parameters">
+				<h4 class="method-subtitle parameter-title">Parameters</h4>
+				<table class="argument-def parameter-def">
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>sourceConfiguration</code></th>
+						<td><p>specifies the voice source object for the message</p></td>
+					</tr>
+				
+				</table>
+			</div>
+			
+
+			
+			<div class="method-subsection return">
+				<h4 class="method-subtitle parameter-title">Return Value</h4>
+				<p>the stream that will be handling the voice message</p>
+
+<p>@throw NSInvalidArgumentException if sourceConfiguration specifies an unsupported sample rate. Check
+ZCCOutgoingVoiceConfiguration.supportedSampleRates for supported sample rates.</p>
+			</div>
+			
+
+			
+
+			
+			<div class="method-subsection discussion-section">
+				<h4 class="method-subtitle">Discussion</h4>
+				<p>Creates and starts a voice stream to the server using a custom voice source instead of the device
+microphone. The Zello Channels SDK maintains a strong reference to the provided ZCCVoiceSource
+object until the outgoing stream closes.</p>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCSession.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div>
+						</div>
+						
+					</div>
+					
+					
+
+                    
+                    
+          
+				</main>
+
+				<footer>
+					<div class="footer-copyright">
+						
+						<p class="copyright">Copyright &copy; 2018 Zello. All rights reserved. Updated: 2018-04-02</p>
+						
+						
+						<p class="generator">Generated by <a href="http://appledoc.gentlebytes.com">appledoc 2.2.1 (build 1334)</a>.</p>
+						
+					</div>
+				</footer>
+			</div>
+		</div>
+	</article>
+
+	<script src="../js/script.js"></script>
+</body>
+</html>

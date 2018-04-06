@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<array>
+	<dict>
+		<key>topString</key>
+		<string>Pickup</string>
+		<key>imageAvatar</key>
+		<string>avatarEugene</string>
+		<key>bottomString</key>
+		<string>Eugene</string>
+	</dict>
+	<dict>
+		<key>topString</key>
+		<string>Pickup</string>
+		<key>imageAvatar</key>
+		<string>avatarNayeli</string>
+		<key>bottomString</key>
+		<string>Nayeli</string>
+	</dict>
+	<dict>
+		<key>topString</key>
+		<string>Pickup</string>
+		<key>imageAvatar</key>
+		<string>avatarWilliam</string>
+		<key>bottomString</key>
+		<string>Wil</string>
+	</dict>
+	<dict>
+		<key>topString</key>
+		<string>Pickup</string>
+		<key>imageAvatar</key>
+		<string>avatarJim</string>
+		<key>bottomString</key>
+		<string>Jim</string>
+	</dict>
+	<dict>
+		<key>topString</key>
+		<string>Pickup</string>
+		<key>imageAvatar</key>
+		<string>avatarAlex</string>
+		<key>bottomString</key>
+		<string>Alex</string>
+	</dict>
+	<dict>
+		<key>topString</key>
+		<string>Pickup</string>
+		<key>imageAvatar</key>
+		<string>avatarMike</string>
+		<key>bottomString</key>
+		<string>Mike</string>
+	</dict>
+	<dict>
+		<key>topString</key>
+		<string>Pickup</string>
+		<key>imageAvatar</key>
+		<string>avatarAlexander</string>
+		<key>bottomString</key>
+		<string>Alexander</string>
+	</dict>
+	<dict>
+		<key>topString</key>
+		<string>Pickup</string>
+		<key>imageAvatar</key>
+		<string>avatarAdam</string>
+		<key>bottomString</key>
+		<string>Adam</string>
+	</dict>
+	<dict>
+		<key>topString</key>
+		<string>Pickup</string>
+		<key>imageAvatar</key>
+		<string>avatarEugeneT</string>
+		<key>bottomString</key>
+		<string>Eugene T</string>
+	</dict>
+	<dict>
+		<key>topString</key>
+		<string>Pickup</string>
+		<key>imageAvatar</key>
+		<string>avatarEugeneP</string>
+		<key>bottomString</key>
+		<string>Eugene P</string>
+	</dict>
+</array>
+</plist>

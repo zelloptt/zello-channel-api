@@ -1,0 +1,730 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 48;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A80440661FD5C00F00BFD1BF /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = A80440651FD5C00F00BFD1BF /* AppDelegate.m */; };
+		A80440691FD5C00F00BFD1BF /* RiderDriverViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = A80440681FD5C00F00BFD1BF /* RiderDriverViewController.m */; };
+		A804406C1FD5C00F00BFD1BF /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A804406A1FD5C00F00BFD1BF /* Main.storyboard */; };
+		A804406E1FD5C00F00BFD1BF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A804406D1FD5C00F00BFD1BF /* Assets.xcassets */; };
+		A80440711FD5C00F00BFD1BF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A804406F1FD5C00F00BFD1BF /* LaunchScreen.storyboard */; };
+		A80440741FD5C00F00BFD1BF /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = A80440731FD5C00F00BFD1BF /* main.m */; };
+		A804407E1FD5C01000BFD1BF /* demoTests.m in Sources */ = {isa = PBXBuildFile; fileRef = A804407D1FD5C01000BFD1BF /* demoTests.m */; };
+		A80440891FD5C01000BFD1BF /* demoUITests.m in Sources */ = {isa = PBXBuildFile; fileRef = A80440881FD5C01000BFD1BF /* demoUITests.m */; };
+		A81802671FD7848500F5897F /* RiderTalkViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = A81802661FD7848500F5897F /* RiderTalkViewController.m */; };
+		A84FC6021FDA50830057ED6F /* MapKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A84FC6011FDA50830057ED6F /* MapKit.framework */; };
+		A84FC6081FDADF750057ED6F /* TalkViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = A84FC6071FDADF750057ED6F /* TalkViewController.m */; };
+		A858320D1FD70B45000ECA30 /* SessionViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = A858320C1FD70B45000ECA30 /* SessionViewController.m */; };
+		A87394D71FD86F490007C37B /* DriverNextCollectionViewCell.m in Sources */ = {isa = PBXBuildFile; fileRef = A87394D61FD86F490007C37B /* DriverNextCollectionViewCell.m */; };
+		A87394DB1FD875470007C37B /* DriverNext.m in Sources */ = {isa = PBXBuildFile; fileRef = A87394DA1FD875470007C37B /* DriverNext.m */; };
+		A87394E21FD877A60007C37B /* DriverViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = A87394E11FD877A60007C37B /* DriverViewController.m */; };
+		A87394E51FD8798F0007C37B /* driverlist.plist in Resources */ = {isa = PBXBuildFile; fileRef = A87394E41FD8798F0007C37B /* driverlist.plist */; };
+		A8C65F431FD9B3D100E62BE5 /* DriverTalkViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = A8C65F421FD9B3D100E62BE5 /* DriverTalkViewController.m */; };
+		A8C65F461FD9D37900E62BE5 /* BaseViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = A8C65F451FD9D37900E62BE5 /* BaseViewController.m */; };
+		D14E612E204F3C4D00393FCA /* QAViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = D14E612D204F3C4D00393FCA /* QAViewController.m */; };
+		D18A3B592051A527003EDE38 /* FileAudioSource.m in Sources */ = {isa = PBXBuildFile; fileRef = D18A3B582051A527003EDE38 /* FileAudioSource.m */; };
+		D1C6EA9E203754400017797A /* ZelloChannelKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D1C6EA9F203754400017797A /* ZelloChannelKit.framework */; };
+		D1C6EAA0203754550017797A /* ZelloChannelKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = D1C6EA9F203754400017797A /* ZelloChannelKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		D1C8899D204090A200814E5A /* Zello.m in Sources */ = {isa = PBXBuildFile; fileRef = D1C8899C204090A200814E5A /* Zello.m */; };
+		D1F6F54B2049B9890045A100 /* honk.wav in Resources */ = {isa = PBXBuildFile; fileRef = D1F6F54A2049B9890045A100 /* honk.wav */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A804407A1FD5C01000BFD1BF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A80440591FD5C00F00BFD1BF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A80440601FD5C00F00BFD1BF;
+			remoteInfo = demo;
+		};
+		A80440851FD5C01000BFD1BF /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A80440591FD5C00F00BFD1BF /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A80440601FD5C00F00BFD1BF;
+			remoteInfo = demo;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A85832001FD63166000ECA30 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 12;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				D1C6EAA0203754550017797A /* ZelloChannelKit.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		A80440611FD5C00F00BFD1BF /* ZelloChannelDemo.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ZelloChannelDemo.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A80440641FD5C00F00BFD1BF /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
+		A80440651FD5C00F00BFD1BF /* AppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = AppDelegate.m; sourceTree = "<group>"; };
+		A80440671FD5C00F00BFD1BF /* RiderDriverViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RiderDriverViewController.h; sourceTree = "<group>"; };
+		A80440681FD5C00F00BFD1BF /* RiderDriverViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RiderDriverViewController.m; sourceTree = "<group>"; };
+		A804406B1FD5C00F00BFD1BF /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		A804406D1FD5C00F00BFD1BF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		A80440701FD5C00F00BFD1BF /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		A80440721FD5C00F00BFD1BF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A80440731FD5C00F00BFD1BF /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
+		A80440791FD5C01000BFD1BF /* ZelloChannelDemoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ZelloChannelDemoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A804407D1FD5C01000BFD1BF /* demoTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = demoTests.m; sourceTree = "<group>"; };
+		A804407F1FD5C01000BFD1BF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A80440841FD5C01000BFD1BF /* ZelloChannelDemoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ZelloChannelDemoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A80440881FD5C01000BFD1BF /* demoUITests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = demoUITests.m; sourceTree = "<group>"; };
+		A804408A1FD5C01000BFD1BF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A81802651FD7848500F5897F /* RiderTalkViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RiderTalkViewController.h; sourceTree = "<group>"; };
+		A81802661FD7848500F5897F /* RiderTalkViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RiderTalkViewController.m; sourceTree = "<group>"; };
+		A83CD58A1FD61CE6004F0FF6 /* sdk.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = sdk.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		A84FC6011FDA50830057ED6F /* MapKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MapKit.framework; path = System/Library/Frameworks/MapKit.framework; sourceTree = SDKROOT; };
+		A84FC6061FDADF750057ED6F /* TalkViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TalkViewController.h; sourceTree = "<group>"; };
+		A84FC6071FDADF750057ED6F /* TalkViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TalkViewController.m; sourceTree = "<group>"; };
+		A858320B1FD70B45000ECA30 /* SessionViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SessionViewController.h; sourceTree = "<group>"; };
+		A858320C1FD70B45000ECA30 /* SessionViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = SessionViewController.m; sourceTree = "<group>"; };
+		A858320E1FD70E7D000ECA30 /* common.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = common.h; sourceTree = "<group>"; };
+		A87394D51FD86F490007C37B /* DriverNextCollectionViewCell.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DriverNextCollectionViewCell.h; sourceTree = "<group>"; };
+		A87394D61FD86F490007C37B /* DriverNextCollectionViewCell.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DriverNextCollectionViewCell.m; sourceTree = "<group>"; };
+		A87394D91FD875470007C37B /* DriverNext.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DriverNext.h; sourceTree = "<group>"; };
+		A87394DA1FD875470007C37B /* DriverNext.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DriverNext.m; sourceTree = "<group>"; };
+		A87394E01FD877A60007C37B /* DriverViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DriverViewController.h; sourceTree = "<group>"; };
+		A87394E11FD877A60007C37B /* DriverViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DriverViewController.m; sourceTree = "<group>"; };
+		A87394E41FD8798F0007C37B /* driverlist.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = driverlist.plist; sourceTree = "<group>"; };
+		A8C65F411FD9B3D100E62BE5 /* DriverTalkViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = DriverTalkViewController.h; sourceTree = "<group>"; };
+		A8C65F421FD9B3D100E62BE5 /* DriverTalkViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = DriverTalkViewController.m; sourceTree = "<group>"; };
+		A8C65F441FD9D37900E62BE5 /* BaseViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = BaseViewController.h; sourceTree = "<group>"; };
+		A8C65F451FD9D37900E62BE5 /* BaseViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = BaseViewController.m; sourceTree = "<group>"; };
+		D14E612C204F3C4D00393FCA /* QAViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = QAViewController.h; sourceTree = "<group>"; };
+		D14E612D204F3C4D00393FCA /* QAViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = QAViewController.m; sourceTree = "<group>"; };
+		D18A3B572051A527003EDE38 /* FileAudioSource.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FileAudioSource.h; sourceTree = "<group>"; };
+		D18A3B582051A527003EDE38 /* FileAudioSource.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FileAudioSource.m; sourceTree = "<group>"; };
+		D1B7533F203CBE76009D9C81 /* SocketRocket.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = SocketRocket.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		D1C6EA9F203754400017797A /* ZelloChannelKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = ZelloChannelKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		D1C8899B204090A200814E5A /* Zello.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Zello.h; sourceTree = "<group>"; };
+		D1C8899C204090A200814E5A /* Zello.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Zello.m; sourceTree = "<group>"; };
+		D1F6F54A2049B9890045A100 /* honk.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = honk.wav; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A804405E1FD5C00F00BFD1BF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D1C6EA9E203754400017797A /* ZelloChannelKit.framework in Frameworks */,
+				A84FC6021FDA50830057ED6F /* MapKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A80440761FD5C01000BFD1BF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A80440811FD5C01000BFD1BF /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A80440581FD5C00F00BFD1BF = {
+			isa = PBXGroup;
+			children = (
+				A80440631FD5C00F00BFD1BF /* ZelloChannelDemo */,
+				A804407C1FD5C01000BFD1BF /* ZelloChannelDemoTests */,
+				A80440871FD5C01000BFD1BF /* ZelloChannelDemoUITests */,
+				A83CD5881FD61CE6004F0FF6 /* Frameworks */,
+				A80440621FD5C00F00BFD1BF /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A80440621FD5C00F00BFD1BF /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A80440611FD5C00F00BFD1BF /* ZelloChannelDemo.app */,
+				A80440791FD5C01000BFD1BF /* ZelloChannelDemoTests.xctest */,
+				A80440841FD5C01000BFD1BF /* ZelloChannelDemoUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		A80440631FD5C00F00BFD1BF /* ZelloChannelDemo */ = {
+			isa = PBXGroup;
+			children = (
+				D18A3B562051A4FC003EDE38 /* Audio */,
+				A87394E31FD879680007C37B /* Data */,
+				A87394DC1FD876840007C37B /* App Delegate */,
+				A804406D1FD5C00F00BFD1BF /* Assets.xcassets */,
+				A87394DD1FD8769D0007C37B /* Interfaces */,
+				A87394D81FD875060007C37B /* Models */,
+				A87394DF1FD8770C0007C37B /* Supporting Files */,
+				A87394DE1FD876C30007C37B /* Views */,
+			);
+			path = ZelloChannelDemo;
+			sourceTree = "<group>";
+		};
+		A804407C1FD5C01000BFD1BF /* ZelloChannelDemoTests */ = {
+			isa = PBXGroup;
+			children = (
+				A804407D1FD5C01000BFD1BF /* demoTests.m */,
+				A804407F1FD5C01000BFD1BF /* Info.plist */,
+			);
+			path = ZelloChannelDemoTests;
+			sourceTree = "<group>";
+		};
+		A80440871FD5C01000BFD1BF /* ZelloChannelDemoUITests */ = {
+			isa = PBXGroup;
+			children = (
+				A80440881FD5C01000BFD1BF /* demoUITests.m */,
+				A804408A1FD5C01000BFD1BF /* Info.plist */,
+			);
+			path = ZelloChannelDemoUITests;
+			sourceTree = "<group>";
+		};
+		A83CD5881FD61CE6004F0FF6 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				D1B7533F203CBE76009D9C81 /* SocketRocket.framework */,
+				D1C6EA9F203754400017797A /* ZelloChannelKit.framework */,
+				A84FC6011FDA50830057ED6F /* MapKit.framework */,
+				A83CD58A1FD61CE6004F0FF6 /* sdk.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		A87394D81FD875060007C37B /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				A87394D91FD875470007C37B /* DriverNext.h */,
+				A87394DA1FD875470007C37B /* DriverNext.m */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		A87394DC1FD876840007C37B /* App Delegate */ = {
+			isa = PBXGroup;
+			children = (
+				A80440641FD5C00F00BFD1BF /* AppDelegate.h */,
+				A80440651FD5C00F00BFD1BF /* AppDelegate.m */,
+				D1C8899B204090A200814E5A /* Zello.h */,
+				D1C8899C204090A200814E5A /* Zello.m */,
+			);
+			path = "App Delegate";
+			sourceTree = "<group>";
+		};
+		A87394DD1FD8769D0007C37B /* Interfaces */ = {
+			isa = PBXGroup;
+			children = (
+				A804406F1FD5C00F00BFD1BF /* LaunchScreen.storyboard */,
+				A804406A1FD5C00F00BFD1BF /* Main.storyboard */,
+			);
+			path = Interfaces;
+			sourceTree = "<group>";
+		};
+		A87394DE1FD876C30007C37B /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				A858320E1FD70E7D000ECA30 /* common.h */,
+				A87394D51FD86F490007C37B /* DriverNextCollectionViewCell.h */,
+				A87394D61FD86F490007C37B /* DriverNextCollectionViewCell.m */,
+				A8C65F411FD9B3D100E62BE5 /* DriverTalkViewController.h */,
+				A8C65F421FD9B3D100E62BE5 /* DriverTalkViewController.m */,
+				A87394E01FD877A60007C37B /* DriverViewController.h */,
+				A87394E11FD877A60007C37B /* DriverViewController.m */,
+				A80440671FD5C00F00BFD1BF /* RiderDriverViewController.h */,
+				A80440681FD5C00F00BFD1BF /* RiderDriverViewController.m */,
+				A81802651FD7848500F5897F /* RiderTalkViewController.h */,
+				A81802661FD7848500F5897F /* RiderTalkViewController.m */,
+				A858320B1FD70B45000ECA30 /* SessionViewController.h */,
+				A858320C1FD70B45000ECA30 /* SessionViewController.m */,
+				A8C65F441FD9D37900E62BE5 /* BaseViewController.h */,
+				A8C65F451FD9D37900E62BE5 /* BaseViewController.m */,
+				A84FC6061FDADF750057ED6F /* TalkViewController.h */,
+				A84FC6071FDADF750057ED6F /* TalkViewController.m */,
+				D14E612C204F3C4D00393FCA /* QAViewController.h */,
+				D14E612D204F3C4D00393FCA /* QAViewController.m */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		A87394DF1FD8770C0007C37B /* Supporting Files */ = {
+			isa = PBXGroup;
+			children = (
+				A80440721FD5C00F00BFD1BF /* Info.plist */,
+				A80440731FD5C00F00BFD1BF /* main.m */,
+			);
+			path = "Supporting Files";
+			sourceTree = "<group>";
+		};
+		A87394E31FD879680007C37B /* Data */ = {
+			isa = PBXGroup;
+			children = (
+				A87394E41FD8798F0007C37B /* driverlist.plist */,
+				D1F6F54A2049B9890045A100 /* honk.wav */,
+			);
+			path = Data;
+			sourceTree = "<group>";
+		};
+		D18A3B562051A4FC003EDE38 /* Audio */ = {
+			isa = PBXGroup;
+			children = (
+				D18A3B572051A527003EDE38 /* FileAudioSource.h */,
+				D18A3B582051A527003EDE38 /* FileAudioSource.m */,
+			);
+			path = Audio;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		A80440601FD5C00F00BFD1BF /* ZelloChannelDemo */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A804408D1FD5C01000BFD1BF /* Build configuration list for PBXNativeTarget "ZelloChannelDemo" */;
+			buildPhases = (
+				A804405D1FD5C00F00BFD1BF /* Sources */,
+				A804405E1FD5C00F00BFD1BF /* Frameworks */,
+				A804405F1FD5C00F00BFD1BF /* Resources */,
+				A85832001FD63166000ECA30 /* Embed Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = ZelloChannelDemo;
+			productName = demo;
+			productReference = A80440611FD5C00F00BFD1BF /* ZelloChannelDemo.app */;
+			productType = "com.apple.product-type.application";
+		};
+		A80440781FD5C01000BFD1BF /* ZelloChannelDemoTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A80440901FD5C01000BFD1BF /* Build configuration list for PBXNativeTarget "ZelloChannelDemoTests" */;
+			buildPhases = (
+				A80440751FD5C01000BFD1BF /* Sources */,
+				A80440761FD5C01000BFD1BF /* Frameworks */,
+				A80440771FD5C01000BFD1BF /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A804407B1FD5C01000BFD1BF /* PBXTargetDependency */,
+			);
+			name = ZelloChannelDemoTests;
+			productName = demoTests;
+			productReference = A80440791FD5C01000BFD1BF /* ZelloChannelDemoTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		A80440831FD5C01000BFD1BF /* ZelloChannelDemoUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A80440931FD5C01000BFD1BF /* Build configuration list for PBXNativeTarget "ZelloChannelDemoUITests" */;
+			buildPhases = (
+				A80440801FD5C01000BFD1BF /* Sources */,
+				A80440811FD5C01000BFD1BF /* Frameworks */,
+				A80440821FD5C01000BFD1BF /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A80440861FD5C01000BFD1BF /* PBXTargetDependency */,
+			);
+			name = ZelloChannelDemoUITests;
+			productName = demoUITests;
+			productReference = A80440841FD5C01000BFD1BF /* ZelloChannelDemoUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A80440591FD5C00F00BFD1BF /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0910;
+				ORGANIZATIONNAME = Zello;
+				TargetAttributes = {
+					A80440601FD5C00F00BFD1BF = {
+						CreatedOnToolsVersion = 9.1;
+						ProvisioningStyle = Automatic;
+						SystemCapabilities = {
+							com.apple.Maps.iOS = {
+								enabled = 1;
+							};
+						};
+					};
+					A80440781FD5C01000BFD1BF = {
+						CreatedOnToolsVersion = 9.1;
+						ProvisioningStyle = Automatic;
+						TestTargetID = A80440601FD5C00F00BFD1BF;
+					};
+					A80440831FD5C01000BFD1BF = {
+						CreatedOnToolsVersion = 9.1;
+						ProvisioningStyle = Automatic;
+						TestTargetID = A80440601FD5C00F00BFD1BF;
+					};
+				};
+			};
+			buildConfigurationList = A804405C1FD5C00F00BFD1BF /* Build configuration list for PBXProject "ZelloChannelDemo" */;
+			compatibilityVersion = "Xcode 8.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = A80440581FD5C00F00BFD1BF;
+			productRefGroup = A80440621FD5C00F00BFD1BF /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A80440601FD5C00F00BFD1BF /* ZelloChannelDemo */,
+				A80440781FD5C01000BFD1BF /* ZelloChannelDemoTests */,
+				A80440831FD5C01000BFD1BF /* ZelloChannelDemoUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A804405F1FD5C00F00BFD1BF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D1F6F54B2049B9890045A100 /* honk.wav in Resources */,
+				A80440711FD5C00F00BFD1BF /* LaunchScreen.storyboard in Resources */,
+				A804406E1FD5C00F00BFD1BF /* Assets.xcassets in Resources */,
+				A87394E51FD8798F0007C37B /* driverlist.plist in Resources */,
+				A804406C1FD5C00F00BFD1BF /* Main.storyboard in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A80440771FD5C01000BFD1BF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A80440821FD5C01000BFD1BF /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A804405D1FD5C00F00BFD1BF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				D1C8899D204090A200814E5A /* Zello.m in Sources */,
+				D18A3B592051A527003EDE38 /* FileAudioSource.m in Sources */,
+				A84FC6081FDADF750057ED6F /* TalkViewController.m in Sources */,
+				A87394DB1FD875470007C37B /* DriverNext.m in Sources */,
+				A8C65F461FD9D37900E62BE5 /* BaseViewController.m in Sources */,
+				D14E612E204F3C4D00393FCA /* QAViewController.m in Sources */,
+				A81802671FD7848500F5897F /* RiderTalkViewController.m in Sources */,
+				A87394D71FD86F490007C37B /* DriverNextCollectionViewCell.m in Sources */,
+				A80440691FD5C00F00BFD1BF /* RiderDriverViewController.m in Sources */,
+				A87394E21FD877A60007C37B /* DriverViewController.m in Sources */,
+				A858320D1FD70B45000ECA30 /* SessionViewController.m in Sources */,
+				A8C65F431FD9B3D100E62BE5 /* DriverTalkViewController.m in Sources */,
+				A80440741FD5C00F00BFD1BF /* main.m in Sources */,
+				A80440661FD5C00F00BFD1BF /* AppDelegate.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A80440751FD5C01000BFD1BF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A804407E1FD5C01000BFD1BF /* demoTests.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A80440801FD5C01000BFD1BF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A80440891FD5C01000BFD1BF /* demoUITests.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A804407B1FD5C01000BFD1BF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A80440601FD5C00F00BFD1BF /* ZelloChannelDemo */;
+			targetProxy = A804407A1FD5C01000BFD1BF /* PBXContainerItemProxy */;
+		};
+		A80440861FD5C01000BFD1BF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A80440601FD5C00F00BFD1BF /* ZelloChannelDemo */;
+			targetProxy = A80440851FD5C01000BFD1BF /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		A804406A1FD5C00F00BFD1BF /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				A804406B1FD5C00F00BFD1BF /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+		A804406F1FD5C00F00BFD1BF /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				A80440701FD5C00F00BFD1BF /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		A804408B1FD5C01000BFD1BF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_SIGN_COMPARE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.3;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+			};
+			name = Debug;
+		};
+		A804408C1FD5C01000BFD1BF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_SIGN_COMPARE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 9.3;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		A804408E1FD5C01000BFD1BF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = U5TBRZ56DZ;
+				INFOPLIST_FILE = "$(SRCROOT)/ZelloChannelDemo/Supporting Files/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.zello.zellochanneldemo;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		A804408F1FD5C01000BFD1BF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES = YES;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = U5TBRZ56DZ;
+				INFOPLIST_FILE = "$(SRCROOT)/ZelloChannelDemo/Supporting Files/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = com.zello.zellochanneldemo;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		A80440911FD5C01000BFD1BF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				INFOPLIST_FILE = demoTests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = Zello.demoTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ZelloChannelDemo.app/ZelloChannelDemo";
+			};
+			name = Debug;
+		};
+		A80440921FD5C01000BFD1BF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				INFOPLIST_FILE = demoTests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = Zello.demoTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ZelloChannelDemo.app/ZelloChannelDemo";
+			};
+			name = Release;
+		};
+		A80440941FD5C01000BFD1BF /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				INFOPLIST_FILE = demoUITests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = Zello.demoUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = demo;
+			};
+			name = Debug;
+		};
+		A80440951FD5C01000BFD1BF /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				INFOPLIST_FILE = demoUITests/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
+				PRODUCT_BUNDLE_IDENTIFIER = Zello.demoUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = demo;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A804405C1FD5C00F00BFD1BF /* Build configuration list for PBXProject "ZelloChannelDemo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A804408B1FD5C01000BFD1BF /* Debug */,
+				A804408C1FD5C01000BFD1BF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A804408D1FD5C01000BFD1BF /* Build configuration list for PBXNativeTarget "ZelloChannelDemo" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A804408E1FD5C01000BFD1BF /* Debug */,
+				A804408F1FD5C01000BFD1BF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A80440901FD5C01000BFD1BF /* Build configuration list for PBXNativeTarget "ZelloChannelDemoTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A80440911FD5C01000BFD1BF /* Debug */,
+				A80440921FD5C01000BFD1BF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A80440931FD5C01000BFD1BF /* Build configuration list for PBXNativeTarget "ZelloChannelDemoUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A80440941FD5C01000BFD1BF /* Debug */,
+				A80440951FD5C01000BFD1BF /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = A80440591FD5C00F00BFD1BF /* Project object */;
+}
