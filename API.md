@@ -134,6 +134,12 @@ Response:
 }
 ```
 
+### Stream data
+The same packet structure is used for any streamed data (e.g. audio) travelling both ways. The packet ID field is only used with the audio packets sent from the server to a client. Fields are stored in network byte order.
+
+`{type(8) = 0x01, stream_id(32), packet_id(32), data[]}`
+
+
 ## Events
 Channel status changes:
 ### `on_channel_status`
@@ -179,13 +185,8 @@ Errors and state changes:
   "error": "Error description"
 }
 ```
-## Binary data
-`{type(8), data[]}`
 
-## Stream data
-The same packet structure is used for any streamed data (e.g. audio) travelling both ways. The packet ID field is only used with the audio packets sent from the server to a client. Fields are stored in network byte order.
 
-`{type(8) = 0x01, stream_id(32), packet_id(32), data[]}`
 
 ## Error codes
 
@@ -196,16 +197,13 @@ The same packet structure is used for any streamed data (e.g. audio) travelling 
 ## Supported features
 
 
-
-|Feature|Support status
-|---|---
-|Access consumer Zello channels using authorized user credentials | Supported
-|Access public Zello channels anonymously in listen only mode | Supported
-|Access ZelloWork channels using authorized user credentials | Supported
-|Send and receive voice messages | Supported
-|Interoperability with Zello apps on Android, iOS, and PC | Supported
-|Create and access ad hoc Zello channels anonymously | Planned
-|Create and access ad hoc ZelloWork channels anonymously | Planned
-|Send and receive images | Planned
-|Send and receive text messages | Planned
-|Moderate Zello consumer channels | Planned
+|Feature|Consumer Zello|ZelloWork
+|---|---|---
+|Access channels using authorized user credentials | Supported | Supported
+|Access channels anonymously in listen only mode | Supported | Not supported
+|Send and receive voice messages | Supported | Supported
+|Interoperability with Zello apps on Android, iOS, and PC | Supported | Supported
+|Create and access ad hoc channels anonymously | Planned | Planned
+|Send and receive images | Planned | Planned
+|Send and receive text messages | Planned | Planned
+|Moderate Zello consumer channels | Planned | n/a

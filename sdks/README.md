@@ -9,7 +9,7 @@ The Zello Channels SDK allows you to integrate Zello push-to-talk into your own 
 * Send voice messages from your own audio code, _e.g._ from a file
 * Receive voice message data with your own audio code with optional pass-through to the device speaker
 
-The protocol specification is also available if you prefer to develop your own client in-house.
+The [protocol specification](https://github.com/zelloptt/zello-channel-api/blob/master/API.md) is also available if you prefer to develop your own client in-house.
 
 ## Current Version
 
@@ -68,13 +68,7 @@ fi
 
 ### Getting an authentication token
 
-In order for your app to logon to the Zello system, you must provide an authentication token. This token identifies you as an app developer and proves that the app has permission to connect to your channels. See the [Zello Channel API Authentication documentation](https://github.com/zelloptt/zello-channel-api/blob/master/auth/README.md) for more information on how to generate authentication tokens on your system.
-
-#### Development tokens
-> **TODO:** Update link for generating development tokens
-> **Q:** What do we call the site where you can generate keys?
-
-During development, you can use a development authentication token to access the Zello server. You can generate a development token by visiting [the Zello dashboard](https://mesh.zellowork.com/keys.html). Click the "+ Create Key" button and copy the value in the "Sample Development Token" field. Save this value immediately, as you will not be able to look it up again in the Zello console.
+Use [these instructions](https://github.com/zelloptt/zello-channel-api/blob/master/AUTH.md) to get authentication token for your app.
 
 Development tokens are only valid for use during development of your app. When you are ready to build your app for production, you will need to create authentication tokens on your own server and provide them to the client app as described above. Otherwise, your app may become unable to connect to the Zello Channel server unexpectedly when the development token expires.
 
@@ -93,6 +87,8 @@ ZCCSession *session = [[ZCCSession alloc] initWithURL:serverURL
 session.delegate = myDelegate;
 [session connect];
 ```
+
+`serverURL` can be one of the [API entry points](https://github.com/zelloptt/zello-channel-api/blob/master/API.md#api-entry-points).
 
 ### Sending voice messages
 
@@ -133,7 +129,6 @@ The Zello Channels SDK contains an events interface which you can implement to b
 > __NB:__ `ZCCSessionDelegate` methods are called on the dispatch queue you provided to the `ZCCSession` initializer. If you did not provide a dispatch queue, the delegate methods are called on the main dispatch queue.
 
 ## Going live with your Zello-enabled app
-> __Q:__ What do we need to update here?
 
 All apps using Zello SDK must adhere to the following guidelines:
 
@@ -145,8 +140,8 @@ All apps using Zello SDK must adhere to the following guidelines:
 ## Additional resources
 
 * [iOS SDK API reference](https://zelloptt.github.io/zello-channel-api/iOS/)
-* [Channels Server API](https://github.com/zelloptt/zello-channel-api/blob/master/API.md)
+* [Zello Channel Server API](https://github.com/zelloptt/zello-channel-api/blob/master/API.md)
 
 ### Licenses
-[ZelloChannelKit incorporates portions of SocketRocket, Copyright 2016-present, Facebook, Inc. under the BSD license.](https://github.com/facebook/SocketRocket/blob/685f756f22bc9dbee9b98cfec47bc05ccc03e9b9/LICENSE)
-[ZelloChannelKit incorporates the Opus audio codec under the BSD license](http://opus-codec.org/license/)
+* ZelloChannelKit incorporates portions of SocketRocket, Copyright 2016-present, Facebook, Inc. under the [BSD license](https://github.com/facebook/SocketRocket/blob/685f756f22bc9dbee9b98cfec47bc05ccc03e9b9/LICENSE).
+* ZelloChannelKit incorporates the Opus audio codec under the [BSD license](http://opus-codec.org/license/).
