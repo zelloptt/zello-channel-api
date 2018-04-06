@@ -146,3 +146,7 @@ All apps using Zello SDK must adhere to the following guidelines:
 
 * [iOS SDK API reference](https://zelloptt.github.io/zello-channel-api/iOS/)
 * [Channels Server API](https://github.com/zelloptt/zello-channel-api/blob/master/API.md)
+
+### Licenses
+[ZelloChannelKit incorporates portions of SocketRocket, Copyright 2016-present, Facebook, Inc. under the BSD license.](https://github.com/facebook/SocketRocket/blob/685f756f22bc9dbee9b98cfec47bc05ccc03e9b9/LICENSE)
+[ZelloChannelKit incorporates the Opus audio codec under the BSD license](http://opus-codec.org/license/)
