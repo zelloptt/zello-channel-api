@@ -37,6 +37,69 @@ FOUNDATION_EXPORT NSString * const ZCCOSStatusKey;
  */
 FOUNDATION_EXPORT NSString * const ZCCExceptionKey;
 
+/**
+ * Error messages sent by the Zello channels server
+ */
+typedef NSString * ZCCServerErrorMessage NS_TYPED_ENUM;
+/**
+ * The server didn't recognize the command sent by the client
+ */
+FOUNDATION_EXPORT ZCCServerErrorMessage const ZCCServerErrorMessageUnknownCommand;
+/**
+ * An internal error occured within the server. If the error persists please contact us at
+ * support@zello.com
+ */
+FOUNDATION_EXPORT ZCCServerErrorMessage const ZCCServerErrorMessageInternalServerError;
+/**
+ * The command received included malformed JSON
+ */
+FOUNDATION_EXPORT ZCCServerErrorMessage const ZCCServerErrorMessageInvalidJSON;
+/**
+ * The server didn't  recognize the command format
+ */
+FOUNDATION_EXPORT ZCCServerErrorMessage const ZCCServerErrorMessageInvalidRequest;
+/**
+ * Username, password or token are not valid
+ */
+FOUNDATION_EXPORT ZCCServerErrorMessage const ZCCServerErrorMessageNotAuthorized;
+/**
+ * Server received a command before successful logon
+ */
+FOUNDATION_EXPORT ZCCServerErrorMessage const ZCCServerErrorMessageNotLoggedIn;
+/**
+ * The command didn't include required fields
+ */
+FOUNDATION_EXPORT ZCCServerErrorMessage const ZCCServerErrorMessageNotEnoughParams;
+/**
+ * The connection to the server was explicitly closed by the Zello server system.
+ */
+FOUNDATION_EXPORT ZCCServerErrorMessage const ZCCServerErrorMessageSupernodeClosedConnection;
+/**
+ * The channel you are trying to talk to is not yet connected. Wait for channel status to be <code>online</code>
+ * before sending a message
+ */
+FOUNDATION_EXPORT ZCCServerErrorMessage const ZCCServerErrorMessageChannelNotReady;
+/**
+ * The client tried to send a message over listen-only connection
+ */
+FOUNDATION_EXPORT ZCCServerErrorMessage const ZCCServerErrorMessageListenOnlyConnection;
+/**
+ * Unable to start the stream for unknown reason. You can try again later.
+ */
+FOUNDATION_EXPORT ZCCServerErrorMessage const ZCCServerErrorMessageFailedToStartStream;
+/**
+ * Unable to stop the stream for unknown reason. This error is safe to ignore.
+ */
+FOUNDATION_EXPORT ZCCServerErrorMessage const ZCCServerErrorMessageFailedToStopStream;
+/**
+ * An error occured while trying to send stream data packet
+ */
+FOUNDATION_EXPORT ZCCServerErrorMessage const ZCCServerErrorMessageFailedToSendData;
+/**
+ * A malformed audio packet was received
+ */
+FOUNDATION_EXPORT ZCCServerErrorMessage const ZCCServerErrorMessageInvalidAudioPacket;
+
 /// Error codes for Zello Channels SDK errors.
 typedef NS_ENUM(NSInteger, ZCCErrorCode) {
   /**
