@@ -46,10 +46,13 @@ static void LogWarningForDevelopmentToken(NSString *token) {
         formatter.dateFormat = @"yyyy-MM-dd'T'HH:mm:ssZZZZZ";
         expiration = [formatter stringFromDate:[NSDate dateWithTimeIntervalSince1970:exp.doubleValue]];
       }
-      NSLog(@"[ZCC] WARNING: Development token expires %@", expiration);
-      NSLog(@"[ZCC] WARNING: Auth token is valid for development only. You must use a production token in production builds.");
-      // TODO: Provide the correct link
-      NSLog(@"[ZCC] https://github.com/zelloptt/zello-embeddable/issues/24");
+      NSLog(@"[ZCC] Development token warning:\n\n\n\
+            ======================================================================================================\n\
+            WARNING:\tDevelopment token expires %@\n\
+            WARNING:\tAuth token is valid for development only. You must use a production token in production builds.\n\
+            DETAILS:\thttps://github.com/zelloptt/zello-channel-api/blob/master/AUTH.md\n\
+            ======================================================================================================\n\n\n.",
+            expiration);
       return;
     }
   }
