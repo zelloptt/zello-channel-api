@@ -397,6 +397,29 @@ static void LogWarningForDevelopmentToken(NSString *token) {
   }
 }
 
+- (void)socket:(ZCCSocket *)socket didReceiveUnrecognizedMessage:(NSString *)message {
+  NSLog(@"[ZCC] WARNING: Received unexpected message from server: %@", message);
+
+  // If we're in the middle of connecting, bail and report connect failure to delegate
+  [self.runner runSync:^{
+    if (self.state != ZCCSessionStateConnecting) {
+      return;
+    }
+
+    self.state = ZCCSessionStateError;
+    [self.webSocket close];
+    id<ZCCSessionDelegate> delegate = self.delegate;
+    if ([delegate respondsToSelector:@selector(session:didFailToConnectWithError:)]) {
+      NSDictionary *info = @{NSLocalizedDescriptionKey:@"Received invalid message from server",
+                             ZCCServerInvalidMessageKey:message};
+      NSError *error = [NSError errorWithDomain:ZCCErrorDomain code:ZCCErrorCodeBadResponse userInfo:info];
+      dispatch_async(self.delegateCallbackQueue, ^{
+        [delegate session:self didFailToConnectWithError:error];
+      });
+    }
+  }];
+}
+
 #pragma mark - Private
 
 /**

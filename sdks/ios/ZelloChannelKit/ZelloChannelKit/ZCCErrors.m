@@ -14,6 +14,7 @@ NSString * const ZCCErrorWebSocketReasonKey = @"com.zello.ZCCErrorWebSocketReaso
 NSString * const ZCCExceptionKey = @"com.zello.ZCCExceptionKey";
 NSString * const ZCCOSStatusKey = @"com.zello.ZCCOSStatusKey";
 NSString * const ZCCServerErrorMessageKey = @"com.zello.ZCCServerErrorMessageKey";
+NSString * const ZCCServerInvalidMessageKey = @"com.zello.ZCCServerInvalidMessageKey";
 
 ZCCServerErrorMessage const ZCCServerErrorMessageUnknownCommand = @"unknown command";
 ZCCServerErrorMessage const ZCCServerErrorMessageInternalServerError = @"internal server error";
