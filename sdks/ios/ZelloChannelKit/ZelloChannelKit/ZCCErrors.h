@@ -73,7 +73,7 @@ FOUNDATION_EXPORT ZCCServerErrorMessage const ZCCServerErrorMessageNotEnoughPara
 /**
  * The connection to the server was explicitly closed by the Zello server system.
  */
-FOUNDATION_EXPORT ZCCServerErrorMessage const ZCCServerErrorMessageSupernodeClosedConnection;
+FOUNDATION_EXPORT ZCCServerErrorMessage const ZCCServerErrorMessageServerClosedConnection;
 /**
  * The channel you are trying to talk to is not yet connected. Wait for channel status to be <code>online</code>
  * before sending a message

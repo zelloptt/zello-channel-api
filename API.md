@@ -127,7 +127,7 @@ Starts a new stream to the channel. The successful response includes `stream_id`
   "seq": 2,
   "type": "audio",
   "codec": "opus",
-  "codec_header": <base64>,
+  "codec_header": "gD4BPA==",
   "packet_duration": 200
 }
 ``` 
@@ -169,8 +169,22 @@ The same packet structure is used for any streamed data (e.g. audio) travelling 
 
 
 ## Events
-Channel status changes:
+
 ### `on_channel_status`
+
+Indicates there was a change in channel status, which may include channel being connected / disconnected or number of online users changed.
+
+#### Attributes
+
+| Name | Type | Value  / Description
+|---|---|---
+| `command` | string | `on_channel_status`
+| `channel ` | string | The name of the channel
+| `status ` | string | Channel status. Can be `online` or `offline`
+| `users_online ` | integer | Number of users currently connected to the channel. 
+
+#### Example:
+
 ```json
 {
   "command": "on_channel_status",
@@ -181,14 +195,32 @@ Channel status changes:
 ```
 
 
-Receiving messages:
 ### `on_stream_start`
+
+Indicates the start of the new incoming stream. This event corresponds to `start_stream` command sent by another channel user.
+
+#### Attributes
+
+| Name | Type | Value  / Description
+|---|---|---
+| `command` | string | `on_stream_start`
+| `type` | string | Stream type. Only `audio` is currently supported
+| `codec` | string | The name of audio codec used. Required for `audio` streams. Must be `opus`
+| `codec_header` | string | base64-encoded codec header buffer. Required for `opus` streams
+| `packet_duration` | integer | Audio packet duration in milliseconds. Values between 20 ms and 200 ms are supported
+| `stream_id ` | integer |  The id of the stream that started
+| `channel ` | string | The name of the channel
+| `from ` | string | The username of the sender of the message
+
+
+#### Example:
+
 ```json
 {
   "command": "on_stream_start",
   "type": "audio",
   "codec": "opus",
-  "codec_header": <base64>,
+  "codec_header": "gD4BPA==",
   "packet_duration": 200,
   "stream_id": 22695,
   "channel": "test",
@@ -197,6 +229,17 @@ Receiving messages:
 ```
 
 ### `on_stream_stop` 
+Indicates the stop of the incoming stream. This event corresponds to `stop_stream` command sent by another channel user.
+
+#### Attributes
+
+| Name | Type | Value  / Description
+|---|---|---
+| `command` | string | `on_stream_stop `
+| `stream_id ` | integer | The id of the stream that stopped
+
+#### Example:
+
 ```json
 {
   "command": "on_stream_stop",
@@ -204,13 +247,23 @@ Receiving messages:
 }
 ```
 
-Errors and state changes:
 
 ### `on_error`
+Indicates a server error.
+
+#### Attributes
+
+| Name | Type | Value  / Description
+|---|---|---
+| `command` | string | `on_error `
+| `error ` | string | One of the [error codes](#error-codes)
+
+#### Example:
+
 ```json
 {
   "command": "on_error",
-  "error": "error code"
+  "error": "server closed connection"
 }
 ```
 
@@ -227,7 +280,7 @@ Errors and state changes:
 |not authorized | Username, password or token are not valid.
 |not logged in | Server received a command before successful `logon`.
 |not enough params | The command doesn't include some of the required attributes.
-|supernode closed connection | The connection to Zello network was closed. You can try re-connecting.
+|server closed connection | The connection to Zello network was closed. You can try re-connecting.
 |channel is not ready | Channel you are trying to talk to is not yet connected. Wait for channel `online` status before sending a message
 |listen only connection | The client tried to send a message over listen-only connection.
 |failed to start stream | Unable to start the stream for unknown reason. You can try again later.
