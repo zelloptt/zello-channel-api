@@ -26,6 +26,12 @@ FOUNDATION_EXPORT NSString * const ZCCErrorWebSocketReasonKey;
 FOUNDATION_EXPORT NSString * const ZCCServerErrorMessageKey;
 
 /**
+ * If the server sends an unrecognized message, it will be contained as the value for this key.
+ * Please include in bug reports to Zello.
+ */
+FOUNDATION_EXPORT NSString * const ZCCServerInvalidMessageKey;
+
+/**
  * userInfo key for errors that wrap an underlying OSStatus value. The value for this key is an
  * OSStatus value wrapped in an NSNumber.
  */
@@ -115,7 +121,10 @@ typedef NS_ENUM(NSInteger, ZCCErrorCode) {
   ZCCErrorCodeInvalidServerAddress = 1001,
   /// Session error
   ZCCErrorCodeConnectFailed = 1002,
-  /// Session error
+  /**
+   * The server has sent an unexpected message to the SDK. The error's <code>userInfo</code> dictionary
+   * will contain the message as the value for the <code><ZCCServerInvalidMessageKey></code> key.
+   */
   ZCCErrorCodeBadResponse = 1003,
   /// Session error
   ZCCErrorCodeNoResponse = 1004,
