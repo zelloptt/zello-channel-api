@@ -1,0 +1,3 @@
+.idea
+sdks/js/node_modules/
+sdks/js/src/vendor/*

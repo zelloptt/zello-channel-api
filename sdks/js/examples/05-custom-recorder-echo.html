@@ -1,0 +1,81 @@
+<html>
+<head>
+    <script src="https://zello.com/zcc/0.0.1/zcc.sdk.js"></script>
+    <script>
+
+      var incomingDataBuffers = [];
+      var outgoingMessage = null;
+      var incomingMessage = null;
+      var incomingMessageFrameRate = null;
+
+      var CustomRecorder = function() {
+        this.cp = 0;
+        var self = this;
+        setTimeout(function() {
+          self.onready();
+          setTimeout(function() {
+            self.sendBuffer();
+          }, 100);
+        }, 200);
+      };
+
+      CustomRecorder.prototype.sendBuffer = function() {
+        var self = this;
+        var buffer = incomingDataBuffers.shift();
+        if (buffer) {
+          self.ondata([buffer]);
+          setTimeout(function() {
+            self.sendBuffer();
+          }, 100);
+        } else {
+          outgoingMessage.stop();
+        }
+      };
+
+      function connect() {
+        ZCC.Sdk.init({
+          player: true,
+          recorder: false,
+          widget: false
+        }).then(function() {
+          var session = new ZCC.Session({
+            serverUrl: 'wss://zellowork.io/ws/',
+            channel: '',
+            authToken: '',
+            username: '',
+            password: ''
+          });
+          session.connect();
+
+          session.on(ZCC.Constants.EVENT_INCOMING_VOICE_WILL_START, function(message) {
+
+            incomingMessage = message;
+            incomingMessageFrameRate = incomingMessage.codecDetails.rate;
+            incomingDataBuffers = [];
+
+            incomingMessage.on(ZCC.Constants.EVENT_INCOMING_VOICE_DATA_DECODED, function(pcmData) {
+              incomingDataBuffers.push(pcmData);
+            });
+
+            incomingMessage.on(ZCC.Constants.EVENT_INCOMING_VOICE_DID_STOP, function() {
+              setTimeout(function() {
+                outgoingMessage = session.startVoiceMessage({
+                  recorder: CustomRecorder,
+                  originalSampleRate: incomingMessageFrameRate
+                });
+                outgoingMessage.on(ZCC.Constants.EVENT_DATA, function(data) {
+                  console.warn('data to be encoded:', data);
+                });
+              }, 1000);
+            });
+
+          });
+
+        })
+      }
+    </script>
+</head>
+<body onload="connect()">
+Echo incoming messages back to channel
+</body>
+</html>

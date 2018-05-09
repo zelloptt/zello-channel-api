@@ -1,0 +1,21 @@
+<div class="zcc-widget-container <%= status %> <% if (receiving) { %> receiving <% } %>">
+    <div class="zcc-line zcc-border-bottom">
+        <div class="zcc-cell">
+            <div class="zcc-header-container zcc-js">
+                <%- include src/classes/widget/templates/header %>
+                <%- include src/classes/widget/templates/loader %>
+            </div>
+            <div class="zcc-status-container zcc-js">
+                <%- include src/classes/widget/templates/status %>
+            </div>
+        </div>
+    </div>
+    <div class="zcc-line" <%= status %>>
+        <div class="zcc-info-container zcc-cell zcc-js">
+            <%- include src/classes/widget/templates/info %>
+        </div>
+        <div class="zcc-buttons-container zcc-cell zcc-js">
+            <%- include src/classes/widget/templates/buttons %>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,7 @@
+<div class="zcc-status zcc-js">
+<%if (status === 'online') {%><i class="zcc-live-icon">live</i><%= users_online %> users online<%}%>
+<%if (status === 'disconnected' || status === 'offline') {%>Disconnected.<%}%>
+<%if (status === 'connecting') {%>Connecting...<%}%>
+<%if (status === 'reconnecting') {%>Reconnecting...<%}%>
+<%if (status === 'connect-failed') {%><span class="zcc-error">Failed to connect.</span><%}%>
+</div>
