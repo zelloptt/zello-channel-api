@@ -1,0 +1,64 @@
+<html>
+<head>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/mocha/5.1.1/mocha.min.css" rel="stylesheet"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mocha/5.1.1/mocha.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chai/4.1.2/chai.min.js"></script>
+    <script src="../dist/zcc.Sdk.js"></script>
+    <script>
+      var globals = {
+
+        createSession: function(user, password) {
+          return new ZCC.Session({
+            serverUrl: globals.serverUrl,
+            username: user.username,
+            password: password ? password : user.password,
+            channel: globals.channel,
+            authToken: globals.authToken
+          });
+        },
+
+        createSessionA: function() {
+          return globals.createSession(globals.userA);
+        },
+
+        createSessionAWrongPassword: function() {
+          return globals.createSession(globals.userA, Math.random().toString());
+        },
+
+        createSessionB: function() {
+          return globals.createSession(globals.userB);
+        },
+
+        userA: {
+          username: 'a000002',
+          password: '1111',
+        },
+        userB: {
+          username: 'a000003',
+          password: '1111',
+        },
+        serverUrl: '',
+        channel: '',
+        authToken: ''
+      };
+      mocha.setup({
+        ui: 'bdd',
+        timeout: 15000
+      });
+    </script>
+    <script src="./test-init.js"></script>
+    <script src="./test-session.js"></script>
+    <script src="./test-widget.js"></script>
+    <script>
+      $(document).ready(function() {
+        mocha.run();
+      });
+    </script>
+</head>
+<body>
+<div id="mocha"></div>
+<div id="playerA"></div>
+<div id="playerB"></div>
+</body>
+</html>

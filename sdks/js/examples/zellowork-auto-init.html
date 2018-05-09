@@ -1,0 +1,31 @@
+<html>
+<head>
+    <script src="https://rawgit.com/megamk/zello-channel-api/js-sdk/sdks/js/dist/zcc.Sdk.js"></script>
+    <script>
+      function connect() {
+        ZCC.Sdk.init({
+          recorder: document.location.protocol.match(/https/),
+          player: true,
+          widget: {
+            headless: false,
+            autoInit: true,
+            element: document.getElementById('player')
+          },
+          session: {
+            autoInit: true,
+            serverUrl: '',
+            channel: '',
+            authToken: '',
+            username: '',
+            password: '',
+            onConnect: function(err, result) {},
+            onLogon: function(err, result) {}
+          }
+        })
+      }
+    </script>
+</head>
+<body onload="connect()">
+<div id="player"></div>
+</body>
+</html>

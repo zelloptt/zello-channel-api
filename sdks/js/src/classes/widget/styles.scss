@@ -1,0 +1,58 @@
+.zcc-widget-container {
+
+  @keyframes color-sending {
+    0% {
+      background-color: red;
+    }
+    50% {
+      background-color: #980000;
+    }
+    100% {
+      background-color: red;
+    }
+  }
+
+  @keyframes color-receiving {
+    0% {
+      background-color: green;
+    }
+    50% {
+      background-color: #004800;
+    }
+    100% {
+      background-color: green;
+    }
+  }
+
+  all: initial;
+  display: block;
+  border: 1px solid lightsalmon;
+  .zcc-button-container {
+    all: initial;
+    .zcc-button {
+      all: initial;
+      cursor: pointer;
+      display: inline-block;
+      min-width: 50px;
+      min-height: 50px;
+      width: 50px;
+      height: 50px;
+      border-radius: 30px;
+      background-color: #cccccc;
+      border: 2px solid #949494;
+      box-sizing: border-box;
+      &.zcc-receiving {
+        background-color: green;
+        animation-name: color-receiving;
+        animation-duration: 2s;
+        animation-iteration-count: infinite;
+      }
+      &.zcc-recording {
+        background-color: red;
+        animation-name: color-sending;
+        animation-duration: 2s;
+        animation-iteration-count: infinite;
+      }
+    }
+  }
+}
