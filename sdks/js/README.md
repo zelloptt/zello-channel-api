@@ -16,21 +16,21 @@
 No need to install, just clone
 ```bash
 > cd src/vendor
-git clone git@github.com:megamk/opus-to-pcm.git
+git clone git@github.com:zelloptt/opus-to-pcm.git
 ``` 
 
 #### pcm-player
 No need to install, just clone
 ```bash
 > cd src/vendor
-git clone git@github.com:megamk/pcm-player.git
+git clone git@github.com:zelloptt/pcm-player.git
 ```
 
 #### opus-recorder
 ##### Clone 
 ```bash
 > cd src/vendor
-git clone git@github.com:megamk/opus-recorder.git
+git clone git@github.com:zelloptt/opus-recorder.git
 cd opus-recorder
 ```
 

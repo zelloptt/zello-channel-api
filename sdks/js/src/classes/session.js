@@ -1,6 +1,7 @@
 const Emitter = require('component-emitter');
 const Promise = require('q');
 const Constants = require('./constants');
+const Utils = require('./utils');
 
 /**
  * @classdesc Session class to start session with zello server and interact with it
@@ -11,8 +12,15 @@ var session = new ZCC.Session({
   username: [username],
   password: [password]
   channel: [channel],
-  authToken: [authToken]
-});
+  authToken: [authToken],
+  incomingMessageDecoder: function() { }, // optional function to override incoming message decoder.
+                                          // should return an instance of class that implements see {@link Decoder} interface
+
+  incomingMessagePlayer: function() {},   // optional function to override incoming message player
+                                          // should return an instance of class that implements Player interface[link]
+
+
+);
  **/
 class Session extends Emitter {
   /**
@@ -21,11 +29,19 @@ class Session extends Emitter {
   constructor(params) {
     super();
     Session.validateInitialParams(params);
-    this.initialParams = params;
+    this.options = Object.assign({
+      maxConnectAttempts: 5,
+      connectRetryTimeoutMs: 1000
+    }, params);
     this.callbacks = {};
     this.wsConnection = null;
     this.refreshToken = null;
     this.seq = 0;
+    this.maxConnectAttempts = this.options.maxConnectAttempts;
+    this.connectAttempts = this.maxConnectAttempts;
+    this.connectRetryTimeoutMs = this.options.connectRetryTimeoutMs;
+    this.selfDisconnect = false;
+    this.incomingMessages = {};
   }
 
   getSeq() {
@@ -47,38 +63,73 @@ class Session extends Emitter {
     }
   }
 
-
   /**
-   * Connects to zello server
+   * Connects to zello server and starts new session
    *
    * @param {function} [userCallback] callback for connection event
-   * @return {promise} promise that resolves once connected and rejects on connection error
+   * @return {promise} promise that resolves once session successfully started and rejects on sessions start error
    * @example
-session.connect(function(err) {
+// promise
+session.connect()
+  .then(function(result) {
+    console.log('Session started: ', result)
+  })
+  .catch(function(err) {
+    console.trace(err);
+  });
+
+ // callback
+session.connect(function(err, result) {
   if (err) {
     console.trace(err);
     return;
   }
-  console.log('connected');
-})
- .then(function() {
-  console.log('connected');
-})
- .fail(function(err) {
-  console.trace(err);
- })
-   * */
+  console.log('session started:', result)
+});
+   ***/
   connect(userCallback = null) {
+    return this.connectOrReconnect(userCallback);
+  }
+
+  connectOrReconnect(userCallback = null, isReconnect = false) {
     let dfd = Promise.defer();
-    this.wsConnection = new WebSocket(this.initialParams.serverUrl);
+    if (this.connectAttempts === this.maxConnectAttempts) {
+      this.emit(Constants.EVENT_SESSION_START_CONNECT);
+    }
+    this.doConnect()
+      .then(() => {
+        return this.doLogon();
+      })
+      .then((result) => {
+        if (typeof userCallback === 'function') {
+          userCallback.apply(this, [null, result]);
+        }
+        this.connectAttempts = this.maxConnectAttempts;
+        this.emit(Constants.EVENT_SESSION_CONNECT);
+        dfd.resolve(result);
+      })
+      .catch((err) => {
+        if (this.connectAttempts) {
+          this.connectAttempts--;
+          setTimeout(() => {
+            this.connectOrReconnect(userCallback, isReconnect);
+          }, this.connectRetryTimeoutMs);
+          return;
+        }
+        if (typeof userCallback === 'function') {
+          userCallback.apply(this, [err]);
+        }
+        this.emit(isReconnect ? Constants.EVENT_SESSION_DISCONNECT : Constants.EVENT_SESSION_FAIL_CONNECT, err);
+      });
+    return dfd.promise;
+  }
+
+  doConnect() {
+    let dfd = Promise.defer();
+    this.wsConnection = new WebSocket(this.options.serverUrl);
     this.wsConnection.binaryType = 'arraybuffer';
-    let connnected = false;
+
     this.wsConnection.addEventListener('open', () => {
-      if (typeof userCallback === 'function') {
-        userCallback.apply(this, [null])
-      }
-      this.emit(Constants.EVENT_CONNECT);
-      connnected = true;
       return dfd.resolve();
     });
 
@@ -87,94 +138,67 @@ session.connect(function(err) {
     });
 
     this.wsConnection.addEventListener('error', (err) => {
-      // connection error
-      if (!connnected) {
-        connnected = true;
-        if (typeof userCallback === 'function') {
-          userCallback.apply(this, [err]);
-        }
-        return dfd.reject(err);
-      }
-      // handle other errors here
+      return dfd.reject(err);
     });
 
-    this.wsConnection.addEventListener('close', (event) => {
-      this.emit(Constants.EVENT_CLOSE);
+    this.wsConnection.addEventListener('close', (err) => {
+      if (this.selfDisconnect) {
+        this.selfDisconnect = false;
+        return;
+      }
+      // disconnected from server after initial successful connection
+      if (dfd.promise.inspect().state === 'fulfilled') {
+        this.emit(Constants.EVENT_SESSION_CONNECTION_LOST, err);
+        this.connectOrReconnect(null, true);
+      }
     });
     return dfd.promise;
   }
 
-  /**
-   * Login to connected server using parameters from constructor
-   *
-   * @param {function} [userCallback] callback for logon event
-   * @param {string} [refreshToken] refresh_token for re-logon case
-   * @return {promise} promise that resolves once successfully logged and rejects on logon error
-   * @example
-session.logon(function(err) {
-  if (err) {
-    console.trace(err);
-    return;
-  }
-  console.log('logged in');
-})
-  .then(function() {
-    console.log('logged in');
-  })
-   .fail(function(err) {
-    console.trace(err);
-  })
-   */
-  logon(userCallback = null, refreshToken = '') {
+  doLogon(refreshToken = '') {
     let dfd = Promise.defer();
     let params = {
       'command': 'logon',
       'seq': this.getSeq(),
-      'channel': this.initialParams.channel
+      'channel': this.options.channel
     };
 
     if (refreshToken) {
       params.refresh_token = refreshToken;
     } else {
-      params.auth_token = this.initialParams.authToken;
+      params.auth_token = this.options.authToken;
     }
 
-    if (this.initialParams.listenOnly) {
+    if (this.options.listenOnly) {
       params.listen_only = true;
     }
 
-    if (this.initialParams.username) {
-      params.username = this.initialParams.username;
-      params.password = this.initialParams.password;
+    if (this.options.username) {
+      params.username = this.options.username;
+      params.password = this.options.password;
     }
 
     let callback = (err, data) => {
       if (err) {
-        if (typeof userCallback === 'function') {
-          userCallback.apply(this, [err]);
-        }
         dfd.reject(err);
         return;
       }
-      if (typeof userCallback === 'function') {
-        userCallback.apply(this, [null, data]);
-      }
       dfd.resolve(data);
     };
-
     this.sendCommand(params, callback);
     return dfd.promise;
   }
 
   /**
-   * Closes session and disconnects from zello server. To start session again you need to call `connect` and `logon`
+   * Closes session and disconnects from zello server. To start session again you need to call `connect`
    */
   disconnect() {
+    this.selfDisconnect = true;
     this.wsConnection.close();
   }
 
   wsBinaryDataHandler(data) {
-    this.emit(Constants.EVENT_AUDIO_PACKET_IN, Session.parseIncomingBinaryMessage(data));
+    this.emit(Constants.EVENT_INCOMING_VOICE_DATA, Session.parseIncomingBinaryMessage(data));
   }
 
   jsonDataHandler(jsonData) {
@@ -189,10 +213,13 @@ session.logon(function(err) {
         this.emit(Constants.EVENT_STATUS, jsonData);
         break;
       case 'on_stream_start':
-        this.emit(Constants.EVENT_STREAM_START, jsonData);
+        const library = Utils.getLoadedLibrary();
+        const incomingMessage = new library.IncomingMessage(jsonData, this);
+        this.incomingMessages[jsonData.stream_id] = incomingMessage;
+        this.emit(Constants.EVENT_INCOMING_VOICE_WILL_START, incomingMessage);
         break;
       case 'on_stream_stop':
-        this.emit(Constants.EVENT_STREAM_STOP, jsonData);
+        this.emit(Constants.EVENT_INCOMING_VOICE_DID_STOP, this.incomingMessages[jsonData.stream_id]);
         break;
     }
   }

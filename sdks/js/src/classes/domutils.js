@@ -1,4 +1,16 @@
 class DomUtils {
+
+  static getElementsByClassName(className, parent = null) {
+    if (!parent && document) {
+      parent = document;
+    }
+    try {
+      return parent.getElementsByClassName(className);
+    } catch (e) {
+      return null;
+    }
+  }
+
   static getElementByClassName(className, parent = null) {
     if (!parent && document) {
       parent = document;

@@ -12,7 +12,7 @@ let initOptions = {};
  *
  * Load sdk using `script` tag:
  * ```html
- * <script src="https://zello.com/zcc/0.0.1/zcc.Sdk.js"></script>
+ * <script src="https://zello.com/zcc/0.0.1/zcc.sdk.js"></script>
  * <script>
  *   console.log(ZCC);
  * </script>
@@ -20,7 +20,7 @@ let initOptions = {};
  *
  * Load sdk using async script loader (e.g. scriptjs)
  * ```js
- * $script(['https://zello.com/zcc/0.0.1/zcc.Sdk.js'], function() {
+ * $script(['https://zello.com/zcc/0.0.1/zcc.sdk.js'], function() {
  *  console.log(ZCC);
  * });
  * ```
@@ -29,51 +29,40 @@ class Sdk {
 
   /**
    * @description Initialize SDK parts and components.
-   * Loads required parts and initializes session and widget if necessary.
+   * Loads required parts
    *
    * Recorder will fail to load on `http://` pages, it requires `https://`
    *
-   * If `options.widget.autoInit` is set it will initialize the player widget.
-   *
-   * If `options.widget.headless` is false, it will require `options.widget.element` to be an existing DOM element.
-   *
-   * If `options.session.autoInit` is true, it will create `ZCC.Session` instance, connect,
-   * login and link it to ZCC.Widget instance
-   *
-   *
-   * @param {object} [options] initial options for sdk and other components
+   * @param {object} [options] list of components to be loaded (see example).
    * @param {function} [userCallback] user callback to fire when sdk parts required by this init call are loaded
    * @return {promise} promise that resolves when sdk parts required by this init call are loaded
    *
    * @example
    *
+// callback
 ZCC.Sdk.init({
-  recorder: document.location.protocol.match(/https/),
-  player: true,
-  widget: {
-    headless: false,
-    autoInit: true,
-    element: document.getElementById('player')
-  },
-  session: {
-    autoInit: true,
-    serverUrl: 'wss://zellowork.io/ws/[yournetworkname]',
-    channel: '[channel]',
-    authToken: '[authToken]',
-    username: '[username]',
-    password: '[password]',
-    onConnect: function(err, result) {},
-    onLogon: function(err, result) {}
-  }
+  session: true,  // true by default
+  recorder: true, // false by default
+  player: true,   // false by default
+  widget: true,   // false by default
 }, function(err) {
   if (err) {
     console.trace(err);
     return;
   }
   console.log('zcc sdk parts loaded')
-}).then(function() {
+})
+
+// promise
+ZCC.Sdk.init({
+  recorder: true,
+  player: true,
+  widget: true,
+  session: true
+})
+.then(function() {
   console.log('zcc sdk parts loaded')
-}).fail(function(err) {
+}).catch(function(err) {
   console.trace(err);
 })
    **/
@@ -88,22 +77,25 @@ ZCC.Sdk.init({
     initOptions = options;
 
     let scriptsToLoad = [
-      url + 'zcc.Session.js'
+      url + 'zcc.session.js',
+      url + 'zcc.constants.js',
+      url + 'zcc.incomingMessage.js',
     ];
 
     if (options.recorder) {
       if (this.isHttps()) {
-        scriptsToLoad.push(url + 'zcc.Recorder.js');
+        scriptsToLoad.push(url + 'zcc.recorder.js');
       } else {
         throw new Error(Constants.ERROR_RECORDING_NO_HTTPS);
       }
     }
 
     if (options.widget || options.player) {
-      scriptsToLoad.push(url + 'zcc.Player.js');
+      scriptsToLoad.push(url + 'zcc.player.js');
+      scriptsToLoad.push(url + 'zcc.decoder.js');
     }
     if (options.widget) {
-      scriptsToLoad.push(url + 'zcc.Widget.js');
+      scriptsToLoad.push(url + 'zcc.widget.js');
     }
 
     $script(scriptsToLoad, 'bundle');
@@ -118,8 +110,8 @@ ZCC.Sdk.init({
   }
 
   static autoInit() {
-    let autoInitSession = initOptions.session && initOptions.session.autoInit;
-    let autoInitWidget = initOptions.widget && initOptions.widget.autoInit;
+    const autoInitSession = initOptions.session && initOptions.session.autoInit;
+    const autoInitWidget = initOptions.widget && initOptions.widget.autoInit;
     if (autoInitSession) {
       Sdk.autoInitSession();
     }
@@ -127,14 +119,14 @@ ZCC.Sdk.init({
     if (autoInitWidget) {
       Sdk.autoInitWidget();
       if (autoInitSession) {
-        let library = Utils.getLoadedLibrary();
+        const library = Utils.getLoadedLibrary();
         library.Sdk.widget.setSession(library.Sdk.session);
       }
     }
   }
 
   static autoInitSession() {
-    let library = Utils.getLoadedLibrary();
+    const library = Utils.getLoadedLibrary();
     Sdk.session = new library.Session(initOptions.session);
     let connectCallback = null;
     let logonCallback = null;
@@ -161,7 +153,7 @@ ZCC.Sdk.init({
   }
 
   static autoInitWidget() {
-    let library = Utils.getLoadedLibrary();
+    const library = Utils.getLoadedLibrary();
     Sdk.widget = new library.Widget(initOptions);
   }
 
@@ -173,8 +165,8 @@ ZCC.Sdk.init({
     for (let i = 0; i < scripts.length; i++) {
       let script = scripts[i];
       let src = script.getAttribute('src');
-      if (src.match(/zcc.Sdk\.js$/)) {
-        myUrl = src.replace(/zcc.Sdk.js$/, '');
+      if (src.match(/zcc.sdk\.js$/)) {
+        myUrl = src.replace(/zcc.sdk.js$/, '');
         return myUrl;
       }
     }

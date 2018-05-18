@@ -1,17 +1,27 @@
 const path = require('path');
-const webpack = require('webpack');
 const settings = require('./settings');
 const UglifyJsPlugin = require('uglifyjs-webpack-plugin');
+const renameOutputPlugin = require('rename-output-webpack-plugin');
+
+let entryFiles = {
+  'Sdk': './src/classes/sdk.js',
+  'Session': './src/classes/session.js',
+  'Player': './src/classes/player.js',
+  'Decoder': './src/classes/decoder.js',
+  'Recorder': './src/classes/recorder.js',
+  'Widget': './src/classes/widget/index.js',
+  'Constants': './src/classes/constants.js',
+  'IncomingMessage': './src/classes/incomingMessage.js'
+};
+
+let renameOutputFiles = {};
+Object.keys(entryFiles).forEach(function(entryPoint) {
+  renameOutputFiles[entryPoint] = 'zcc.' + entryPoint.toLowerCase() + '.js';
+});
 
 module.exports = {
   mode: 'production',
-  entry: {
-    'Sdk': './src/classes/sdk.js',
-    'Session': './src/classes/session.js',
-    'Player': './src/classes/player.js',
-    'Recorder': './src/classes/recorder.js',
-    'Widget': './src/classes/widget/index.js'
-  },
+  entry: entryFiles,
   output: {
     filename: 'zcc.[name].js',
     library: [settings.libraryName, '[name]'],
@@ -33,8 +43,13 @@ module.exports = {
         }
       },
       {
-        test: /\.handlebars$/,
-        loader: 'handlebars-loader'
+        test: /\.ejs$/,
+        use: {
+          loader: 'ejs-compiled-loader',
+          options: {
+            htmlmin: true
+          }
+        }
       },
       {
         test: /\.scss$/,
@@ -56,6 +71,7 @@ module.exports = {
     ]
   },
   plugins: [
+    new renameOutputPlugin(renameOutputFiles),
     new UglifyJsPlugin({
       uglifyOptions: {
         output: {

@@ -1,30 +1,30 @@
 const Emitter = require('component-emitter');
 const Constants = require('./../constants');
-const MainTemplate = require('./template.handlebars');
-const StatusTemplate = require('./status.handlebars');
-const MessageInfoTemplate = require('./message-info.handlebars');
-const Styles = require('./styles.scss');
+const Styles = require('./styles/styles.scss');
 const DomUtils = require('./../domutils');
 const Utils = require('./../utils');
+
+const MainTemplate = require('./templates/template.ejs');
+const StatusTemplate = require('./templates/status.ejs');
 
 /**
  * @classdesc Widget class to initialize player (in widget or headless mode) that plays incoming messages and provides
  * interface to record messages in supported browsers and environments (https only)
  *
  * @example
-// headless mode
-var session = new ZCC.Session({
+ // headless mode
+ var session = new ZCC.Session({
   serverUrl: 'wss://zellowork.io/ws/[yournetworkname]',
   channel: '[channel]',
   authToken: '[authToken]',
   username: '[username]',
   password: '[password]',
 });
-session.connect()
-.then(function() {
+ session.connect()
+ .then(function() {
   return session.logon();
 })
-.then(function(data) {
+ .then(function(data) {
   var widget = new ZCC.Widget({
     widget: {
       headless: true
@@ -32,11 +32,11 @@ session.connect()
   });
   widget.setSession(session);
 })
-.fail(function(err) {
+ .fail(function(err) {
   console.trace(err);
 });
 
-// widget mode
+ // widget mode
  var session = new ZCC.Session({
   serverUrl: 'wss://zellowork.io/ws/[yournetworkname]',
   channel: '[channel]',
@@ -96,17 +96,34 @@ class Widget extends Emitter {
     this.init();
   }
 
-  initHtml() {
-    this.element.innerHTML = MainTemplate(this.options);
-    this.button = DomUtils.getElementByClassName('zcc-button', this.element);
-    this.statusContainer = DomUtils.getElementByClassName('zcc-status-container', this.element);
-    this.messageInfoContainer = DomUtils.getElementByClassName('zcc-message-info-container', this.element);
-    this.messageDurationContainer = DomUtils.getElementByClassName('zcc-message-duration-container', this.element);
-    if (this.button) {
-      this.button.addEventListener('click', () => {
-        this.buttonPressHandler();
-      });
+  parseHtmlForVariables() {
+    let elements = DomUtils.getElementsByClassName('zcc-js-el', this.element);
+    for (let i = 0; i < elements.length; i++) {
+      let element = elements[i];
+      let name = Utils.strToCamelCase(element.className.split(/ /)[0]);
+      if (this[name] !== undefined) {
+        throw new Error('markup conflict');
+      }
+      this[name] = elements[i];
     }
+  }
+
+  initHtml() {
+    this.element.innerHTML = MainTemplate();
+    this.parseHtmlForVariables();
+
+    // this.mainInfoContainer = DomUtils.getElementByClassName('zcc-main-info-container', this.element);
+    // this.infoHeader = DomUtils.getElementByClassName('zcc-info-header', this.element);
+
+    // this.button = DomUtils.getElementByClassName('zcc-button', this.element);
+    // this.statusContainer = DomUtils.getElementByClassName('zcc-status-container', this.element);
+    // this.messageInfoContainer = DomUtils.getElementByClassName('zcc-message-info-container', this.element);
+    // this.messageDurationContainer = DomUtils.getElementByClassName('zcc-message-duration-container', this.element);
+    // if (this.button) {
+    //   this.button.addEventListener('click', () => {
+    //     this.buttonPressHandler();
+    //   });
+    // }
   }
 
   startMessage() {
@@ -196,11 +213,32 @@ class Widget extends Emitter {
     this.playOn = true;
   }
 
+
+  static updateHtml(elem, v, params = null) {
+    if (!elem) {
+      return false;
+    }
+    let str = v;
+    if (typeof v === 'function') {
+      str = v.apply(v, [params]);
+    }
+    elem.innerHTML = str;
+  }
+
+  updateHeader(v, params = null) {
+    return Widget.updateHtml(this.zccInfoHeader, v, params);
+  }
+
+  updateState(v, params = null) {
+    return Widget.updateHtml(this.zccState, v, params);
+  }
+
   setSession(session) {
     this.session = session;
+    this.updateHeader(session.options.channel);
 
     this.session.on(Constants.EVENT_STATUS, (status) => {
-      this.statusUpdate(status)
+      this.updateState(StatusTemplate, status);
     });
 
     this.session.on(Constants.EVENT_STREAM_START, (stream) => {
@@ -211,19 +249,12 @@ class Widget extends Emitter {
       this.incomingMessageEnd(stream);
     });
 
-    this.session.on(Constants.EVENT_AUDIO_PACKET_IN, (audioPacket) => {
+    this.session.on(Constants.EVENT_INCOMING_VOICE_DATA, (audioPacket) => {
       if (!this.playOn) {
         return;
       }
       this.decoder.decode(audioPacket.messageData);
     });
-  }
-
-  statusUpdate(data) {
-    if (this.isHeadless) {
-      return;
-    }
-    this.statusContainer.innerHTML = StatusTemplate(data);
   }
 
   incomingMessageStart(data) {
@@ -275,7 +306,7 @@ class Widget extends Emitter {
     let millis = Math.round((duration % 1000) / 100);
 
     if (millis >= 10) {
-      millis = 2;
+      millis = 9;
     }
 
     if (hours > 0 && hours < 10) {
