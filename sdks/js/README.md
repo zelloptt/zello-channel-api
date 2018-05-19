@@ -1,7 +1,7 @@
 #Zello channels JavaScript SDK
 
 ## Usage
-[see usage doc](USAGE.md)
+See examples in `examples` folder and documentation in `/docs/js` folder
 
 ## Build from sources
 

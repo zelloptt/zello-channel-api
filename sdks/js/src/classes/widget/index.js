@@ -93,6 +93,8 @@ class Widget extends Emitter {
     this.currentRecordedMessageId = null;
     this.currentPacketId = 0;
 
+    this.outgoingMessage = null;
+
     this.init();
   }
 
@@ -115,15 +117,15 @@ class Widget extends Emitter {
     // this.mainInfoContainer = DomUtils.getElementByClassName('zcc-main-info-container', this.element);
     // this.infoHeader = DomUtils.getElementByClassName('zcc-info-header', this.element);
 
-    // this.button = DomUtils.getElementByClassName('zcc-button', this.element);
+    //this.talkButton = DomUtils.getElementByClassName('zcc-talk-button', this.element);
     // this.statusContainer = DomUtils.getElementByClassName('zcc-status-container', this.element);
     // this.messageInfoContainer = DomUtils.getElementByClassName('zcc-message-info-container', this.element);
     // this.messageDurationContainer = DomUtils.getElementByClassName('zcc-message-duration-container', this.element);
-    // if (this.button) {
-    //   this.button.addEventListener('click', () => {
-    //     this.buttonPressHandler();
-    //   });
-    // }
+    if (this.zccTalkButton) {
+      this.zccTalkButton.addEventListener('click', () => {
+        this.talkButtonPressHandler();
+      });
+    }
   }
 
   startMessage() {
@@ -146,7 +148,7 @@ class Widget extends Emitter {
   }
 
   doRecordMessage() {
-    DomUtils.addClass(this.button, 'zcc-recording');
+    DomUtils.addClass(this.zccTalkButton, 'zcc-recording');
     this.recorder.onopusdataavailable = (data) => {
       let packet = Widget.buildBinaryPacket(1, this.currentRecordedMessageId, this.currentPacketId, data);
       this.currentPacketId++;
@@ -156,18 +158,18 @@ class Widget extends Emitter {
   }
 
   stopRecordMessage() {
-    DomUtils.removeClass(this.button, 'zcc-recording');
+    DomUtils.removeClass(this.zccTalkButton, 'zcc-recording');
     this.currentRecordedMessageId = null;
     this.recorder.stop();
   }
 
-  buttonPressHandler() {
-    this.emit(Constants.EVENT_BUTTON_PRESS);
-    if (!this.currentRecordedMessageId) {
-      this.startMessage();
+  talkButtonPressHandler() {
+    if (!this.outgoingMessage) {
+      this.outgoingMessage = this.session.startVoiceMessage();
       return;
     }
-    this.stopMessage();
+    this.outgoingMessage.stop();
+    this.outgoingMessage = null;
   }
 
   stopMessage() {
@@ -182,13 +184,13 @@ class Widget extends Emitter {
   }
 
   initPlayer() {
-    let library = Utils.getLoadedLibrary();
-    this.decoder = new library.Player.Decoder.OpusToPCM({
+    const library = Utils.getLoadedLibrary();
+    this.decoder = new library.Decoder({
       channels: 1,
       fallback: true
     });
 
-    this.player = new library.Player.PCMPlayer({
+    this.player = new library.Player({
       encoding: '32bitFloat',
       channels: 1,
       sampleRate: this.decoder.getSampleRate(),
@@ -269,7 +271,7 @@ class Widget extends Emitter {
       return;
     }
     this.messageInfoContainer.innerHTML = MessageInfoTemplate(data);
-    DomUtils.addClass(this.button, 'zcc-receiving');
+    DomUtils.addClass(this.zccTalkButton, 'zcc-receiving');
   }
 
   incomingMessageEnd() {
@@ -279,7 +281,7 @@ class Widget extends Emitter {
     }
     this.messageDurationContainer.innerHTML = '';
     this.messageInfoContainer.innerHTML = '';
-    DomUtils.removeClass(this.button, 'zcc-receiving');
+    DomUtils.removeClass(this.zccTalkButton, 'zcc-receiving');
   }
 
   pausePlayer() {
@@ -299,6 +301,7 @@ class Widget extends Emitter {
     this.element.remove();
   }
 
+  // todo: remove to utils
   static getDurationDisplay(duration) {
     let hours = Math.floor((duration / (1000 * 3600)));
     let mins = Math.floor((duration / (1000 * 60)) % 60);

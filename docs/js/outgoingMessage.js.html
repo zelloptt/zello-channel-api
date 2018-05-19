@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: outgoingMessage.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: outgoingMessage.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>const Emitter = require('./emitter');
+const Constants = require('./constants');
+const Utils = require('./utils');
+
+/**
+ * @hideconstructor
+ * @classdesc Outgoing audio message class. Instances are returned from &lt;code>Session.startVoiceMessage&lt;/code> method
+ **/
+class OutgoingMessage extends Emitter {
+  constructor(session, instanceOptions = {}) {
+    super();
+    const library = Utils.getLoadedLibrary();
+    this.options =
+      Object.assign({
+        autoStart: true,
+        recorderSampleRate: 44100, // fallback for recorder with no getOriginalSampleRate method
+        encoderFrameSize: 20,
+        encoderSampleRate: 16000,
+        encoderApplication: 2048
+      }, session.options, instanceOptions);
+
+    if (this.options.recorder &amp;&amp; !Utils.isFunction(this.options.recorder)) {
+      this.options.recorder = library.Recorder;
+    }
+
+    if (this.options.encoder &amp;&amp; !Utils.isFunction(this.options.encoder)) {
+      this.options.encoder = library.Encoder;
+    }
+
+    this.session = session;
+    this.currentMessageId = null;
+    this.currentPacketId = 0;
+
+    this.initEncoder();
+    this.initRecorder();
+
+    // start message explicitly if no recorder present.
+    // if recorder is there it will start from Recorder.onready
+    if (!this.recorder &amp;&amp; this.options.autoStart) {
+      this.start();
+    }
+  }
+
+  initEncoder() {
+    if (!this.options.encoder) {
+      return;
+    }
+    this.options.encoder.prototype.ondata = (data) => {
+      let packet = Utils.buildBinaryPacket(1, this.currentMessageId, ++this.currentPacketId, data);
+      /**
+       * Outgoing message packet encoded and ready to be sent to zello server. Session is following this event and sends data automatically
+       *
+       * @event OutgoingMessage#data_encoded
+       * @param {Uint8Array} packet encoded opus packet with headers
+       */
+      this.emit(Constants.EVENT_DATA_ENCODED, packet);
+    };
+    this.encoder = new this.options.encoder;
+  }
+
+  initRecorder() {
+    if (!this.options.recorder) {
+      return;
+    }
+
+    this.options.recorder.prototype.ondata = (data) => {
+      /**
+       * Outgoing message pcm data from recorder is ready to be encoded
+       *
+       * @event OutgoingMessage#data
+       * @param {Float32Array} data pcm data portion
+       */
+      this.emit(Constants.EVENT_DATA, data);
+      this.encoder.encode(data);
+    };
+    this.options.recorder.prototype.onready = () => {
+      this.sendEncoderInitMessage();
+      if (this.options.autoStart) {
+        this.start();
+      }
+    };
+    this.recorder = new this.options.recorder(this.options, this.encoder);
+    if (Utils.isFunction(this.recorder.init)) {
+      this.recorder.init();
+    }
+  }
+
+  sendEncoderInitMessage() {
+    if (!this.encoder || !Utils.isFunction(this.encoder.postMessage)) {
+      return;
+    }
+    let recorderSampleRate = this.options.recorderSampleRate;
+    if (Utils.isFunction(this.recorder.getSampleRate)) {
+      recorderSampleRate = this.recorder.getSampleRate();
+    }
+    this.encoder.postMessage(Object.assign({
+      command: 'init',
+      originalSampleRate: recorderSampleRate
+    }, this.options));
+  }
+
+  stopRecording() {
+    if (this.recorder &amp;&amp; this.recorder.stop) {
+      this.recorder.stop();
+    }
+  }
+
+  startRecording() {
+    if (this.recorder &amp;&amp; this.recorder.start) {
+      this.recorder.start();
+    }
+  }
+
+  /**
+   * Stops outgoing message
+   *
+   * @param {Function} userCallback user callback that is called when server &lt;code>stop_stream&lt;/code> command is done
+   * @returns {Promise} promise that resolves when server &lt;code>stop_stream&lt;/code> command is done
+   * @example
+// callback
+outgoingMessage.stop(function(err, result) {
+  if (err) {
+    console.trace(err);
+    return;
+  }
+  console.warn('Message stopped');
+});
+
+// promise
+outgoingMessage.then(function(result) {
+  console.warn('Message stopped');
+}).catch(function(err) {
+  console.trace(err);
+});
+  */
+  stop(userCallback) {
+    this.stopRecording();
+    return this.session.stopStream({
+      stream_id: this.currentMessageId
+    }, userCallback);
+  }
+
+
+/**
+ * Starts an outgoing message
+ * if &lt;code>options.autoStart&lt;/code> is &lt;code>true&lt;/code> (default behaviour) then message is started automatically
+ * when instance is created by &lt;code>session.startVoiceMessage&lt;/code>
+ * **/
+  start() {
+    let params = {
+      'type': 'audio',
+      'codec': 'opus',
+      'codec_header': Utils.buildCodecHeader(this.options.encoderSampleRate, 1, this.options.encoderFrameSize),
+      'packet_duration': this.options.encoderFrameSize
+    };
+    this.session.startStream(params).then((result) => {
+      this.currentMessageId = result.stream_id;
+      this.startRecording();
+    }).catch((err) => {
+      throw new Error(err);
+    })
+  }
+
+}
+
+module.exports = OutgoingMessage;</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="IncomingMessage.html">IncomingMessage</a></li><li><a href="OutgoingMessage.html">OutgoingMessage</a></li><li><a href="Sdk.html">Sdk</a></li><li><a href="Session.html">Session</a></li></ul><h3>Events</h3><ul><li><a href="Decoder.html#event:decode">decode</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="OutgoingMessage.html#event:data">data</a></li><li><a href="OutgoingMessage.html#event:data_encoded">data_encoded</a></li><li><a href="Session.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="Session.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="Session.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="Session.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="Session.html#event:incoming_voice_will_start">incoming_voice_will_start</a></li><li><a href="Session.html#event:session_connect">session_connect</a></li><li><a href="Session.html#event:session_connection_lost">session_connection_lost</a></li><li><a href="Session.html#event:session_disconnect">session_disconnect</a></li><li><a href="Session.html#event:session_fail_connect">session_fail_connect</a></li><li><a href="Session.html#event:session_start_connect">session_start_connect</a></li><li><a href="Session.html#event:status">status</a></li></ul><h3>Interfaces</h3><ul><li><a href="Decoder.html">Decoder</a></li><li><a href="Encoder.html">Encoder</a></li><li><a href="Player.html">Player</a></li><li><a href="Recorder.html">Recorder</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Sat May 26 2018 18:40:04 GMT-0500 (CDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

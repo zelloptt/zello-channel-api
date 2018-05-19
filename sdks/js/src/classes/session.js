@@ -1,38 +1,36 @@
-const Emitter = require('component-emitter');
+const Emitter = require('./emitter');
 const Promise = require('q');
 const Constants = require('./constants');
 const Utils = require('./utils');
 
 /**
- * @classdesc Session class to start session with zello server and interact with it
- * [using zello channel api](https://github.com/zelloptt/zello-channel-api/blob/master/API.md)
+ * @classdesc Session class to start session with zello server and interact with it using <a href="">zello channel api</a>
  * @example
-var session = new ZCC.Session({
+ var session = new ZCC.Session({
   serverUrl: 'wss://zellowork.io/ws/[yournetworkname]',
   username: [username],
   password: [password]
   channel: [channel],
   authToken: [authToken],
-  incomingMessageDecoder: function() { }, // optional function to override incoming message decoder.
-                                          // should return an instance of class that implements see {@link Decoder} interface
-
-  incomingMessagePlayer: function() {},   // optional function to override incoming message player
-                                          // should return an instance of class that implements Player interface[link]
-
-
+  maxConnectAttempts: 5,
+  connectRetryTimeoutMs: 1000,
+  autoSendAudio: true
 );
  **/
 class Session extends Emitter {
   /**
-   * @param {object} params session parameters. Example:
+   * @param {object} options session options. Options can also include <code>player</code>, <code>decoder</code>, <code>recorder</code> and <code>encoder</code> overrides
+   * @return {ZCC.Session} <code>ZCC.Session</code> instance
    **/
-  constructor(params) {
+  constructor(options) {
     super();
-    Session.validateInitialParams(params);
-    this.options = Object.assign({
+    const library = Utils.getLoadedLibrary();
+    Session.validateInitialOptions(options);
+    this.options = Object.assign(library.Sdk.initOptions, {
       maxConnectAttempts: 5,
-      connectRetryTimeoutMs: 1000
-    }, params);
+      connectRetryTimeoutMs: 1000,
+      autoSendAudio: true
+    }, options);
     this.callbacks = {};
     this.wsConnection = null;
     this.refreshToken = null;
@@ -42,23 +40,24 @@ class Session extends Emitter {
     this.connectRetryTimeoutMs = this.options.connectRetryTimeoutMs;
     this.selfDisconnect = false;
     this.incomingMessages = {};
+    this.activeOutgoingMessage = null;
   }
 
   getSeq() {
     return ++this.seq;
   }
 
-  static validateInitialParams(initialParams) {
+  static validateInitialOptions(initialOptions) {
     if (
-      !initialParams ||
-      !initialParams.serverUrl ||
-      !initialParams.authToken ||
-      !initialParams.channel ||
-      (initialParams.username && !initialParams.password)
+      !initialOptions ||
+      !initialOptions.serverUrl ||
+      !initialOptions.authToken ||
+      !initialOptions.channel ||
+      (initialOptions.username && !initialOptions.password)
     ) {
       throw new Error(Constants.ERROR_NOT_ENOUGH_PARAMS);
     }
-    if (!initialParams.serverUrl.match(/^wss?:\/\//i)) {
+    if (!initialOptions.serverUrl.match(/^wss?:\/\//i)) {
       throw new Error(Constants.ERROR_INVALID_SERVER_PROTOCOL);
     }
   }
@@ -94,6 +93,10 @@ session.connect(function(err, result) {
   connectOrReconnect(userCallback = null, isReconnect = false) {
     let dfd = Promise.defer();
     if (this.connectAttempts === this.maxConnectAttempts) {
+      /**
+       * The Session has opened a websocket connection to the server and ready to sign in
+       * @event Session#session_start_connect
+       */
       this.emit(Constants.EVENT_SESSION_START_CONNECT);
     }
     this.doConnect()
@@ -105,6 +108,10 @@ session.connect(function(err, result) {
           userCallback.apply(this, [null, result]);
         }
         this.connectAttempts = this.maxConnectAttempts;
+        /**
+         * The Session has connected and signed in successfully
+         * @event Session#session_connect
+         */
         this.emit(Constants.EVENT_SESSION_CONNECT);
         dfd.resolve(result);
       })
@@ -119,6 +126,16 @@ session.connect(function(err, result) {
         if (typeof userCallback === 'function') {
           userCallback.apply(this, [err]);
         }
+        /**
+         * The Session has failed to connect or sign in.
+         * @event Session#session_fail_connect
+         * @param {string} error Error description
+         */
+        /**
+         * The Session was disconnected and failed to reconnect
+         * @event Session#session_disconnect
+         * @param {string} error Error description
+         */
         this.emit(isReconnect ? Constants.EVENT_SESSION_DISCONNECT : Constants.EVENT_SESSION_FAIL_CONNECT, err);
       });
     return dfd.promise;
@@ -148,6 +165,11 @@ session.connect(function(err, result) {
       }
       // disconnected from server after initial successful connection
       if (dfd.promise.inspect().state === 'fulfilled') {
+        /**
+         * The Session was disconnected and will try to reconnect
+         * @event Session#session_connection_lost
+         * @param {string} error Error description
+         */
         this.emit(Constants.EVENT_SESSION_CONNECTION_LOST, err);
         this.connectOrReconnect(null, true);
       }
@@ -190,7 +212,7 @@ session.connect(function(err, result) {
   }
 
   /**
-   * Closes session and disconnects from zello server. To start session again you need to call `connect`
+   * Closes session and disconnects from zello server. To start session again you need to call <code>session.connect</code>
    */
   disconnect() {
     this.selfDisconnect = true;
@@ -198,7 +220,15 @@ session.connect(function(err, result) {
   }
 
   wsBinaryDataHandler(data) {
-    this.emit(Constants.EVENT_INCOMING_VOICE_DATA, Session.parseIncomingBinaryMessage(data));
+    /**
+     * The Session is receiving incoming voice message packet (with encoded audio)
+     * @event Session#incoming_voice_data
+     * @param {Object} incomingVoicePacket voice message packet object
+     * @property {Uint8Array} messageData encoded (opus) data
+     * @property {Number} messageId incoming message id
+     * @property {Number} packetId incoming packet id
+     */
+    this.emit(Constants.EVENT_INCOMING_VOICE_DATA, Utils.parseIncomingBinaryMessage(data));
   }
 
   jsonDataHandler(jsonData) {
@@ -210,15 +240,33 @@ session.connect(function(err, result) {
     }
     switch (jsonData.command) {
       case 'on_channel_status':
+        /**
+         * The Session is receiving channel status update
+         * @event Session#status
+         * @param {JSON} status JSON object
+         * @property {String} channel channel name
+         * @property {String} status new channel status
+         * @property {Number} users_online number of online users
+         */
         this.emit(Constants.EVENT_STATUS, jsonData);
         break;
       case 'on_stream_start':
         const library = Utils.getLoadedLibrary();
         const incomingMessage = new library.IncomingMessage(jsonData, this);
         this.incomingMessages[jsonData.stream_id] = incomingMessage;
+        /**
+         * Incoming voice message is about to start.
+         * @event Session#incoming_voice_will_start
+         * @param {ZCC.IncomingMessage} incomingMessage message instance
+         */
         this.emit(Constants.EVENT_INCOMING_VOICE_WILL_START, incomingMessage);
         break;
       case 'on_stream_stop':
+        /**
+         * Incoming voice message stopped
+         * @event Session#incoming_voice_did_stop
+         * @param {ZCC.IncomingMessage} incomingMessage incoming message instance
+         */
         this.emit(Constants.EVENT_INCOMING_VOICE_DID_STOP, this.incomingMessages[jsonData.stream_id]);
         break;
     }
@@ -299,13 +347,61 @@ session.connect(function(err, result) {
     return dfd.promise;
   }
 
-  static parseIncomingBinaryMessage(binaryData) {
-    let headerView = new DataView(binaryData.slice(0, 9));
-    return {
-      messageData: new Uint8Array(binaryData.slice(9)),
-      messageId: headerView.getUint32(1, false),
-      packetId: headerView.getUint32(5, false)
-    }
+  /**
+   * Starts a voice message by creating OutgoingMessage instance
+   *
+   * @param {object} options options for outgoing messages.
+   * Options can also include <code>recorder</code> and <code>encoder</code> overrides.
+   *
+   * @return {ZCC.OutgoingMessage} OutgoingMessage object
+   * @example
+   *
+// use default recorder and encoder
+var outgoingMessage = session.startVoiceMessage();
+
+// use custom recorder
+var outgoingMessage = session.startVoiceMessage({
+  recorder: CustomRecorder
+});
+
+// use custom recorder and encoder
+var outgoingMessage = session.startVoiceMessage({
+  recorder: CustomRecorder,
+  encoder: CustomEncoder
+});
+ **/
+  startVoiceMessage(options = {}) {
+    const library = Utils.getLoadedLibrary();
+    this.activeOutgoingMessage = new library.OutgoingMessage(this, options);
+
+    this.activeOutgoingMessage.on(Constants.EVENT_DATA_ENCODED, (data) => {
+      if (!this.activeOutgoingMessage.options.autoSendAudio) {
+        return;
+      }
+      this.sendBinary(data);
+    });
+
+    return this.activeOutgoingMessage;
+  }
+
+  onIncomingVoiceDidStart(incomingMessage) {
+    /**
+     * Incoming voice message did start (first packet received)
+     *
+     * @event Session#incoming_voice_did_start
+     * @param {ZCC.IncomingMessage} incoming message instance
+     */
+    this.emit(Constants.EVENT_INCOMING_VOICE_DID_START, incomingMessage);
+  }
+
+  onIncomingVoiceDecoded(pcmData, incomingMessage) {
+    /**
+     * Incoming voice message packet decoded
+     * @event Session#incoming_voice_data_decoded
+     * @param {Float32Array} pcmData decoded pcm packet
+     * @param {ZCC.IncomingMessage} incoming message instance
+     */
+    this.emit(Constants.EVENT_INCOMING_VOICE_DATA_DECODED, pcmData, incomingMessage);
   }
 
 }

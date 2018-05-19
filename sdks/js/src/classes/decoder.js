@@ -1,41 +1,27 @@
 /**
- * Decoder interface
+ * Decoder interface. Decoder is used by <code>IncomingMessage</code> to decode incoming data.
  *
- * @interface
- * @name Decoder
- */
-
-/**
- * Get decoder sample rate (required by default PCM player)
- * Required to implement but not used unless you will be using default PCM player
- *
- * @function
- * @name getSampleRate
- * @return {number}
- * @example
-console.log(decoder.getSampleRate())
-// outputs 24000
+ * @interface Decoder
  */
 
 /**
  * Decode incoming opus to pcm
  *
- * @function
- * @name decode
+ * @method
+ * @name Decoder#decode
  * @fires Decoder#decode
  * @param {Uint8Array} encodedMessageData encoded opus data
- * @return {undefined}
  * @example
-decoder.decode(encodedMessageData: Uint8Array);
+decoder.decode(encodedMessageData);
  */
 
 /**
- * `decode` event
+ * <code>decode</code> event
  *
  * @event Decoder#decode
- * @type {Float32Array} PCM data
+ * @param {Float32Array} pcmData PCM data
  * @example
-decoder.on('decode', function(pcmData: Float32Array) { });
+decoder.on('decode', function(pcmData) { });
  */
 
 const Decoder = require('./../vendor/opus-to-pcm/src/opus-to-pcm');

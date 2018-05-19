@@ -8,10 +8,12 @@ let entryFiles = {
   'Session': './src/classes/session.js',
   'Player': './src/classes/player.js',
   'Decoder': './src/classes/decoder.js',
+  'Encoder': './src/classes/encoder.js',
   'Recorder': './src/classes/recorder.js',
   'Widget': './src/classes/widget/index.js',
   'Constants': './src/classes/constants.js',
-  'IncomingMessage': './src/classes/incomingMessage.js'
+  'IncomingMessage': './src/classes/incomingMessage.js',
+  'OutgoingMessage': './src/classes/outgoingMessage.js'
 };
 
 let renameOutputFiles = {};
@@ -58,6 +60,15 @@ module.exports = {
           "css-loader",
           "sass-loader"
         ]
+      },
+      {
+        test: /inline/,
+        use: {
+          loader: 'raw-loader',
+          options: {
+            inline: true
+          }
+        }
       },
       {
         test: /\.worker\.js/,

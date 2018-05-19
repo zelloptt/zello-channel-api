@@ -1,56 +1,93 @@
-const Emitter = require('component-emitter');
+const Emitter = require('./emitter');
 const Constants = require('./constants');
 const Utils = require('./utils');
 
+/**
+ * @hideconstructor
+ * @classdesc Incoming audio message class. Instances are returned as arguments for corresponding <code>ZCC.Session</code> events
+ **/
 class IncomingMessage extends Emitter {
-  constructor(params, session) {
+  constructor(messageData, session) {
     super();
+    this.codecDetails = Utils.parseCodedHeader(messageData.codec_header);
     this.messageDidStart = false;
+    let library = Utils.getLoadedLibrary();
     this.options =
       Object.assign({
-        incomingMessageDecoder: () => {
-          let library = Utils.getLoadedLibrary();
-          return new library.Decoder({
-            channels: 1,
-            fallback: true
-          });
-        },
-        incomingMessagePlayer: (decoder) => {
-          const sampleRate = decoder.getSampleRate();
-          let library = Utils.getLoadedLibrary();
-          return new library.Player({
-            encoding: '32bitFloat',
-            channels: 1,
-            sampleRate: sampleRate,
-            flushingTime: 100
-          });
-        }
+        encoding: '32bitFloat',
+        channels: 1,
+        sampleRate: this.codecDetails.rate,
+        flushingTime: 300
       },
       session.options,
-      {messageData: params}
+      {messageData: messageData}
     );
 
-    this.initDecoder();
+    if (this.options.decoder && !Utils.isFunction(this.options.decoder)) {
+      this.options.decoder = library.Decoder;
+    }
+
+    if (this.options.player && !Utils.isFunction(this.options.player)) {
+      this.options.player = library.Player;
+    }
+
     this.initPlayer();
+    this.initDecoder();
+    this.initSessionHandlers();
 
     this.session = session;
-    this.session.on(Constants.EVENT_INCOMING_VOICE_DATA, (parsedAudioPacket) => {
+    this.instanceId = messageData.stream_id.toString();
+    this.session.on([Constants.EVENT_INCOMING_VOICE_DATA, this.instanceId], this.incomingVoiceHandler);
+    this.session.on([Constants.EVENT_INCOMING_VOICE_DID_STOP, this.instanceId], this.incomingVoiceDidStopHandler);
+    this.on([Constants.EVENT_INCOMING_VOICE_DATA_DECODED, this.instanceId], this.decodedAudioHandler);
+  }
+
+  initSessionHandlers() {
+    this.decodedAudioHandler = (pcmData) => {
+      if (this.player && Utils.isFunction(this.player.feed)) {
+        this.player.feed(pcmData);
+      }
+    };
+
+    this.incomingVoiceDidStopHandler = () => {
+      /**
+       * Incoming voice message stopped
+       * @event IncomingMessage#incoming_voice_did_stop
+       * @param {ZCC.IncomingMessage} incomingMessage incoming message instance (self)
+       */
+      this.emit(Constants.EVENT_INCOMING_VOICE_DID_STOP, this);
+      if (this.player && Utils.isFunction(this.player.destroy)) {
+        this.player.destroy();
+      }
+      this.session.off([Constants.EVENT_INCOMING_VOICE_DATA, this.instanceId], this.incomingVoiceHandler);
+      this.session.off([Constants.EVENT_INCOMING_VOICE_DID_STOP, this.instanceId], this.incomingVoiceDidStopHandler);
+    };
+
+    this.incomingVoiceHandler = (parsedAudioPacket) => {
       if (!this.messageDidStart) {
         this.messageDidStart = true;
-        this.emit(Constants.EVENT_INCOMING_VOICE_DID_START, parsedAudioPacket);
-        this.session.emit(Constants.EVENT_INCOMING_VOICE_DID_START, this);
+        /**
+         * Incoming voice message started
+         * @event IncomingMessage#incoming_voice_did_start
+         * @param {ZCC.IncomingMessage} incomingMessage incoming message instance (self)
+         */
+        this.emit(Constants.EVENT_INCOMING_VOICE_DID_START, this);
+        this.session.onIncomingVoiceDidStart(this);
       }
+
+      /**
+       * Incoming voice message packet (with encoded audio)
+       * @event IncomingMessage#incoming_voice_data
+       * @param {Object} incomingVoicePacket voice message packet object
+       * @property {Uint8Array} messageData encoded (opus) data
+       * @property {Number} messageId incoming message id
+       * @property {Number} packetId incoming packet id
+       */
       this.emit(Constants.EVENT_INCOMING_VOICE_DATA, parsedAudioPacket);
-      this.decode(parsedAudioPacket);
-    });
-
-    this.session.on(Constants.EVENT_INCOMING_VOICE_DID_STOP, () => {
-      this.emit(Constants.EVENT_INCOMING_VOICE_DID_STOP, this);
-    });
-
-    this.on(Constants.EVENT_INCOMING_VOICE_DATA_DECODED, (pcmData) => {
-      this.player.feed(pcmData);
-    });
+      if (this.decoder) {
+        this.decode(parsedAudioPacket);
+      }
+    }
   }
 
   decode(parsedAudioPacket) {
@@ -58,34 +95,26 @@ class IncomingMessage extends Emitter {
   }
 
   initDecoder() {
-    if (typeof this.options.incomingMessageDecoder !== 'function') {
-      throw new Error(Constants.ERROR_INVALID_DECODER);
+    if (!this.options.decoder) {
+      return;
     }
-    this.decoder = this.options.incomingMessageDecoder();
-    if (
-      this.decoder === undefined ||
-      typeof this.decoder.decode !== 'function' ||
-      typeof this.decoder.getSampleRate !== 'function' ||
-      typeof this.decoder.on !== 'function'
-    ) {
-      throw new Error(Constants.ERROR_INVALID_DECODER);
-    }
-    this.decoder.on('decode', (pcmData) => {
+    this.options.decoder.prototype.ondata = (pcmData) => {
+      /**
+       * Incoming voice message packet decoded
+       * @event IncomingMessage#incoming_voice_data_decoded
+       * @param {Float32Array} pcmData decoded pcm packet
+       */
       this.emit(Constants.EVENT_INCOMING_VOICE_DATA_DECODED, pcmData);
-    });
+      this.session.onIncomingVoiceDecoded(pcmData, this);
+    };
+    this.decoder = new this.options.decoder(this.options);
   }
 
   initPlayer() {
-    if (typeof this.options.incomingMessagePlayer !== 'function') {
-      throw new Error(Constants.ERROR_INVALID_PLAYER);
+    if (!this.options.player) {
+      return;
     }
-    this.player = this.options.incomingMessagePlayer(this.decoder);
-    if (
-      this.player === undefined ||
-      typeof this.player.feed !== 'function'
-    ) {
-      throw new Error(Constants.ERROR_INVALID_PLAYER);
-    }
+    this.player = new this.options.player(this.options);
   }
 }
 

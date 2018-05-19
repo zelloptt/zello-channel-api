@@ -7,10 +7,17 @@ module.exports = {
   ERROR_RECORDING_NO_HTTPS: 'Recording will work over https:// loaded pages only',
   ERROR_WIDGET_ELEMENT_NOT_FOUND: 'DOM element for widget is not found',
   ERROR_INVALID_DECODER:
-    'Invalid incoming message decoder. Should be a function that creates and returns decoder instance.',
+    'Invalid incoming message decoder. Should implement ZCC.Decoder interface.',
 
   ERROR_INVALID_PLAYER:
-    'Invalid incoming message decoder. Should be a function that creates and returns player instance.',
+    'Invalid incoming message player. Should implement ZCC.Player interface.',
+
+
+  ERROR_INVALID_RECORDER:
+    'Invalid outgoing message recorder. Should implement ZCC.Recorder interface.',
+
+  ERROR_INVALID_ENCODER:
+    'Invalid outgoing message encoder. Should implement ZCC.Encoder interface.',
 
   EVENT_ERROR: 'error',
   EVENT_CONNECT: 'connect',
@@ -34,6 +41,10 @@ module.exports = {
   EVENT_INCOMING_VOICE_DID_STOP: 'incoming_voice_did_stop',
 
   EVENT_INCOMING_VOICE_DATA: 'incoming_voice_data',
-  EVENT_INCOMING_VOICE_DATA_DECODED: 'incoming_voice_data_decoded'
+  EVENT_INCOMING_VOICE_DATA_DECODED: 'incoming_voice_data_decoded',
+
+  EVENT_DATA: 'data',
+  EVENT_DATA_ENCODED: 'data_encoded',
+  EVENT_RECORDER_READY: 'recorder_ready'
 
 };

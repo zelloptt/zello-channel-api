@@ -1,19 +1,17 @@
 /**
- * Player interface
+ * Player interface. Player is used by <code>IncomingMessage</code> to play incoming data decoded by <code>Decoder</code>.
  *
- * @interface
- * @name Player
+ * @interface Player
  */
 
 /**
  * Send PCM data to play
  *
- * @function
- * @name feed
- * @param {Float32Array} decoded PCM audio data
- * @return {undefined}
+ * @method
+ * @name Player#feed
+ * @param {Float32Array} audioData PCM audio data to be played
  * @example
-player.feed(audioData: Float32Array);
+player.feed(audioData);
  */
 const PCMPlayer = require('./../vendor/pcm-player/pcm-player');
 module.exports = PCMPlayer;
