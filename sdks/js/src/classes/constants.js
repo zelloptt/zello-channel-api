@@ -25,8 +25,6 @@ module.exports = {
   EVENT_LOGON: 'logon',
   EVENT_STATUS: 'status',
 
-  EVENT_BUTTON_PRESS: 'button_press',
-
   EVENT_START_STREAM: 'start_stream',
   EVENT_STOP_STREAM: 'stop_stream',
 
@@ -45,6 +43,12 @@ module.exports = {
 
   EVENT_DATA: 'data',
   EVENT_DATA_ENCODED: 'data_encoded',
-  EVENT_RECORDER_READY: 'recorder_ready'
+  EVENT_RECORDER_READY: 'recorder_ready',
+
+  EVENT_WIDGET_OPEN_BUTTON_CLICK: 'widget_open_button_click',
+  EVENT_WIDGET_MUTE: 'widget_mute',
+  EVENT_WIDGET_UNMUTE: 'widget_unmute',
+  EVENT_WIDGET_SPEAKING_USERNAME_CLICK: 'speaking_username_click'
+
 
 };

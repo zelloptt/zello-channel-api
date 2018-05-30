@@ -1,11 +1,14 @@
-const Emitter = require('component-emitter');
+const Emitter = require('./../emitter');
 const Constants = require('./../constants');
 const Styles = require('./styles/styles.scss');
 const DomUtils = require('./../domutils');
 const Utils = require('./../utils');
 
+// const MainTemplate = require('./templates/template.ejs');
+// const StatusTemplate = require('./templates/status.ejs');
+// const InfoTemplate = require('./templates/info.ejs');
+
 const MainTemplate = require('./templates/template.ejs');
-const StatusTemplate = require('./templates/status.ejs');
 
 /**
  * @classdesc Widget class to initialize player (in widget or headless mode) that plays incoming messages and provides
@@ -65,156 +68,117 @@ const StatusTemplate = require('./templates/status.ejs');
 class Widget extends Emitter {
 
   /**
-   * @param {object} params including `widget` section (see example).
+   * @param {object} options widget options
    **/
-  constructor(params) {
+  constructor(options = {}) {
     super();
-    this.options = params;
-    if (!this.options.widget) {
-      throw new Error(Constants.ERROR_NOT_ENOUGH_PARAMS);
-    }
-    if (!this.options.widget.element && !this.options.widget.headless) {
-      throw new Error(Constants.ERROR_WIDGET_ELEMENT_NOT_FOUND);
-    }
-    this.isHeadless = !!(this.options.widget.headless);
-    this.isRecordingAvailable = this.options.recorder;
-    this.element = this.options.widget.element;
+    this.options = options;
+    this.isHeadless = !!(this.options.headless);
+    this.element = this.options.element;
 
-    this.recorderOptions = {
-      streamPages: true,
-      numberOfChannels: 1,
-      encoderFrameSize: 60,
-      encoderBitRate: 16000,
-      encoderSampleRate: 16000,
-      maxBuffersPerPage: 1
+    this.currentIncomingMessage = null;
+    this.currentIncomingMessagePlaybackInterval = null;
+
+    this.state = {
+      channel: '-',
+      users_online: 0,
+      status: 'offline',
+      receiving: false,
+      receiving_from_username: '',
+      sending: false,
+      muted: true,
+      reconnecting: false,
+      wasConnected: false
     };
-
-    this.currentMessageTimer = null;
-    this.currentRecordedMessageId = null;
-    this.currentPacketId = 0;
-
-    this.outgoingMessage = null;
 
     this.init();
   }
 
+  init() {
+    if (this.isHeadless) {
+      return;
+    }
+    if (!DomUtils.isDomElement(this.options.element)) {
+      throw new Error(Constants.ERROR_WIDGET_ELEMENT_NOT_FOUND);
+    }
+  }
+
   parseHtmlForVariables() {
-    let elements = DomUtils.getElementsByClassName('zcc-js-el', this.element);
+    let elements = DomUtils.getElementsByClassName('zcc-js', this.element);
     for (let i = 0; i < elements.length; i++) {
       let element = elements[i];
       let name = Utils.strToCamelCase(element.className.split(/ /)[0]);
-      if (this[name] !== undefined) {
-        throw new Error('markup conflict');
-      }
       this[name] = elements[i];
     }
   }
 
-  initHtml() {
-    this.element.innerHTML = MainTemplate();
+  updateMainHtml() {
+    this.element.innerHTML = MainTemplate(this.state);
     this.parseHtmlForVariables();
+    this.updateHandlers();
+  }
 
-    // this.mainInfoContainer = DomUtils.getElementByClassName('zcc-main-info-container', this.element);
-    // this.infoHeader = DomUtils.getElementByClassName('zcc-info-header', this.element);
-
-    //this.talkButton = DomUtils.getElementByClassName('zcc-talk-button', this.element);
-    // this.statusContainer = DomUtils.getElementByClassName('zcc-status-container', this.element);
-    // this.messageInfoContainer = DomUtils.getElementByClassName('zcc-message-info-container', this.element);
-    // this.messageDurationContainer = DomUtils.getElementByClassName('zcc-message-duration-container', this.element);
-    if (this.zccTalkButton) {
-      this.zccTalkButton.addEventListener('click', () => {
-        this.talkButtonPressHandler();
-      });
+  emitEvent(eventName, additionalData = {}) {
+    let emitData = Object.assign({
+      state: this.state,
+      options: this.options,
+      event: eventName
+    }, additionalData);
+    this.emit(eventName, emitData);
+    if (window.parent) {
+      window.parent.postMessage(JSON.stringify(emitData), '*');
     }
   }
 
-  startMessage() {
-    this.emit(Constants.EVENT_START_STREAM);
-    this.session.startStream({
-      'type': 'audio',
-      'codec': 'opus',
-      'codec_header': Widget.buildCodecHeader(
-        this.recorderOptions.encoderSampleRate,
-        this.recorderOptions.maxBuffersPerPage,
-        this.recorderOptions.encoderFrameSize
-      ),
-      'packet_duration': 60
-    }).then((data) => {
-      this.currentRecordedMessageId = data.stream_id;
-      this.doRecordMessage();
-    }).fail((err) => {
-      this.emit(Constants.EVENT_ERROR, err);
-    });
-  }
-
-  doRecordMessage() {
-    DomUtils.addClass(this.zccTalkButton, 'zcc-recording');
-    this.recorder.onopusdataavailable = (data) => {
-      let packet = Widget.buildBinaryPacket(1, this.currentRecordedMessageId, this.currentPacketId, data);
-      this.currentPacketId++;
-      this.session.sendBinary(packet);
+  updateHandlers() {
+    this.zccButtonMute.onclick = () => {
+      this.mute(true);
+      this.emitEvent(Constants.EVENT_WIDGET_MUTE);
     };
-    this.recorder.start();
+    this.zccButtonUnmute.onclick = () => {
+      this.mute(false);
+      this.emitEvent(Constants.EVENT_WIDGET_UNMUTE);
+    };
+
+    this.zccButtonOpen.onclick = () => {
+      this.emitEvent(Constants.EVENT_WIDGET_OPEN_BUTTON_CLICK);
+    };
+
+    if (this.zccReceivingUsername) {
+      this.zccReceivingUsername.onclick = () => {
+        this.emitEvent(Constants.EVENT_WIDGET_SPEAKING_USERNAME_CLICK, {
+          username: this.state.receiving_from_username
+        });
+      };
+    }
   }
 
-  stopRecordMessage() {
-    DomUtils.removeClass(this.zccTalkButton, 'zcc-recording');
-    this.currentRecordedMessageId = null;
-    this.recorder.stop();
+  mute(mute) {
+    this.state.muted = mute;
+    if (mute) {
+      Widget.hide(this.zccButtonMute);
+      Widget.show(this.zccButtonUnmute);
+    } else {
+      Widget.show(this.zccButtonMute);
+      Widget.hide(this.zccButtonUnmute);
+    }
+    this.updateMuteStateOfCurrentIncomingMessage(mute);
   }
 
-  talkButtonPressHandler() {
-    if (!this.outgoingMessage) {
-      this.outgoingMessage = this.session.startVoiceMessage();
+  updateMuteStateOfCurrentIncomingMessage(mute) {
+    if (!this.currentIncomingMessage) {
       return;
     }
-    this.outgoingMessage.stop();
-    this.outgoingMessage = null;
+    this.currentIncomingMessage.player.mute(mute);
   }
 
-  stopMessage() {
-    this.emit(Constants.EVENT_STOP_STREAM);
-    this.session.stopStream({
-      'stream_id': this.currentRecordedMessageId
-    }).then((data) => {
-      this.stopRecordMessage();
-    }).fail((err) => {
-      this.emit(Constants.EVENT_ERROR, err);
-    });
+  static hide(el) {
+    DomUtils.addClass(el, 'zcc-hidden');
   }
 
-  initPlayer() {
-    const library = Utils.getLoadedLibrary();
-    this.decoder = new library.Decoder({
-      channels: 1,
-      fallback: true
-    });
-
-    this.player = new library.Player({
-      encoding: '32bitFloat',
-      channels: 1,
-      sampleRate: this.decoder.getSampleRate(),
-      flushingTime: 100
-    });
-
-    this.decoder.on('decode', (pcmData) => {
-      this.player.feed(pcmData);
-    });
-
-    if (this.isRecordingAvailable) {
-      this.recorder = new library.Recorder(this.recorderOptions);
-    }
-
+  static show(el) {
+    DomUtils.removeClass(el, 'zcc-hidden');
   }
-
-  init() {
-    if (!this.isHeadless) {
-      this.initHtml();
-    }
-    this.initPlayer();
-    this.playOn = true;
-  }
-
 
   static updateHtml(elem, v, params = null) {
     if (!elem) {
@@ -227,69 +191,67 @@ class Widget extends Emitter {
     elem.innerHTML = str;
   }
 
-  updateHeader(v, params = null) {
-    return Widget.updateHtml(this.zccInfoHeader, v, params);
-  }
-
-  updateState(v, params = null) {
-    return Widget.updateHtml(this.zccState, v, params);
-  }
-
   setSession(session) {
+
     this.session = session;
-    this.updateHeader(session.options.channel);
+    this.state.channel = session.options.channel;
+
+    this.updateMainHtml();
 
     this.session.on(Constants.EVENT_STATUS, (status) => {
-      this.updateState(StatusTemplate, status);
+      this.state = Object.assign(this.state, status);
+      this.updateMainHtml();
     });
 
-    this.session.on(Constants.EVENT_STREAM_START, (stream) => {
-      this.incomingMessageStart(stream);
+    this.session.on(Constants.EVENT_SESSION_START_CONNECT, () => {
+      this.state.status = (this.state.wasConnected) ? 'reconnecting' : 'connecting';
+      this.updateMainHtml();
     });
 
-    this.session.on(Constants.EVENT_STREAM_STOP, (stream) => {
-      this.incomingMessageEnd(stream);
+    this.session.on(Constants.EVENT_SESSION_CONNECT, () => {
+      this.state.wasConnected = true;
     });
 
-    this.session.on(Constants.EVENT_INCOMING_VOICE_DATA, (audioPacket) => {
-      if (!this.playOn) {
-        return;
-      }
-      this.decoder.decode(audioPacket.messageData);
+    this.session.on(Constants.EVENT_SESSION_FAIL_CONNECT, () => {
+      this.state.status = 'connect-failed';
+      this.updateMainHtml();
+    });
+
+    this.session.on(Constants.EVENT_SESSION_DISCONNECT, () => {
+      this.state.status = 'disconnected';
+      this.updateMainHtml();
+    });
+
+    this.session.on(Constants.EVENT_INCOMING_VOICE_WILL_START, (incomingMessage) => {
+      clearInterval(this.currentIncomingMessagePlaybackInterval);
+    });
+
+    this.session.on(Constants.EVENT_INCOMING_VOICE_DID_START, (incomingMessage) => {
+      this.updateReceivingState(incomingMessage);
+    });
+
+    this.session.on(Constants.EVENT_INCOMING_VOICE_DID_STOP, () => {
+      this.updateReceivingState(null);
     });
   }
 
-  incomingMessageStart(data) {
-    let startTime = Date.now();
-    this.currentMessageTimer = setInterval(() => {
-      let duration = Date.now() - startTime;
-      if (!this.isHeadless) {
-        this.messageDurationContainer.innerHTML = Widget.getDurationDisplay(duration);
-      }
-    }, 100);
-    if (this.isHeadless) {
-      return;
+  updateReceivingState(incomingMessage) {
+    this.currentIncomingMessage = incomingMessage;
+    if (this.state.muted && incomingMessage) {
+      incomingMessage.player.mute(true);
     }
-    this.messageInfoContainer.innerHTML = MessageInfoTemplate(data);
-    DomUtils.addClass(this.zccTalkButton, 'zcc-receiving');
-  }
-
-  incomingMessageEnd() {
-    clearInterval(this.currentMessageTimer);
-    if (this.isHeadless) {
-      return;
+    this.state.receiving = !!(incomingMessage);
+    this.state.receiving_from_username = incomingMessage ? incomingMessage.options.messageData.from : '';
+    if (incomingMessage) {
+        let startTime = Date.now();
+        this.currentIncomingMessagePlaybackInterval = setInterval(() => {
+          let duration = Date.now() - startTime;
+          this.zccReceivingDuration.innerHTML = Utils.getDurationDisplay(duration);
+        }, 100);
+    } else {
+      clearInterval(this.currentIncomingMessagePlaybackInterval);
     }
-    this.messageDurationContainer.innerHTML = '';
-    this.messageInfoContainer.innerHTML = '';
-    DomUtils.removeClass(this.zccTalkButton, 'zcc-receiving');
-  }
-
-  pausePlayer() {
-    this.playOn = false;
-  }
-
-  resumePlayer() {
-    this.playOn = true;
+    this.updateMainHtml();
   }
 
   disconnect() {
@@ -301,77 +263,7 @@ class Widget extends Emitter {
     this.element.remove();
   }
 
-  // todo: remove to utils
-  static getDurationDisplay(duration) {
-    let hours = Math.floor((duration / (1000 * 3600)));
-    let mins = Math.floor((duration / (1000 * 60)) % 60);
-    let secs = Math.floor((duration / 1000) % 60);
-    let millis = Math.round((duration % 1000) / 100);
 
-    if (millis >= 10) {
-      millis = 9;
-    }
-
-    if (hours > 0 && hours < 10) {
-      hours = "0" + hours
-    }
-    if (mins > 0 && mins < 10) {
-      mins = "0" + mins
-    }
-    if (secs > 0 && secs < 10) {
-      secs = "0" + secs
-    }
-
-    if (hours) {
-      return "" + hours + ":" + mins + ":" + secs + "." + millis;
-    }
-
-    if (mins) {
-      return "" + mins + ":" + secs + "." + millis;
-    }
-    if (secs) {
-      return "00:" + secs + "." + millis;
-    }
-    return "00:00." + millis;
-  }
-
-  static buildBinaryPacket(type, streamId, packetId, messageData) {
-    let header = new ArrayBuffer(9);
-    let headerView = new DataView(header);
-    headerView.setInt8(0, type);
-    headerView.setInt32(1, streamId, false);
-    headerView.setInt32(5, packetId, false);
-    return new Uint8Array(Widget.arrayBufferConcat(header, messageData));
-  }
-
-  static buildCodecHeader(frequency, framesPerPacket, frameSize) {
-    let packet = new ArrayBuffer(4);
-    let packetView = new DataView(packet);
-    packetView.setUint16(0, frequency, true);
-    packetView.setUint8(2, framesPerPacket);
-    packetView.setUint8(3, frameSize);
-    return btoa(String.fromCharCode.apply(null, new Uint8Array(packet)));
-  }
-
-  static arrayBufferConcat() {
-    let length = 0;
-    let buffer = null;
-
-    for (let i in arguments) {
-      buffer = arguments[i];
-      length += buffer.byteLength;
-    }
-
-    let joined = new Uint8Array(length);
-    let offset = 0;
-
-    for (let i in arguments) {
-      buffer = arguments[i];
-      joined.set(new Uint8Array(buffer), offset);
-      offset += buffer.byteLength;
-    }
-    return joined.buffer;
-  }
 
 }
 

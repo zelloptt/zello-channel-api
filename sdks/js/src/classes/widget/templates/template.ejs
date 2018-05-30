@@ -1,33 +1,21 @@
-<div class="zcc-widget-container zcc-js-el">
-    <div class="zcc-row">
+<div class="zcc-widget-container <%= status %> <% if (receiving) { %> receiving <% } %>">
+    <div class="zcc-line zcc-border-bottom">
         <div class="zcc-cell">
-            <div class="zcc-talk-button-container">
-                <button class="zcc-talk-button zcc-js-el"></button>
+            <div class="zcc-header-container zcc-js">
+                <%- include src/classes/widget/templates/header %>
+                <%- include src/classes/widget/templates/loader %>
+            </div>
+            <div class="zcc-status-container zcc-js">
+                <%- include src/classes/widget/templates/status %>
             </div>
         </div>
-        <div class="zcc-main-info-container zcc-cell zcc-js-el">
-            <div class="zcc-row">
-                <h4 class="zcc-info-header zcc-js-el">[channel title]</h4>
-            </div>
-            <div class="zcc-row">
-                <div class="zcc-state zcc-js-el">
-                    <%- include ./src/classes/widget/templates/status.ejs %>
-                </div>
-            </div>
+    </div>
+    <div class="zcc-line" <%= status %>>
+        <div class="zcc-info-container zcc-cell zcc-js">
+            <%- include src/classes/widget/templates/info %>
         </div>
-        <!--<div class="zcc-row">
-            <div class="zcc-cell">
-                <div class="zcc-status-container"></div>
-            </div>
+        <div class="zcc-buttons-container zcc-cell zcc-js">
+            <%- include src/classes/widget/templates/buttons %>
         </div>
-        <div class="zcc-row">
-            <div class="zcc-cell">
-                <div class="zcc-message-container">
-                    <div class="zcc-message-info-container"></div>
-                    <div class="zcc-message-duration-container"></div>
-                </div>
-            </div>
-        </div>-->
-
     </div>
 </div>

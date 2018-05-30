@@ -4,7 +4,6 @@ const Constants = require('./constants');
 const Utils = require('./utils');
 
 let myUrl = null;
-let initOptions = {};
 
 /**
  * @hideconstructor
@@ -114,57 +113,8 @@ ZCC.Sdk.init({
         userCallback.apply(userCallback);
       }
       dfd.resolve();
-      Sdk.autoInit();
     });
     return dfd.promise;
-  }
-
-  static autoInit() {
-    const autoInitSession = initOptions.session && initOptions.session.autoInit;
-    const autoInitWidget = initOptions.widget && initOptions.widget.autoInit;
-    if (autoInitSession) {
-      Sdk.autoInitSession();
-    }
-
-    if (autoInitWidget) {
-      Sdk.autoInitWidget();
-      if (autoInitSession) {
-        const library = Utils.getLoadedLibrary();
-        library.Sdk.widget.setSession(library.Sdk.session);
-      }
-    }
-  }
-
-  static autoInitSession() {
-    const library = Utils.getLoadedLibrary();
-    Sdk.session = new library.Session(initOptions.session);
-    let connectCallback = null;
-    let logonCallback = null;
-    if (initOptions.session.onConnect && typeof initOptions.session.onConnect === 'function') {
-      connectCallback = initOptions.session.onConnect;
-    }
-    if (initOptions.session.onLogon && typeof initOptions.session.onLogon === 'function') {
-      logonCallback = initOptions.session.onLogon;
-    }
-
-    Sdk.session.connect(function(err, result) {
-      if (connectCallback) {
-        connectCallback.apply(Sdk.session, [err, result]);
-      }
-      if (err) {
-        return;
-      }
-      Sdk.session.logon(function(err, result) {
-        if (logonCallback) {
-          logonCallback.apply(Sdk.session, [err, result]);
-        }
-      })
-    });
-  }
-
-  static autoInitWidget() {
-    const library = Utils.getLoadedLibrary();
-    Sdk.widget = new library.Widget(initOptions);
   }
 
   static getMyUrl() {
@@ -199,7 +149,6 @@ ZCC.Sdk.init({
       throw new Error(Constants.ERROR_UNSUPPORTED);
     }
   }
-
 }
 
 module.exports = Sdk;

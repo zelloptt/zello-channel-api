@@ -5,22 +5,19 @@ var streamId = null;
 describe('session', function() {
   it ('wrong password should fail to login', function(done) {
     session = globals.createSessionAWrongPassword();
-    session.connect(function() {
-      session.logon(function(err) {
+    session.connect(function(err, result) {
         chai.expect(err).to.not.be.null;
         done();
-      })
-    })
+    });
   });
 
   it('correct password should login', function(done) {
     session = globals.createSessionA();
-    session.connect(function() {
-      session.logon(function(err, result) {
-        chai.expect(err).to.be.null;
-        chai.expect(result.success).to.be.true;
-        done();
-      })
+    session.connect(function(err, result) {
+      chai.expect(err).to.be.null;
+      chai.expect(result.success).to.be.true;
+      session.disconnect();
+      done();
     });
   });
 
@@ -28,17 +25,15 @@ describe('session', function() {
     session = globals.createSessionA();
     session.on('status', function(result) {
       chai.expect(result.status).to.equal('online');
+      session.disconnect();
       done();
     });
-    session.connect().then(function() { return session.logon(); });
+    session.connect();
   });
 
   it('should fail to start stream with wrong params', function(done) {
     session = globals.createSessionA();
     session.connect()
-      .then(function() {
-        return session.logon();
-      })
       .then(function() {
         session.startStream({}, function(err) {
           chai.expect(err).to.not.be.null;
@@ -77,6 +72,7 @@ describe('session', function() {
     }, function(err, result) {
       chai.expect(err).to.be.null;
       chai.expect(result.success).to.be.true;
+      session.disconnect();
       done();
     });
   });

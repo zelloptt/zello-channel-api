@@ -61,6 +61,16 @@ class DomUtils {
     element.className = element.className.replace(new RegExp('( |^)' + className + '( |$)'), "$1$2")
   }
 
+  static isDomElement(obj) {
+    try {
+      return obj instanceof HTMLElement;
+    }
+    catch (e) {
+      return (typeof obj === "object") &&
+        (obj.nodeType === 1) && (typeof obj.style === "object") &&
+        (typeof obj.ownerDocument === "object");
+    }
+  }
 }
 
 module.exports = DomUtils;
