@@ -16,7 +16,7 @@ class IncomingMessage extends Emitter {
       Object.assign({
         encoding: '32bitFloat',
         channels: 1,
-        sampleRate: this.codecDetails.rate,
+        sampleRate: IncomingMessage.detectSampleRate(this.codecDetails.rate),
         flushingTime: 300
       },
       session.options,
@@ -40,6 +40,16 @@ class IncomingMessage extends Emitter {
     this.session.on([Constants.EVENT_INCOMING_VOICE_DATA, this.instanceId], this.incomingVoiceHandler);
     this.session.on([Constants.EVENT_INCOMING_VOICE_DID_STOP, this.instanceId], this.incomingVoiceDidStopHandler);
     this.on([Constants.EVENT_INCOMING_VOICE_DATA_DECODED, this.instanceId], this.decodedAudioHandler);
+  }
+
+
+  // default decoder supports 8k, 12k, 16k, 24k and 48k
+  // safari supports 24k and 48k only
+  static detectSampleRate(codecSampleRate) {
+    if (codecSampleRate <= 24000) {
+      return 24000;
+    }
+    return 48000;
   }
 
   initSessionHandlers() {
