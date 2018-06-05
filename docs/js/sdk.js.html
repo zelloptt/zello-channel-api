@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: sdk.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: sdk.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>const Promise = require('q');
+const $script = require('scriptjs');
+const Constants = require('./constants');
+const Utils = require('./utils');
+
+let myUrl = null;
+let initOptions = {};
+
+/**
+ * @hideconstructor
+ * @classdesc SDK functions support both callbacks with &lt;code>(err, result)&lt;/code> arguments
+ * and also return promises that resolve with &lt;code>result&lt;/code> argument or fail with &lt;code>err&lt;/code> argument.
+ *
+ * @example
+ * &lt;!-- Load sdk using &lt;script> tag: -->
+ * &lt;script src="https://zello.com/zcc/0.0.1/zcc.sdk.js">&lt;/script>
+ * &lt;script>
+ *   console.log(ZCC);
+ * &lt;/script>
+ *
+ * &lt;!-- Load sdk using async script loader (e.g. scriptjs) -->
+ * &lt;script>
+ * $script(['https://zello.com/zcc/0.0.1/zcc.sdk.js'], function() {
+ *  console.log(ZCC);
+ * });
+ * &lt;/script>
+ **/
+class Sdk {
+
+  /**
+   * @description Initialize SDK parts and components.
+   * Loads required parts
+   *
+   * Default recorder will fail to load on http:// pages, it requires https://
+   *
+   * @param {object} [options] List of components to be loaded (see example).
+   *                           Set to &lt;b>false&lt;/b> to skip loading of a specific component,
+   *                           or provide class function to be used as a custom player, decoder, recorder or encoder
+   *                           (see &lt;a href="">examples&lt;/a>).
+   *
+   * @param {function} [userCallback] User callback to fire when sdk parts required by this init call are loaded
+   * @return {promise} Promise that resolves when sdk parts required by this init call are loaded
+   *
+   * @example
+   *
+// callback
+ZCC.Sdk.init({
+  player: true,  // true by default
+  decoder: true, // true by default
+  recorder: true, // true by default
+  encoder: true, // true by default
+}, function(err) {
+  if (err) {
+    console.trace(err);
+    return;
+  }
+  console.log('zcc sdk parts loaded')
+})
+
+// promise
+ZCC.Sdk.init({
+  player: true,
+  decoder: true,
+  recorder: true,
+  encoder: true
+})
+.then(function() {
+  console.log('zcc sdk parts loaded')
+}).catch(function(err) {
+  console.trace(err);
+})
+   **/
+  static init(options = {}, userCallback = null) {
+
+    Sdk.checkCompatibilityBrowser();
+
+    let dfd = Promise.defer();
+    let url = Sdk.getMyUrl();
+
+    Sdk.initOptions = Object.assign({
+      player: true,
+      decoder: true,
+      recorder: true,
+      encoder: true,
+      widget: false
+    }, options);
+
+    let scriptsToLoad = [
+      url + 'zcc.session.js',
+      url + 'zcc.constants.js',
+      url + 'zcc.incomingmessage.js',
+      url + 'zcc.outgoingmessage.js'
+    ];
+
+    if (Sdk.initOptions.player &amp;&amp; !Utils.isFunction(Sdk.initOptions.player)) {
+      scriptsToLoad.push(url + 'zcc.player.js');
+    }
+    if (Sdk.initOptions.decoder &amp;&amp; !Utils.isFunction(Sdk.initOptions.decoder)) {
+      scriptsToLoad.push(url + 'zcc.decoder.js');
+    }
+    if (Sdk.initOptions.recorder &amp;&amp; !Utils.isFunction(Sdk.initOptions.recorder)) {
+      scriptsToLoad.push(url + 'zcc.recorder.js');
+    }
+    if (Sdk.initOptions.encoder &amp;&amp; !Utils.isFunction(Sdk.initOptions.encoder)) {
+      scriptsToLoad.push(url + 'zcc.encoder.js');
+    }
+    if (Sdk.initOptions.widget) {
+      scriptsToLoad.push(url + 'zcc.widget.js');
+    }
+
+    $script(scriptsToLoad, 'bundle');
+    $script.ready('bundle', () => {
+      if (typeof userCallback === 'function') {
+        userCallback.apply(userCallback);
+      }
+      dfd.resolve();
+      Sdk.autoInit();
+    });
+    return dfd.promise;
+  }
+
+  static autoInit() {
+    const autoInitSession = initOptions.session &amp;&amp; initOptions.session.autoInit;
+    const autoInitWidget = initOptions.widget &amp;&amp; initOptions.widget.autoInit;
+    if (autoInitSession) {
+      Sdk.autoInitSession();
+    }
+
+    if (autoInitWidget) {
+      Sdk.autoInitWidget();
+      if (autoInitSession) {
+        const library = Utils.getLoadedLibrary();
+        library.Sdk.widget.setSession(library.Sdk.session);
+      }
+    }
+  }
+
+  static autoInitSession() {
+    const library = Utils.getLoadedLibrary();
+    Sdk.session = new library.Session(initOptions.session);
+    let connectCallback = null;
+    let logonCallback = null;
+    if (initOptions.session.onConnect &amp;&amp; typeof initOptions.session.onConnect === 'function') {
+      connectCallback = initOptions.session.onConnect;
+    }
+    if (initOptions.session.onLogon &amp;&amp; typeof initOptions.session.onLogon === 'function') {
+      logonCallback = initOptions.session.onLogon;
+    }
+
+    Sdk.session.connect(function(err, result) {
+      if (connectCallback) {
+        connectCallback.apply(Sdk.session, [err, result]);
+      }
+      if (err) {
+        return;
+      }
+      Sdk.session.logon(function(err, result) {
+        if (logonCallback) {
+          logonCallback.apply(Sdk.session, [err, result]);
+        }
+      })
+    });
+  }
+
+  static autoInitWidget() {
+    const library = Utils.getLoadedLibrary();
+    Sdk.widget = new library.Widget(initOptions);
+  }
+
+  static getMyUrl() {
+    if (myUrl) {
+      return myUrl;
+    }
+    const scripts = document.getElementsByTagName('script');
+    for (let i = 0; i &lt; scripts.length; i++) {
+      let script = scripts[i];
+      let src = script.getAttribute('src');
+      if (src.match(/zcc.sdk\.js$/)) {
+        myUrl = src.replace(/zcc.sdk.js$/, '');
+        return myUrl;
+      }
+    }
+    return false;
+  }
+
+  static isHttps() {
+    return window.location.protocol.match(/https/);
+  }
+
+  static checkCompatibilityBrowser() {
+    if (
+      typeof window.WebSocket !== 'function' ||
+      typeof window.Blob !== 'function' ||
+      typeof window.Worker !== 'function' ||
+      typeof JSON.stringify !== 'function' ||
+      typeof JSON.parse !== 'function' ||
+      typeof Object.assign !== 'function'
+    ) {
+      throw new Error(Constants.ERROR_UNSUPPORTED);
+    }
+  }
+
+}
+
+module.exports = Sdk;</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="IncomingMessage.html">IncomingMessage</a></li><li><a href="OutgoingMessage.html">OutgoingMessage</a></li><li><a href="Sdk.html">Sdk</a></li><li><a href="Session.html">Session</a></li></ul><h3>Events</h3><ul><li><a href="Decoder.html#event:decode">decode</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="OutgoingMessage.html#event:data">data</a></li><li><a href="OutgoingMessage.html#event:data_encoded">data_encoded</a></li><li><a href="Session.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="Session.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="Session.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="Session.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="Session.html#event:incoming_voice_will_start">incoming_voice_will_start</a></li><li><a href="Session.html#event:session_connect">session_connect</a></li><li><a href="Session.html#event:session_connection_lost">session_connection_lost</a></li><li><a href="Session.html#event:session_disconnect">session_disconnect</a></li><li><a href="Session.html#event:session_fail_connect">session_fail_connect</a></li><li><a href="Session.html#event:session_start_connect">session_start_connect</a></li><li><a href="Session.html#event:status">status</a></li></ul><h3>Interfaces</h3><ul><li><a href="Decoder.html">Decoder</a></li><li><a href="Encoder.html">Encoder</a></li><li><a href="Player.html">Player</a></li><li><a href="Recorder.html">Recorder</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Sat May 26 2018 18:40:04 GMT-0500 (CDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

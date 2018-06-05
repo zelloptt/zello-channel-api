@@ -1,0 +1,62 @@
+<html>
+<head>
+    <style>
+        body {
+            border: 0;
+            margin: 0;
+            padding: 0;
+            padding-left: 2px;
+        }
+    </style>
+    <script src="https://zello.com/zcc/0.0.1/zcc.sdk.js"></script>
+    <script>
+      var session = null;
+      var widget = null;
+      function connect() {
+        ZCC.Sdk.init({
+          player: true,
+          recorder: false,
+          encoder: false,
+          widget: true
+        })
+        .then(function() {
+
+          widget = new ZCC.Widget({
+            headless: false,
+            element: document.getElementById('player')
+          });
+
+          session = new ZCC.Session({
+            serverUrl: 'wss://zello.io/ws/',
+            channel: 'Ring Of Fire',
+            authToken: 'eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJXa002YldWbllXMXJPakU9Lm9nR' +
+            'TMyK3pMeUtkTHNFa3hmU0dmN0dJc3k0WitDK2ZERDlFVjVXOVBNVGc9IiwiZXhwIjoxNTMwMjkzOTk1LCJhen' +
+            'AiOiJkZXYifQ==.oPF7jrKyG0R6XjSf3H2EOhhhNMwXY97hLcYZd8wMqMhhDQpDnSxweptOWXNS8QccbX5RJV' +
+            'jdKxy9wNGWm2Tb0D7kY8ot9fpdv7JCGSYCiwdHLYen1i+CqCGEQz1s4oNmBhowvAj48iQfGla/iX59YLKXi2P' +
+            'qX7A9q3MJ0NPRV7M/oGBCpw5AnoaDlKC+/kxOMUsADvpOebT0jQNoMicgIe6U6c2mBFQiadimGidM1xK6GYox' +
+            'XvUiqEafPq41ExyX2XD72rVmcyD5jqby7xJ5XnbeNsmIxUV6mxwN7Jh5JWhzAzi1RbD7cetFOjqU1mj78+rKo' +
+            'AL4taTU6P29GJEwcQ==',
+            listen_only: true
+          });
+
+          widget.setSession(session);
+
+          return session.connect();
+        })
+        .then(function() {
+          // connected
+        })
+        .catch(function(err) {
+            console.warn(err);
+        });
+
+
+
+      }
+    </script>
+</head>
+<body onload="connect()">
+<div id="player">
+</div>
+</body>
+</html>

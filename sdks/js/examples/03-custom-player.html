@@ -1,0 +1,33 @@
+<html>
+<head>
+    <script src="https://zello.com/zcc/0.0.1/zcc.sdk.js"></script>
+    <script>
+
+      var CustomPlayer = function() {};
+      CustomPlayer.prototype.feed = function(pcmData) {
+        console.warn('Have incoming decoded message data in player: ', pcmData.length);
+      };
+
+      function connect() {
+        ZCC.Sdk.init({
+          player: CustomPlayer,
+          recorder: false,
+          encoder: false,
+          widget: false,
+        }).then(function() {
+          var session = new ZCC.Session({
+            serverUrl: 'wss://zellowork.io/ws/',
+            channel: '',
+            authToken: '',
+            username: '',
+            password: ''
+          });
+          session.connect();
+        });
+      }
+    </script>
+</head>
+<body onload="connect()">
+Dump incoming messages into console using custom player with default decoder
+</body>
+</html>
