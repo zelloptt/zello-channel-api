@@ -4,10 +4,6 @@ const Styles = require('./styles/styles.scss');
 const DomUtils = require('./../domutils');
 const Utils = require('./../utils');
 
-// const MainTemplate = require('./templates/template.ejs');
-// const StatusTemplate = require('./templates/status.ejs');
-// const InfoTemplate = require('./templates/info.ejs');
-
 const MainTemplate = require('./templates/template.ejs');
 
 /**
@@ -192,7 +188,6 @@ class Widget extends Emitter {
   }
 
   setSession(session) {
-
     this.session = session;
     this.state.channel = session.options.channel;
 
@@ -222,7 +217,7 @@ class Widget extends Emitter {
       this.updateMainHtml();
     });
 
-    this.session.on(Constants.EVENT_INCOMING_VOICE_WILL_START, (incomingMessage) => {
+    this.session.on(Constants.EVENT_INCOMING_VOICE_WILL_START, () => {
       clearInterval(this.currentIncomingMessagePlaybackInterval);
     });
 
@@ -262,9 +257,6 @@ class Widget extends Emitter {
     this.disconnect();
     this.element.remove();
   }
-
-
-
 }
 
 module.exports = Widget;

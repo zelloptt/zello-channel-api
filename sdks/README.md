@@ -207,8 +207,8 @@ The Zello Channels SDK contains an events interface which you can implement to b
 
 |iOS Callback|Description
 |---|---
-|`sessionDidStartConnecting:`|The Session has opened a web sockets connection to the server.
-|`session:didFailToConnectWithError:`|Either the web sockets connection failed or the logon failed. Check the error parameter for more details.
+|`sessionDidStartConnecting:`|The Session has opened a web socket connection to the server.
+|`session:didFailToConnectWithError:`|Either the web socket connection failed or the logon failed. Check the error parameter for more details.
 |`sessionDidConnect:`|Logon completed successfully and you are set to send and receive voice messages.
 |`sessionDidDisconnect:`|Session has disconnected from the server. The Zello Channels SDK attempts to stay connected through network changes, so there may be a delay between the network disconnection and this callback being called, as the SDK retries connecting and eventually times out.
 |`session:outgoingVoice:didEncounterError:`|An error has occurred with an outgoing voice stream. When this is called, the stream has been closed.
@@ -224,8 +224,8 @@ The Zello Channels SDK contains an events interface which you can implement to b
 ###### Browser JavaScript
 |JavaScript callback|Description
 |---|---
-|`Session.session_start_connect`|The Session has opened a web sockets connection to the server.
-|`Session.session_fail_connect`|Either the web sockets connection failed or the logon failed. Check the error parameter for more details.
+|`Session.session_start_connect`|The Session has opened a web socket connection to the server.
+|`Session.session_fail_connect`|Either the web socket connection failed or the logon failed. Check the error parameter for more details.
 |`Session.session_connect`|Logon completed successfully and you are set to send and receive voice messages.
 |`Session.session_disconnect`|Session has disconnected from the server. The Zello Channels SDK attempts to stay connected through network changes, so there may be a delay between the network disconnection and this callback being called, as the SDK retries connecting and eventually times out.
 |`Session.error`|Error happened

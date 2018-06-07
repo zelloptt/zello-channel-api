@@ -1,4 +1,4 @@
-var Emitter2 = require('eventemitter2').EventEmitter2;
+const Emitter2 = require('eventemitter2').EventEmitter2;
 
 class Emitter extends Emitter2 {
   constructor() {

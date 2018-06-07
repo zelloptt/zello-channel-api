@@ -33,17 +33,13 @@ class Recorder {
 
   clearStream() {
     if (this.stream) {
-
       if (this.stream.getTracks) {
         this.stream.getTracks().forEach(function(track) {
           track.stop();
         });
-      }
-
-      else {
+      } else {
         this.stream.stop();
       }
-
       delete this.stream;
     }
 
