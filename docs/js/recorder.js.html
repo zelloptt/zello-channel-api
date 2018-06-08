@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Source: recorder.js</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Source: recorder.js</h1>
+
+    
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>/**
+ * Recorder interface. Recorder is used by &lt;code>OutgoingMessage&lt;/code> to record and send voice data
+ * Custom recorder implementation should call method &lt;code>onready&lt;/code> once recorder is initialized and method
+ * &lt;code>ondata&lt;/code> once PCM data portion is ready
+ *
+ * @interface Recorder
+ */
+class Recorder {
+  constructor(options, encoder) {
+    if (!Recorder.isRecordingSupported()) {
+      throw new Error("Recording is not supported in this browser");
+    }
+    this.options = Object.assign({
+      bufferLength: 4096,
+      monitorGain: 0,
+      recordingGain: 1
+    }, options);
+    this.encoder = encoder;
+    this.state = "inactive";
+  }
+
+  static getAudioContext() {
+    return global.AudioContext || global.webkitAudioContext;
+  }
+
+  static isRecordingSupported() {
+    return Recorder.getAudioContext() &amp;&amp;
+      global.navigator &amp;&amp;
+      global.navigator.mediaDevices &amp;&amp;
+      global.navigator.mediaDevices.getUserMedia &amp;&amp;
+      global.WebAssembly;
+  }
+
+  clearStream() {
+    if (this.stream) {
+      if (this.stream.getTracks) {
+        this.stream.getTracks().forEach(function(track) {
+          track.stop();
+        });
+      } else {
+        this.stream.stop();
+      }
+      delete this.stream;
+    }
+
+    if (this.audioContext) {
+      this.audioContext.close();
+      delete this.audioContext;
+    }
+  }
+
+  getSampleRate() {
+    return this.audioContext.sampleRate;
+  }
+
+  encodeBuffers(inputBuffer) {
+    if (this.state !== "recording") {
+      return;
+    }
+    let buffers = [];
+    for (let i = 0; i &lt; inputBuffer.numberOfChannels; i++) {
+      buffers[i] = inputBuffer.getChannelData(i);
+    }
+    this.ondata(buffers);
+  }
+
+  initAudioContext() {
+    if (!this.audioContext) {
+      const AudioContext = Recorder.getAudioContext();
+      this.audioContext = new AudioContext();
+    }
+    return this.audioContext;
+  }
+
+  initAudioGraph() {
+
+    // First buffer can contain old data. Don't encode it.
+    this.encodeBuffers = () => {
+      delete this.encodeBuffers;
+    };
+
+    this.scriptProcessorNode = this.audioContext.createScriptProcessor(
+      this.options.bufferLength,
+      this.options.numberOfChannels,
+      this.options.numberOfChannels
+    );
+    this.scriptProcessorNode.connect(this.audioContext.destination);
+    this.scriptProcessorNode.onaudioprocess = (e) => {
+      this.encodeBuffers(e.inputBuffer);
+    };
+
+    this.monitorGainNode = this.audioContext.createGain();
+    this.setMonitorGain(this.options.monitorGain);
+    this.monitorGainNode.connect(this.audioContext.destination);
+
+    this.recordingGainNode = this.audioContext.createGain();
+    this.setRecordingGain(this.options.recordingGain);
+    this.recordingGainNode.connect(this.scriptProcessorNode);
+  };
+
+  initSourceNode() {
+    if (this.stream &amp;&amp; this.sourceNode) {
+      return global.Promise.resolve(this.sourceNode);
+    }
+    return global.navigator.mediaDevices.getUserMedia({audio: true}).then((stream) => {
+      this.stream = stream;
+      return this.audioContext.createMediaStreamSource(stream);
+    });
+  }
+
+  pause() {
+    if (this.state === "recording") {
+      this.state = "paused";
+    }
+  }
+
+  resume() {
+    if (this.state === "paused") {
+      this.state = "recording";
+    }
+  }
+
+  setRecordingGain(gain) {
+    this.options.recordingGain = gain;
+
+    if (this.recordingGainNode &amp;&amp; this.audioContext) {
+      this.recordingGainNode.gain.setTargetAtTime(gain, this.audioContext.currentTime, 0.01);
+    }
+  }
+
+  setMonitorGain(gain) {
+    this.options.monitorGain = gain;
+
+    if (this.monitorGainNode &amp;&amp; this.audioContext) {
+      this.monitorGainNode.gain.setTargetAtTime(gain, this.audioContext.currentTime, 0.01);
+    }
+  }
+
+  init() {
+    if (this.state !== "inactive") {
+      return;
+    }
+
+    this.initAudioContext();
+    this.initAudioGraph();
+
+    return this.initSourceNode().then((sourceNode) => {
+      this.state = "recording";
+      this.sourceNode = sourceNode;
+      this.sourceNode.connect(this.monitorGainNode);
+      this.sourceNode.connect(this.recordingGainNode);
+      this.onready();
+    });
+  }
+
+  stop() {
+    if (this.state !== "inactive") {
+      this.state = "inactive";
+      this.monitorGainNode.disconnect();
+      this.scriptProcessorNode.disconnect();
+      this.recordingGainNode.disconnect();
+      this.sourceNode.disconnect();
+
+      if (!this.options.leaveStreamOpen) {
+        this.clearStream();
+      }
+
+      // send to encoder
+      this.encoder.postMessage({command: "done"});
+    }
+  }
+
+  start() {}
+
+  /**
+   * Emit recorded data portion to let &lt;code>OutgoingMessage&lt;/code> instance get recorder data.
+   *
+   * @method Recorder#ondata
+   * @param {Float32Array} data pcm data portion
+   * **/
+  ondata(data) {}
+
+  onready() {}
+
+}
+
+module.exports = Recorder;</code></pre>
+        </article>
+    </section>
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="IncomingMessage.html">IncomingMessage</a></li><li><a href="OutgoingMessage.html">OutgoingMessage</a></li><li><a href="Sdk.html">Sdk</a></li><li><a href="Session.html">Session</a></li></ul><h3>Events</h3><ul><li><a href="Decoder.html#event:decode">decode</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="OutgoingMessage.html#event:data">data</a></li><li><a href="OutgoingMessage.html#event:data_encoded">data_encoded</a></li><li><a href="Session.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="Session.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="Session.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="Session.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="Session.html#event:incoming_voice_will_start">incoming_voice_will_start</a></li><li><a href="Session.html#event:session_connect">session_connect</a></li><li><a href="Session.html#event:session_connection_lost">session_connection_lost</a></li><li><a href="Session.html#event:session_disconnect">session_disconnect</a></li><li><a href="Session.html#event:session_fail_connect">session_fail_connect</a></li><li><a href="Session.html#event:session_start_connect">session_start_connect</a></li><li><a href="Session.html#event:status">status</a></li></ul><h3>Interfaces</h3><ul><li><a href="Decoder.html">Decoder</a></li><li><a href="Encoder.html">Encoder</a></li><li><a href="Player.html">Player</a></li><li><a href="Recorder.html">Recorder</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Fri Jun 08 2018 12:31:21 GMT-0500 (CDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

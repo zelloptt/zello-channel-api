@@ -1,0 +1,81 @@
+<html>
+<head>
+    <script src="https://zello.com/zcc/0.0.1/zcc.sdk.js"></script>
+    <script>
+      function connect() {
+        ZCC.Sdk.init({
+          player: true,
+          recorder: false,
+          encoder: false,
+          widget: false
+        }).then(function() {
+          var session = new ZCC.Session({
+            serverUrl: 'wss://zello.io/ws/',
+            channel: '',
+            authToken: '',
+            listen_only: true
+          });
+
+          session.connect().catch((err) => {
+            console.trace(err);
+          });
+
+          session.on(ZCC.Constants.EVENT_SESSION_START_CONNECT, function() {
+            console.warn('EVENT_SESSION_START_CONNECT');
+          });
+
+          session.on(ZCC.Constants.EVENT_SESSION_CONNECT, function() {
+            console.warn('EVENT_SESSION_CONNECT');
+          });
+
+          session.on(ZCC.Constants.EVENT_SESSION_FAIL_CONNECT, function(err) {
+            console.warn('EVENT_SESSION_FAIL_CONNECT', err);
+          });
+
+          session.on(ZCC.Constants.EVENT_SESSION_DISCONNECT, function() {
+            console.warn('EVENT_SESSION_DISCONNECT');
+          });
+
+          session.on(ZCC.Constants.EVENT_SESSION_CONNECTION_LOST, function(err) {
+            console.warn('EVENT_SESSION_CONNECTION_LOST', err);
+          });
+
+          session.on(ZCC.Constants.EVENT_STATUS, function(status) {
+            console.warn('EVENT_STATUS', status);
+          });
+
+          session.on(ZCC.Constants.EVENT_INCOMING_VOICE_DATA, function(incomingMessageData) {
+            console.warn('EVENT_INCOMING_VOICE_DATA', 'from session', incomingMessageData);
+          });
+
+          session.on(ZCC.Constants.EVENT_INCOMING_VOICE_DATA_DECODED, function(pcmData, incomingMessage) {
+            console.warn('EVENT_INCOMING_VOICE_DATA_DECODED', 'from session', pcmData.length, incomingMessage);
+          });
+
+          session.on(ZCC.Constants.EVENT_INCOMING_VOICE_WILL_START, function(incomingMessage) {
+            console.warn('EVENT_INCOMING_VOICE_WILL_START', incomingMessage);
+
+            incomingMessage.on(ZCC.Constants.EVENT_INCOMING_VOICE_DATA, function(incomingMessageData) {
+              console.warn('EVENT_INCOMING_VOICE_DATA', 'from message', incomingMessageData);
+            });
+
+            incomingMessage.on(ZCC.Constants.EVENT_INCOMING_VOICE_DATA_DECODED, function(pcmData) {
+              console.warn('EVENT_INCOMING_VOICE_DATA_DECODED', 'from message', pcmData.length, incomingMessage);
+            });
+
+            incomingMessage.on(ZCC.Constants.EVENT_INCOMING_VOICE_DID_STOP, function() {
+              console.warn('Done with message');
+            });
+
+          });
+
+        }).catch(function(err) {
+          console.trace(err);
+        })
+      }
+    </script>
+</head>
+<body onload="connect()">
+Play incoming messages
+</body>
+</html>

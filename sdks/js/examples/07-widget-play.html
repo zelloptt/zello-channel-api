@@ -1,0 +1,56 @@
+<html>
+<head>
+    <style>
+        body {
+            border: 0;
+            margin: 0;
+            padding: 0;
+            padding-left: 2px;
+        }
+    </style>
+    <script src="https://zello.com/zcc/0.0.1/zcc.sdk.js"></script>
+    <script>
+      var session = null;
+      var widget = null;
+      function connect() {
+        ZCC.Sdk.init({
+          player: true,
+          recorder: false,
+          encoder: false,
+          widget: true
+        })
+        .then(function() {
+
+          widget = new ZCC.Widget({
+            headless: false,
+            element: document.getElementById('player')
+          });
+
+          session = new ZCC.Session({
+            serverUrl: 'wss://zello.io/ws/',
+            channel: '',
+            authToken: '',
+            listen_only: true
+          });
+
+          widget.setSession(session);
+
+          return session.connect();
+        })
+        .then(function() {
+          // connected
+        })
+        .catch(function(err) {
+            console.warn(err);
+        });
+
+
+
+      }
+    </script>
+</head>
+<body onload="connect()">
+<div id="player">
+</div>
+</body>
+</html>

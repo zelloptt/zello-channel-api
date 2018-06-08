@@ -64,6 +64,49 @@ done
 fi
 ```
 
+### Browser JavaScript
+Load SDK and then call `ZCC.Sdk.init` method with optional parameters to disable loading of certain components.
+```html
+<!-- Load sdk using <script> tag: -->
+<script src="https://zello.com/zcc/0.0.1/zcc.sdk.js"></script>
+<script>
+    // callback style
+    ZCC.Sdk.init({
+      player: true,  // true by default
+      decoder: true, // true by default
+      recorder: true, // true by default
+      encoder: true, // true by default
+    }, function(err) {
+      if (err) {
+        console.trace(err);
+        return;
+      }
+      console.log('zcc sdk parts loaded')
+    })
+</script>
+
+<!-- 
+    Load sdk using async script loader (e.g. scriptjs)
+    Once SDK is loaded, call .init method
+-->
+<script>
+$script(['https://zello.com/zcc/0.0.1/zcc.sdk.js'], function() {
+    // promise style
+    ZCC.Sdk.init({
+      player: true,
+      decoder: true,
+      recorder: true,
+      encoder: true
+    })
+    .then(function() {
+      console.log('zcc sdk parts loaded')
+    }).catch(function(err) {
+      console.trace(err);
+    })
+});
+</script>
+```
+
 ## Using the SDK
 
 ### Getting an authentication token
@@ -74,9 +117,10 @@ Development tokens are only valid for use during development of your app. When y
 
 ### Creating a session and logging on
 
-Each connection to the Zello server is represented by a `ZCCSession` object. When you create the `ZCCSession` object, you provide it with the address for the Zello server, your authentication token, the name of the channel you are connecting to, and optionally a username and password. You should also supply a `ZCCSessionDelegate` object so your app can be informed about session events such as disconnections and incoming messages.
-
 ###### iOS
+Each connection to the Zello server is represented by a `ZCCSession` object. When you create the `ZCCSession` object, you provide it with the address for the Zello server, your authentication token, the name of the channel you are connecting to, and optionally a username and password. 
+You should also supply a `ZCCSessionDelegate` object so your app can be informed about session events such as disconnections and incoming messages.
+
 ```objc
 ZCCSession *session = [[ZCCSession alloc] initWithURL:serverURL
                                             authToken:myToken
@@ -88,13 +132,35 @@ session.delegate = myDelegate;
 [session connect];
 ```
 
+###### Browser JavaScript
+Each connection to the Zello server is represented by a `ZCC.Session` object. 
+When you create the `ZCC.Session` object, you provide it with the address for the Zello server, your authentication token, the name of the channel you are connecting to, 
+and optionally a username and password. 
+
+```javascript
+ var session = new ZCC.Session({
+  serverUrl: 'wss://zellowork.io/ws/[yournetworkname]',
+  username: [username],
+  password: [password]
+  channel: [channel],
+  authToken: [authToken],
+  maxConnectAttempts: 5,
+  connectRetryTimeoutMs: 1000,
+  autoSendAudio: true
+);
+
+session.connect().then(function() {
+  // connected
+});
+```
+
 `serverURL` can be one of the [API entry points](https://github.com/zelloptt/zello-channel-api/blob/master/API.md#api-entry-points).
 
 ### Sending voice messages
 
+###### iOS
 To start a voice message to the channel, call `-[ZCCSession startVoiceMessage]`. `startVoiceMessage` returns a `ZCCOutgoingVoiceStream` object representing the audio stream to the server. To stop sending the message, call `-stop` on the outgoing stream object.
 
-###### iOS
 ```objc
 // Action method for Touch Down
 - (IBAction)buttonPressed:(id)sender {
@@ -108,14 +174,41 @@ To start a voice message to the channel, call `-[ZCCSession startVoiceMessage]`.
 }
 ```
 
+###### Browser JavaScript
+To start a voice message to the channel, call `ZCC.Session.startVoiceMessage`. `startVoiceMessage` returns a `ZCC.OutgoingMessage` object representing the audio stream to the server. 
+To stop sending the message, call `stop` on the outgoing stream object.
+
+```javascript
+// use default recorder and encoder
+var outgoingMessage = session.startVoiceMessage();
+
+// use custom recorder
+var outgoingMessage = session.startVoiceMessage({
+  recorder: CustomRecorder
+});
+
+// use custom recorder and encoder
+var outgoingMessage = session.startVoiceMessage({
+  recorder: CustomRecorder,
+  encoder: CustomEncoder
+});
+
+// stop outgoing message in 5 seconds
+setTimeout(function() {
+  outgoingMessage.stop();  
+}, 5000)
+
+```
+
 ### Handling session events
 
+###### iOS
 The Zello Channels SDK contains an events interface which you can implement to be notified about changes in incoming and outgoing messages, state, app online status, sign in progress etc. In most cases, your implementation will be a part of your activity code.
 
 |iOS Callback|Description
 |---|---
-|`sessionDidStartConnecting:`|The Session has opened a web sockets connection to the server.
-|`session:didFailToConnectWithError:`|Either the web sockets connection failed or the logon failed. Check the error parameter for more details.
+|`sessionDidStartConnecting:`|The Session has opened a web socket connection to the server.
+|`session:didFailToConnectWithError:`|Either the web socket connection failed or the logon failed. Check the error parameter for more details.
 |`sessionDidConnect:`|Logon completed successfully and you are set to send and receive voice messages.
 |`sessionDidDisconnect:`|Session has disconnected from the server. The Zello Channels SDK attempts to stay connected through network changes, so there may be a delay between the network disconnection and this callback being called, as the SDK retries connecting and eventually times out.
 |`session:outgoingVoice:didEncounterError:`|An error has occurred with an outgoing voice stream. When this is called, the stream has been closed.
@@ -127,6 +220,23 @@ The Zello Channels SDK contains an events interface which you can implement to b
 |`session:incomingVoice:didUpdateProgress:`|This callback is called periodically as incoming voice data is decoded.
 
 > __NB:__ `ZCCSessionDelegate` methods are called on the dispatch queue you provided to the `ZCCSession` initializer. If you did not provide a dispatch queue, the delegate methods are called on the main dispatch queue.
+
+###### Browser JavaScript
+|JavaScript callback|Description
+|---|---
+|`Session.session_start_connect`|The Session has opened a web socket connection to the server.
+|`Session.session_fail_connect`|Either the web socket connection failed or the logon failed. Check the error parameter for more details.
+|`Session.session_connect`|Logon completed successfully and you are set to send and receive voice messages.
+|`Session.session_disconnect`|Session has disconnected from the server. The Zello Channels SDK attempts to stay connected through network changes, so there may be a delay between the network disconnection and this callback being called, as the SDK retries connecting and eventually times out.
+|`Session.error`|Error happened
+|`Session.status`|Session received channel status update
+|`Session.incoming_voice_will_start`|This event is fired when an incoming voice stream is about to start. `IncomingMessage` object is returned
+|`Session.incoming_voice_did_start`|Incoming voice message did start (first packet received)
+|`Session.incoming_voice_did_stop`|An incoming voice stream has finished playing.
+|`IncomingMessage.incoming_voice_data`|Incoming voice message packet (with encoded audio)
+|`IncomingMessage.incoming_voice_data_decoded`|Incoming voice message packet decoded
+|`OutgoingMessage.data`|Outgoing message pcm data portion from recorder is ready to be encoded
+|`OutgoingMessage.data_encoded`|Outgoing message portion is encoded and ready to be sent to zello server. Session instance is following this event and sends data automatically
 
 ## Going live with your Zello-enabled app
 
