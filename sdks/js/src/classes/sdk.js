@@ -71,7 +71,7 @@ ZCC.Sdk.init({
    **/
   static init(options = {}, userCallback = null) {
 
-    Sdk.checkCompatibilityBrowser();
+    Sdk.checkBrowserCompatibility();
 
     let dfd = Promise.defer();
     let url = Sdk.getMyUrl();
@@ -137,7 +137,7 @@ ZCC.Sdk.init({
     return window.location.protocol.match(/https/);
   }
 
-  static checkCompatibilityBrowser() {
+  static checkBrowserCompatibility() {
     if (
       typeof window.WebSocket !== 'function' ||
       typeof window.Blob !== 'function' ||
