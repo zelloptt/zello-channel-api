@@ -1,4 +1,4 @@
-#Zello channels JavaScript SDK
+# Zello channels JavaScript SDK
 
 ## Usage
 See examples in `examples` folder and documentation in `/docs/js` folder
@@ -14,6 +14,7 @@ See examples in `examples` folder and documentation in `/docs/js` folder
 
 #### opus-to-pcm
 No need to install, just clone
+
 ```bash
 > cd src/vendor
 git clone git@github.com:zelloptt/opus-to-pcm.git
@@ -21,6 +22,7 @@ git clone git@github.com:zelloptt/opus-to-pcm.git
 
 #### pcm-player
 No need to install, just clone
+
 ```bash
 > cd src/vendor
 git clone git@github.com:zelloptt/pcm-player.git
