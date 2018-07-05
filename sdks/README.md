@@ -68,7 +68,7 @@ fi
 Load SDK and then call `ZCC.Sdk.init` method with optional parameters to disable loading of certain components.
 ```html
 <!-- Load sdk using <script> tag: -->
-<script src="https://zello.com/zcc/0.0.1/zcc.sdk.js"></script>
+<script src="https://zello.io/sdks/js/0.1/zcc.sdk.js"></script>
 <script>
     // callback style
     ZCC.Sdk.init({
@@ -90,7 +90,7 @@ Load SDK and then call `ZCC.Sdk.init` method with optional parameters to disable
     Once SDK is loaded, call .init method
 -->
 <script>
-$script(['https://zello.com/zcc/0.0.1/zcc.sdk.js'], function() {
+$script(['https://zello.io/sdks/js/0.1/zcc.sdk.js'], function() {
     // promise style
     ZCC.Sdk.init({
       player: true,

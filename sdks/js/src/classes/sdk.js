@@ -12,14 +12,14 @@ let myUrl = null;
  *
  * @example
  * <!-- Load sdk using <script> tag: -->
- * <script src="https://zello.com/zcc/0.0.1/zcc.sdk.js"></script>
+ * <script src="https://zello.io/sdks/js/0.1/zcc.sdk.js"></script>
  * <script>
  *   console.log(ZCC);
  * </script>
  *
  * <!-- Load sdk using async script loader (e.g. scriptjs) -->
  * <script>
- * $script(['https://zello.com/zcc/0.0.1/zcc.sdk.js'], function() {
+ * $script(['https://zello.io/sdks/js/0.1/zcc.sdk.js'], function() {
  *  console.log(ZCC);
  * });
  * </script>
