@@ -243,6 +243,14 @@ class Widget extends Emitter {
           let duration = Date.now() - startTime;
           this.zccReceivingDuration.innerHTML = Utils.getDurationDisplay(duration);
         }, 100);
+        setTimeout(() => {
+          let displayedUsername = this.element.getElementsByClassName('zcc-receiving-username-visible')[0];
+          if (displayedUsername && (displayedUsername.scrollWidth - displayedUsername.clientWidth) > 10) {
+            displayedUsername.classList.add('zcc-long');
+          } else {
+            displayedUsername.classList.remove('zcc-long');
+          }
+        }, 0);
     } else {
       clearInterval(this.currentIncomingMessagePlaybackInterval);
     }
