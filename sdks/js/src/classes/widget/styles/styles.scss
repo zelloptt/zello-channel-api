@@ -197,6 +197,22 @@ $errorColor: darkred;
       border-radius: 0 0 5px 5px;
       .zcc-receiving-username {
         line-height: 25px;
+        white-space: nowrap;
+        .zcc-receiving-username-visible {
+          display: inline-flex;
+          max-width: 140px;
+          overflow: hidden;
+          &:after {
+            display: inline-flex;
+            content: "";
+            box-shadow: inset -35px 0px 15px -25px rgba(128,128,128,1);
+            position: fixed;
+            left: 145px;
+            width: 10px;
+            height: 25px;
+            overflow: hidden;
+          }
+        }
       }
       .zcc-receiving-duration {
         line-height: 10px;

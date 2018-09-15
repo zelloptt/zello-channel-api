@@ -1,6 +1,6 @@
 <div class="zcc-info zcc-js">
 <% if (receiving) {%>
-        <div class="zcc-receiving-username zcc-js"><%= receiving_from_username %> is talking...</div>
+        <div class="zcc-receiving-username zcc-js"><span class="zcc-receiving-username-visible"><%= receiving_from_username %></span> is talking...</div>
         <div class="zcc-receiving-duration zcc-js">00:00.0</div>
 <% } else { %>
         <% if(status === 'online') { %>
