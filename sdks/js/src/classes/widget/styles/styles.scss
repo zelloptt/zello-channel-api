@@ -203,12 +203,14 @@ $errorColor: darkred;
           max-width: 140px;
           overflow: hidden;
           &.zcc-long {
+            position: relative;
             &:after {
               display: inline-flex;
               content: "";
               box-shadow: inset -35px 0px 15px -25px rgba(128,128,128,1);
-              position: fixed;
-              left: 145px;
+              position: absolute;
+              left: 130px;
+              top: 5px;
               width: 10px;
               height: 25px;
               overflow: hidden;
