@@ -74,6 +74,9 @@ $errorColor: darkred;
     @include innerOffset;
     display: block;
     font-size: 12px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
   }
 
   .zcc-live-icon {
