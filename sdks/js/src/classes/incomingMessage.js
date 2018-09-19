@@ -130,12 +130,12 @@ class IncomingMessage extends Emitter {
   }
 
   initPlayer(sampleRate) {
-    if (!this.options.player) {
-      return;
-    }
     if (IncomingMessage.PersistentPlayer) {
       this.player = IncomingMessage.PersistentPlayer;
       this.player.setSampleRate(sampleRate);
+      return;
+    }
+    if (!this.options.player) {
       return;
     }
     this.player = new this.options.player(this.options);
