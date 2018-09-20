@@ -16,14 +16,36 @@ let entryFiles = {
   'OutgoingMessage': './src/classes/outgoingMessage.js'
 };
 
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const IS_NODE_ENV_DEVELOPMENT = NODE_ENV === 'development';
+const IS_NODE_ENV_PRODUCTION = NODE_ENV === 'production';
+
 let renameOutputFiles = {};
 Object.keys(entryFiles).forEach(function(entryPoint) {
   renameOutputFiles[entryPoint] = 'zcc.' + entryPoint.toLowerCase() + '.js';
 });
 
+let plugins = [
+  new renameOutputPlugin(renameOutputFiles)
+];
+
+if (IS_NODE_ENV_PRODUCTION) {
+  plugins.push(
+    new UglifyJsPlugin({
+      uglifyOptions: {
+        output: {
+          comments: false,
+          beautify: false
+        }
+      }
+    })
+  );
+}
+
 module.exports = {
   mode: 'production',
   entry: entryFiles,
+  devtool: IS_NODE_ENV_DEVELOPMENT ? 'source-map' : null,
   output: {
     filename: 'zcc.[name].js',
     library: [settings.libraryName, '[name]'],
@@ -81,15 +103,5 @@ module.exports = {
       }
     ]
   },
-  plugins: [
-    new renameOutputPlugin(renameOutputFiles),
-    new UglifyJsPlugin({
-      uglifyOptions: {
-        output: {
-          comments: false,
-          beautify: false
-        }
-      }
-    })
-  ]
+  plugins: plugins
 };

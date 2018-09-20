@@ -7,6 +7,15 @@ const Utils = require('./utils');
  * @classdesc Incoming audio message class. Instances are returned as arguments for corresponding <code>ZCC.Session</code> events
  **/
 class IncomingMessage extends Emitter {
+
+  static get PersistentPlayer() {
+    return IncomingMessage.persistentPlayer;
+  }
+
+  static set PersistentPlayer(player) {
+    IncomingMessage.persistentPlayer = player;
+  }
+
   constructor(messageData, session) {
     super();
     this.codecDetails = Utils.parseCodedHeader(messageData.codec_header);
@@ -31,7 +40,7 @@ class IncomingMessage extends Emitter {
       this.options.player = library.Player;
     }
 
-    this.initPlayer();
+    this.initPlayer(this.options.sampleRate);
     this.initDecoder();
     this.initSessionHandlers();
 
@@ -66,7 +75,7 @@ class IncomingMessage extends Emitter {
        * @param {ZCC.IncomingMessage} incomingMessage incoming message instance (self)
        */
       this.emit(Constants.EVENT_INCOMING_VOICE_DID_STOP, this);
-      if (this.player && Utils.isFunction(this.player.destroy)) {
+      if (this.player && Utils.isFunction(this.player.destroy) && !IncomingMessage.PersistentPlayer) {
         this.player.destroy();
       }
       this.session.off([Constants.EVENT_INCOMING_VOICE_DATA, this.instanceId], this.incomingVoiceHandler);
@@ -120,11 +129,17 @@ class IncomingMessage extends Emitter {
     this.decoder = new this.options.decoder(this.options);
   }
 
-  initPlayer() {
+  initPlayer(sampleRate) {
     if (!this.options.player) {
       return;
     }
+    if (IncomingMessage.PersistentPlayer) {
+      this.player = IncomingMessage.PersistentPlayer;
+      this.player.setSampleRate(sampleRate);
+      return;
+    }
     this.player = new this.options.player(this.options);
+    IncomingMessage.PersistentPlayer = this.player;
   }
 }
 

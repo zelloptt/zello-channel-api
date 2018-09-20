@@ -91,8 +91,10 @@ ZCC.Sdk.init({
       url + 'zcc.outgoingmessage.js'
     ];
 
+    let shouldInitDefaultPlayer = false;
     if (Sdk.initOptions.player && !Utils.isFunction(Sdk.initOptions.player)) {
       scriptsToLoad.push(url + 'zcc.player.js');
+      shouldInitDefaultPlayer = true;
     }
     if (Sdk.initOptions.decoder && !Utils.isFunction(Sdk.initOptions.decoder)) {
       scriptsToLoad.push(url + 'zcc.decoder.js');
@@ -112,9 +114,20 @@ ZCC.Sdk.init({
       if (typeof userCallback === 'function') {
         userCallback.apply(userCallback);
       }
+      if (shouldInitDefaultPlayer) {
+        Sdk.initDefaultPlayer();
+      }
       dfd.resolve();
     });
     return dfd.promise;
+  }
+
+  static initDefaultPlayer() {
+    let library = Utils.getLoadedLibrary();
+    library.IncomingMessage.PersistentPlayer = new library.Player({
+      encoding: '32bitFloat',
+      sampleRate: 48000
+    });
   }
 
   static getMyUrl() {
