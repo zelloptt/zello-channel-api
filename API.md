@@ -181,7 +181,9 @@ Indicates there was a change in channel status, which may include channel being 
 | `command` | string | `on_channel_status`
 | `channel ` | string | The name of the channel
 | `status ` | string | Channel status. Can be `online` or `offline`
-| `users_online ` | integer | Number of users currently connected to the channel. 
+| `users_online ` | integer | Number of users currently connected to the channel.
+| `error` | string | Error details (if channel status was changed to `offline` due to some error). 
+| `channel_config_error` | boolean | Indicates if `offline` status was sent due to channel misconfiguration.
 
 #### Example:
 
