@@ -85,8 +85,8 @@ class Widget extends Emitter {
       muted: true,
       reconnecting: false,
       wasConnected: false,
-      channel_config_error: false,
-      error: ''
+      error: '',
+      error_type: ''
     };
 
     this.init();

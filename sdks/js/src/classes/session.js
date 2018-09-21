@@ -41,6 +41,9 @@ class Session extends Emitter {
     this.selfDisconnect = false;
     this.incomingMessages = {};
     this.activeOutgoingMessage = null;
+    this.wasOnline = false;
+    this.reconnectTimeout = null;
+    this.channelConfigurationError = false;
   }
 
   getSeq() {
@@ -90,8 +93,20 @@ session.connect(function(err, result) {
     return this.connectOrReconnect(userCallback);
   }
 
+  clearExistingReconnectTimeout() {
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+    }
+  }
+
   connectOrReconnect(userCallback = null, isReconnect = false) {
     let dfd = Promise.defer();
+    if (!this.connectAttempts) {
+      this.emit(
+        this.channelConfigurationError ? Constants.EVENT_SESSION_DISCONNECT : Constants.EVENT_SESSION_FAIL_CONNECT
+      );
+      return dfd.reject('Failed to connect');
+    }
     if (this.connectAttempts === this.maxConnectAttempts) {
       /**
        * The Session has opened a websocket connection to the server and ready to sign in
@@ -99,6 +114,7 @@ session.connect(function(err, result) {
        */
       this.emit(Constants.EVENT_SESSION_START_CONNECT);
     }
+    this.connectAttempts--;
     this.doConnect()
       .then(() => {
         return this.doLogon();
@@ -107,7 +123,6 @@ session.connect(function(err, result) {
         if (typeof userCallback === 'function') {
           userCallback.apply(this, [null, result]);
         }
-        this.connectAttempts = this.maxConnectAttempts;
         /**
          * The Session has connected and signed in successfully
          * @event Session#session_connect
@@ -117,8 +132,8 @@ session.connect(function(err, result) {
       })
       .catch((err) => {
         if (this.connectAttempts) {
-          this.connectAttempts--;
-          setTimeout(() => {
+          this.clearExistingReconnectTimeout();
+          this.reconnectTimeout = setTimeout(() => {
             this.connectOrReconnect(userCallback, isReconnect);
           }, this.connectRetryTimeoutMs);
           return;
@@ -171,7 +186,10 @@ session.connect(function(err, result) {
          * @param {string} error Error description
          */
         this.emit(Constants.EVENT_SESSION_CONNECTION_LOST, err);
-        this.connectOrReconnect(null, true);
+        this.clearExistingReconnectTimeout();
+        this.reconnectTimeout = setTimeout(() => {
+          this.connectOrReconnect(null, true);
+        }, this.connectRetryTimeoutMs);
       }
     });
     return dfd.promise;
@@ -248,6 +266,19 @@ session.connect(function(err, result) {
          * @property {String} status new channel status
          * @property {Number} users_online number of online users
          */
+        if (!this.wasOnline) {
+          switch (jsonData.status) {
+            case Constants.SN_STATUS_ONLINE:
+              this.wasOnline = true;
+              this.connectAttempts = this.maxConnectAttempts;
+              break;
+            case Constants.SN_STATUS_OFFLINE:
+              if (jsonData.error && jsonData.error_type === Constants.ERROR_TYPE_CONFIGURATION) {
+                this.channelConfigurationError = true;
+              }
+              break;
+          }
+        }
         this.emit(Constants.EVENT_STATUS, jsonData);
         break;
       case 'on_stream_start':
