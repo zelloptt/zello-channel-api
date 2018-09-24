@@ -19,6 +19,11 @@ module.exports = {
   ERROR_INVALID_ENCODER:
     'Invalid outgoing message encoder. Should implement ZCC.Encoder interface.',
 
+  ERROR_SESSION_FAIL_CONNECT: 'Failed to connect.',
+
+  ERROR_TYPE_UNKNOWN: 'unknown',
+  ERROR_TYPE_CONFIGURATION: 'configuration',
+
   EVENT_ERROR: 'error',
   EVENT_CONNECT: 'connect',
   EVENT_CLOSE: 'close',
@@ -48,7 +53,10 @@ module.exports = {
   EVENT_WIDGET_OPEN_BUTTON_CLICK: 'widget_open_button_click',
   EVENT_WIDGET_MUTE: 'widget_mute',
   EVENT_WIDGET_UNMUTE: 'widget_unmute',
-  EVENT_WIDGET_SPEAKING_USERNAME_CLICK: 'speaking_username_click'
+  EVENT_WIDGET_SPEAKING_USERNAME_CLICK: 'speaking_username_click',
 
+  SN_STATUS_SUCCESS: 'success',
+  SN_STATUS_ONLINE: 'online',
+  SN_STATUS_OFFLINE: 'offline'
 
 };

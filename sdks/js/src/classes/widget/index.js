@@ -84,7 +84,9 @@ class Widget extends Emitter {
       sending: false,
       muted: true,
       reconnecting: false,
-      wasConnected: false
+      wasConnected: false,
+      error: '',
+      error_type: ''
     };
 
     this.init();
@@ -176,17 +178,6 @@ class Widget extends Emitter {
     DomUtils.removeClass(el, 'zcc-hidden');
   }
 
-  static updateHtml(elem, v, params = null) {
-    if (!elem) {
-      return false;
-    }
-    let str = v;
-    if (typeof v === 'function') {
-      str = v.apply(v, [params]);
-    }
-    elem.innerHTML = str;
-  }
-
   setSession(session) {
     this.session = session;
     this.state.channel = session.options.channel;
@@ -195,6 +186,9 @@ class Widget extends Emitter {
 
     this.session.on(Constants.EVENT_STATUS, (status) => {
       this.state = Object.assign(this.state, status);
+      if (status.error) {
+        this.updateReceivingState(null);
+      }
       this.updateMainHtml();
     });
 

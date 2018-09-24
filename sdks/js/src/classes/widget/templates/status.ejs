@@ -1,6 +1,12 @@
 <div class="zcc-status zcc-js">
 <%if (status === 'online') {%><i class="zcc-live-icon">live</i><%= users_online %> users online<%}%>
-<%if (status === 'disconnected' || status === 'offline') {%>Disconnected.<%}%>
+<%if (status === 'disconnected' || status === 'offline') {%>
+    <%if (error && error_type === 'configuration') {%>
+        This channel has no widget support. <a href="//zello.com/channel-listen-widget-support">Learn more</a>
+    <%} else {%>
+        Disconnected.
+    <%}%>
+<%}%>
 <%if (status === 'connecting') {%>Connecting...<%}%>
 <%if (status === 'reconnecting') {%>Reconnecting...<%}%>
 <%if (status === 'connect-failed') {%><span class="zcc-error">Failed to connect.</span><%}%>

@@ -181,7 +181,9 @@ Indicates there was a change in channel status, which may include channel being 
 | `command` | string | `on_channel_status`
 | `channel ` | string | The name of the channel
 | `status ` | string | Channel status. Can be `online` or `offline`
-| `users_online ` | integer | Number of users currently connected to the channel. 
+| `users_online ` | integer | Number of users currently connected to the channel.
+| `error` | string | Includes error description, when channel disconnected due to error. 
+| `error_type` | string | `unknown`, `configuration` Indicates error type. When set to `configuration` indicates that current channel configuration doesn't allow connecting using the channel API credentials used.
 
 #### Example:
 
