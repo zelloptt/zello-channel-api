@@ -45,7 +45,7 @@ if (IS_NODE_ENV_PRODUCTION) {
 module.exports = {
   mode: 'production',
   entry: entryFiles,
-  devtool: IS_NODE_ENV_DEVELOPMENT ? 'source-map' : null,
+  devtool: IS_NODE_ENV_DEVELOPMENT ? 'source-map' : false,
   output: {
     filename: 'zcc.[name].js',
     library: [settings.libraryName, '[name]'],
