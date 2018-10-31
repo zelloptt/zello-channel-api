@@ -21,11 +21,11 @@ The Zello Channels SDK 1.0 is currently in beta.
 
 #### Prerequisites
 
-Use [Android Studio](https://developer.android.com/studio/) 3.2.1 or newer to develop with Zello Channels SDK for Android. The SDK is delivered as .aar library but you can also build it from [source](sdk).
+Use [Android Studio](https://developer.android.com/studio/) 3.2.1 or newer to develop with Zello Channels SDK for Android. The SDK is delivered as .aar library but you can also build it from [source](android/sdk).
 
 #### Configure your project
 
-Open your project in Android Studio or create a new one. Alternatively you can use a [demo](demo) included with the SDK to get started.
+Open your project in Android Studio or create a new one. Alternatively you can use a [demo](android/demo) included with the SDK to get started.
 
 Click `File > New > New Module`. Click `Import .JAR/.AAR Package` then click Next. Browse for `zello-channel-sdk.aar` then click Finish.
 
