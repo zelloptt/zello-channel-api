@@ -303,10 +303,12 @@ All apps using Zello SDK must adhere to the following guidelines:
 
 ## Additional resources
 
+* [Android SDK API reference](https://zelloptt.github.io/zello-channel-api/Android/com.zello.channel.sdk/)
 * [iOS SDK API reference](https://zelloptt.github.io/zello-channel-api/iOS/)
 * [Browser Javascript API reference](https://zelloptt.github.io/zello-channel-api/js/Sdk.html)
 * [Zello Channel Server API](https://github.com/zelloptt/zello-channel-api/blob/master/API.md)
 
 ### Licenses
+* Zello Channel SDK for Android incorporates OkHttp, Copyright 2016 Square, Inc. under [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0).
 * ZelloChannelKit incorporates portions of SocketRocket, Copyright 2016-present, Facebook, Inc. under the [BSD license](https://github.com/facebook/SocketRocket/blob/685f756f22bc9dbee9b98cfec47bc05ccc03e9b9/LICENSE).
 * ZelloChannelKit incorporates the Opus audio codec under the [BSD license](http://opus-codec.org/license/).
