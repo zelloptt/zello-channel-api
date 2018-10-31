@@ -1,0 +1,55 @@
+<HTML>
+<HEAD>
+<meta charset="UTF-8">
+<title>IncomingVoiceConfiguration - </title>
+<link rel="stylesheet" href="../../style.css">
+</HEAD>
+<BODY>
+<a href="../index.html">com.zello.channel.sdk</a>&nbsp;/&nbsp;<a href="./index.html">IncomingVoiceConfiguration</a><br/>
+<br/>
+<h1>IncomingVoiceConfiguration</h1>
+<code><span class="keyword">class </span><span class="identifier">IncomingVoiceConfiguration</span></code>
+<p>Return an IncomingVoiceConfiguration object from <a href="../-session-listener/on-incoming-voice-will-start.html">onIncomingVoiceWillStart</a>
+to provide custom handling of the incoming audio data.</p>
+<h3>Constructors</h3>
+<table>
+<tbody>
+<tr>
+<td>
+<p><a href="-init-.html">&lt;init&gt;</a></p>
+</td>
+<td>
+<code><span class="identifier">IncomingVoiceConfiguration</span><span class="symbol">(</span><span class="identifier" id="com.zello.channel.sdk.IncomingVoiceConfiguration$<init>(com.zello.channel.sdk.VoiceReceiver, kotlin.Boolean)/receiver">receiver</span><span class="symbol">:</span>&nbsp;<a href="../-voice-receiver/index.html"><span class="identifier">VoiceReceiver</span></a><span class="symbol">, </span><span class="identifier" id="com.zello.channel.sdk.IncomingVoiceConfiguration$<init>(com.zello.channel.sdk.VoiceReceiver, kotlin.Boolean)/playThroughSpeaker">playThroughSpeaker</span><span class="symbol">:</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><span class="identifier">Boolean</span></a><span class="symbol">)</span></code>
+<p>Return an IncomingVoiceConfiguration object from <a href="../-session-listener/on-incoming-voice-will-start.html">onIncomingVoiceWillStart</a>
+to provide custom handling of the incoming audio data.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3>Properties</h3>
+<table>
+<tbody>
+<tr>
+<td>
+<p><a href="play-through-speaker.html">playThroughSpeaker</a></p>
+</td>
+<td>
+<code><span class="keyword">val </span><span class="identifier">playThroughSpeaker</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><span class="identifier">Boolean</span></a></code>
+<p>Whether the incoming voice stream should be played through the
+speaker as well as sent to the custom voice receiver object.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="receiver.html">receiver</a></p>
+</td>
+<td>
+<code><span class="keyword">val </span><span class="identifier">receiver</span><span class="symbol">: </span><a href="../-voice-receiver/index.html"><span class="identifier">VoiceReceiver</span></a></code>
+<p>Custom voice receiver object. Its methods will be called when new voice data
+arrives from the Zello Channels system.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</BODY>
+</HTML>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <color name="button_normal">#ff2196f3</color>
+    <color name="button_pressed">#1869a9</color>
+    <color name="button_disabled">#ffffffff</color>
+    <color name="button_ptt_pressed">#ffef5350</color>
+    <color name="button_ptt_playing">#00c853</color>
+    <color name="button_cancel_text">#ffef5350</color>
+    <color name="button_navigate_text">#ff2196f3</color>
+    <color name="floating_panel">#ffffffff</color>
+    <color name="plate_border">#0c000000</color>
+    <color name="text_normal">#ff353c45</color>
+    <color name="text_info">#ff8c939c</color>
+    <color name="text_special">#ff4caf50</color>
+
+</resources>

@@ -1,0 +1,70 @@
+<HTML>
+<HEAD>
+<meta charset="UTF-8">
+<title>Session.Builder - </title>
+<link rel="stylesheet" href="../../../style.css">
+</HEAD>
+<BODY>
+<a href="../../index.html">com.zello.channel.sdk</a>&nbsp;/&nbsp;<a href="../index.html">Session</a>&nbsp;/&nbsp;<a href="./index.html">Builder</a><br/>
+<br/>
+<h1>Builder</h1>
+<code><span class="keyword">class </span><span class="identifier">Builder</span></code>
+<p>Builder objects are used to create instances of Session class.</p>
+<h3>Parameters</h3>
+<p><a name="address"></a>
+<code>address</code> - Server address</p>
+<p><a name="authToken"></a>
+<code>authToken</code> - Your authentication token</p>
+<p><a name="channel"></a>
+<code>channel</code> - Channel name</p>
+<h3>Constructors</h3>
+<table>
+<tbody>
+<tr>
+<td>
+<p><a href="-init-.html">&lt;init&gt;</a></p>
+</td>
+<td>
+<code><span class="identifier">Builder</span><span class="symbol">(</span><span class="identifier" id="com.zello.channel.sdk.Session.Builder$<init>(android.content.Context, kotlin.String, kotlin.String, kotlin.String)/context">context</span><span class="symbol">:</span>&nbsp;<a href="https://developer.android.com/reference/android/content/Context.html"><span class="identifier">Context</span></a><span class="symbol">, </span><span class="identifier" id="com.zello.channel.sdk.Session.Builder$<init>(android.content.Context, kotlin.String, kotlin.String, kotlin.String)/address">address</span><span class="symbol">:</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><span class="identifier">String</span></a><span class="symbol">, </span><span class="identifier" id="com.zello.channel.sdk.Session.Builder$<init>(android.content.Context, kotlin.String, kotlin.String, kotlin.String)/authToken">authToken</span><span class="symbol">:</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><span class="identifier">String</span></a><span class="symbol">, </span><span class="identifier" id="com.zello.channel.sdk.Session.Builder$<init>(android.content.Context, kotlin.String, kotlin.String, kotlin.String)/channel">channel</span><span class="symbol">:</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><span class="identifier">String</span></a><span class="symbol">)</span></code>
+<p>Builder objects are used to create instances of Session class.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3>Functions</h3>
+<table>
+<tbody>
+<tr>
+<td>
+<p><a href="build.html">build</a></p>
+</td>
+<td>
+<code><span class="keyword">fun </span><span class="identifier">build</span><span class="symbol">(</span><span class="symbol">)</span><span class="symbol">: </span><a href="../index.html"><span class="identifier">Session</span></a></code>
+<p>Generate a <a href="../index.html">Session</a> object from the arguments passed to this builder</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="set-logger.html">setLogger</a></p>
+</td>
+<td>
+<code><span class="keyword">fun </span><span class="identifier">setLogger</span><span class="symbol">(</span><span class="identifier" id="com.zello.channel.sdk.Session.Builder$setLogger(com.zello.channel.sdk.SessionLogger)/logger">logger</span><span class="symbol">:</span>&nbsp;<a href="../../-session-logger/index.html"><span class="identifier">SessionLogger</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="./index.html"><span class="identifier">Builder</span></a></code>
+<p>Configures the logging behavior of the Zello channels session. Log messages will be written
+to the ADB log by default. You can disable logging from the SDK by setting the logger to
+<a href="../../-session-logger/-n-o-n-e.html">SessionLogger.NONE</a> or perform custom logging by providing your own implementation of
+<a href="../../-session-logger/index.html">SessionLogger</a>.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="set-username.html">setUsername</a></p>
+</td>
+<td>
+<code><span class="keyword">fun </span><span class="identifier">setUsername</span><span class="symbol">(</span><span class="identifier" id="com.zello.channel.sdk.Session.Builder$setUsername(kotlin.String, kotlin.String)/username">username</span><span class="symbol">:</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><span class="identifier">String</span></a><span class="symbol">?</span><span class="symbol">, </span><span class="identifier" id="com.zello.channel.sdk.Session.Builder$setUsername(kotlin.String, kotlin.String)/password">password</span><span class="symbol">:</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><span class="identifier">String</span></a><span class="symbol">?</span><span class="symbol">)</span><span class="symbol">: </span><a href="./index.html"><span class="identifier">Builder</span></a></code>
+<p>Set the username and password used to connect to the server and channel</p>
+</td>
+</tr>
+</tbody>
+</table>
+</BODY>
+</HTML>

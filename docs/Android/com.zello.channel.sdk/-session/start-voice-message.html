@@ -1,0 +1,28 @@
+<HTML>
+<HEAD>
+<meta charset="UTF-8">
+<title>Session.startVoiceMessage - </title>
+<link rel="stylesheet" href="../../style.css">
+</HEAD>
+<BODY>
+<a href="../index.html">com.zello.channel.sdk</a>&nbsp;/&nbsp;<a href="index.html">Session</a>&nbsp;/&nbsp;<a href="./start-voice-message.html">startVoiceMessage</a><br/>
+<br/>
+<h1>startVoiceMessage</h1>
+<a name="com.zello.channel.sdk.Session$startVoiceMessage()"></a>
+<code><span class="keyword">fun </span><span class="identifier">startVoiceMessage</span><span class="symbol">(</span><span class="symbol">)</span><span class="symbol">: </span><a href="../-outgoing-voice-stream/index.html"><span class="identifier">OutgoingVoiceStream</span></a><span class="symbol">?</span></code>
+<p>Start an outgoing voice message.
+Must be called on the main UI thread.</p>
+<p><strong>Return</strong><br/>
+A non-null voice stream object if a message was successfully started.</p>
+<a name="com.zello.channel.sdk.Session$startVoiceMessage(com.zello.channel.sdk.OutgoingVoiceConfiguration)"></a>
+<code><span class="keyword">fun </span><span class="identifier">startVoiceMessage</span><span class="symbol">(</span><span class="identifier" id="com.zello.channel.sdk.Session$startVoiceMessage(com.zello.channel.sdk.OutgoingVoiceConfiguration)/sourceConfig">sourceConfig</span><span class="symbol">:</span>&nbsp;<a href="../-outgoing-voice-configuration/index.html"><span class="identifier">OutgoingVoiceConfiguration</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="../-outgoing-voice-stream/index.html"><span class="identifier">OutgoingVoiceStream</span></a><span class="symbol">?</span></code>
+<p>Creates and starts a voice stream to the server using a custom voice source instead of the
+device microphone.
+Must be called on the main UI thread.</p>
+<h3>Parameters</h3>
+<p><a name="sourceConfig"></a>
+<code>sourceConfig</code> - specifies the voice source object for the message</p>
+<p><strong>Return</strong><br/>
+the stream that will be handling the voice message</p>
+</BODY>
+</HTML>

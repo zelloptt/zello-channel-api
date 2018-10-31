@@ -1,0 +1,21 @@
+<resources>
+
+    <dimen name="form_margin">15dp</dimen>
+    <dimen name="button_margin">16dp</dimen>
+    <dimen name="button_padding">16dp</dimen>
+    <dimen name="button_corner_radius">4dp</dimen>
+    <dimen name="panel_corner_radius">4dp</dimen>
+    <dimen name="actionbar_separator_width">1dp</dimen>
+    <dimen name="actionbar_elevation">4dp</dimen>
+    <dimen name="panel_margin">10dp</dimen>
+    <dimen name="profile_margin">4dp</dimen>
+    <dimen name="panel_info_margin">8dp</dimen>
+    <dimen name="panel_elevation">2dp</dimen>
+    <dimen name="plate_border">1dp</dimen>
+
+    <dimen name="text_huge">34sp</dimen>
+    <dimen name="text_large">20sp</dimen>
+    <dimen name="text_medium">17sp</dimen>
+    <dimen name="text_small">14sp</dimen>
+
+</resources>

@@ -1,0 +1,91 @@
+<HTML>
+<HEAD>
+<meta charset="UTF-8">
+<title>IncomingVoiceStream - </title>
+<link rel="stylesheet" href="../../style.css">
+</HEAD>
+<BODY>
+<a href="../index.html">com.zello.channel.sdk</a>&nbsp;/&nbsp;<a href="./index.html">IncomingVoiceStream</a><br/>
+<br/>
+<h1>IncomingVoiceStream</h1>
+<code><span class="keyword">abstract</span> <span class="keyword">class </span><span class="identifier">IncomingVoiceStream</span>&nbsp;<span class="symbol">:</span>&nbsp;<a href="../-voice-stream/index.html"><span class="identifier">VoiceStream</span></a></code>
+<p>This class implements voice streams from the Zello channels server to the client device</p>
+<h3>Properties</h3>
+<table>
+<tbody>
+<tr>
+<td>
+<p><a href="channel.html">channel</a></p>
+</td>
+<td>
+<code><span class="keyword">open</span> <span class="keyword">lateinit</span> <span class="keyword">var </span><span class="identifier">channel</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><span class="identifier">String</span></a></code>
+<p>The name of the channel this stream is connected to</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="sender.html">sender</a></p>
+</td>
+<td>
+<code><span class="keyword">lateinit</span> <span class="keyword">var </span><span class="identifier">sender</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><span class="identifier">String</span></a></code>
+<p>The username of the speaker</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3>Inherited Properties</h3>
+<table>
+<tbody>
+<tr>
+<td>
+<p><a href="../-voice-stream/context.html">context</a></p>
+</td>
+<td>
+<code><span class="keyword">val </span><span class="identifier">context</span><span class="symbol">: </span><span class="identifier">SessionContext</span></code></td>
+</tr>
+<tr>
+<td>
+<p><a href="../-voice-stream/events.html">events</a></p>
+</td>
+<td>
+<code><span class="keyword">val </span><span class="identifier">events</span><span class="symbol">: </span><a href="../-session-listener/index.html"><span class="identifier">SessionListener</span></a><span class="symbol">?</span></code></td>
+</tr>
+<tr>
+<td>
+<p><a href="../-voice-stream/position.html">position</a></p>
+</td>
+<td>
+<code><span class="keyword">val </span><span class="identifier">position</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><span class="identifier">Long</span></a></code>
+<p>Time in milliseconds that has passed since the message has started playing or recording.
+Roughly matches the amount of data played or recorded, but in the case of an incoming message
+may be significantly higher than the amount of data received and played because of network
+delays and packet losses.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="../-voice-stream/session.html">session</a></p>
+</td>
+<td>
+<code><span class="keyword">val </span><span class="identifier">session</span><span class="symbol">: </span><a href="../-session/index.html"><span class="identifier">Session</span></a></code></td>
+</tr>
+<tr>
+<td>
+<p><a href="../-voice-stream/state.html">state</a></p>
+</td>
+<td>
+<code><span class="keyword">var </span><span class="identifier">state</span><span class="symbol">: </span><a href="../-voice-stream-state/index.html"><span class="identifier">VoiceStreamState</span></a></code>
+<p>The stream's current state</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="../-voice-stream/stream-id.html">streamId</a></p>
+</td>
+<td>
+<code><span class="keyword">var </span><span class="identifier">streamId</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span class="identifier">Int</span></a></code></td>
+</tr>
+</tbody>
+</table>
+</BODY>
+</HTML>

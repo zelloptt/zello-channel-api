@@ -1,0 +1,201 @@
+<HTML>
+<HEAD>
+<meta charset="UTF-8">
+<title>com.zello.channel.sdk - </title>
+<link rel="stylesheet" href="../style.css">
+</HEAD>
+<BODY>
+<a href="./index.html">com.zello.channel.sdk</a><br/>
+<br/>
+<h2>Package com.zello.channel.sdk</h2>
+<h3>Types</h3>
+<table>
+<tbody>
+<tr>
+<td>
+<p><a href="-incoming-voice-configuration/index.html">IncomingVoiceConfiguration</a></p>
+</td>
+<td>
+<code><span class="keyword">class </span><span class="identifier">IncomingVoiceConfiguration</span></code>
+<p>Return an IncomingVoiceConfiguration object from <a href="-session-listener/on-incoming-voice-will-start.html">onIncomingVoiceWillStart</a>
+to provide custom handling of the incoming audio data.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="-incoming-voice-stream/index.html">IncomingVoiceStream</a></p>
+</td>
+<td>
+<code><span class="keyword">abstract</span> <span class="keyword">class </span><span class="identifier">IncomingVoiceStream</span>&nbsp;<span class="symbol">:</span>&nbsp;<a href="-voice-stream/index.html"><span class="identifier">VoiceStream</span></a></code>
+<p>This class implements voice streams from the Zello channels server to the client device</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="-incoming-voice-stream-info/index.html">IncomingVoiceStreamInfo</a></p>
+</td>
+<td>
+<code><span class="keyword">class </span><span class="identifier">IncomingVoiceStreamInfo</span></code>
+<p>Describes an incoming voice stream. The stream has not yet opened, but you can use this information
+to determine whether to provide a custom voice receiver or let the Zello channels SDK play the
+voice through the device speaker by default.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="-outgoing-voice-configuration/index.html">OutgoingVoiceConfiguration</a></p>
+</td>
+<td>
+<code><span class="keyword">class </span><span class="identifier">OutgoingVoiceConfiguration</span></code>
+<p>Use an OutgoingVoiceConfiguration object to specify the voice source when you want to send audio
+to the Zello channels server from a source other than the device microphone.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="-outgoing-voice-stream/index.html">OutgoingVoiceStream</a></p>
+</td>
+<td>
+<code><span class="keyword">abstract</span> <span class="keyword">class </span><span class="identifier">OutgoingVoiceStream</span>&nbsp;<span class="symbol">:</span>&nbsp;<a href="-voice-stream/index.html"><span class="identifier">VoiceStream</span></a></code>
+<p>Stream sending voice audio to the Zello Channels server. Create an outgoing voice stream by calling
+<a href="-session/start-voice-message.html">startVoiceMessage</a> and stop it by calling <a href="-outgoing-voice-stream/stop.html">stop</a>. After stopping an
+outgoing voice stream, the object is defunct. To send more voice audio to the server, you will need
+to create a new stream.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="-outgoing-voice-stream-error/index.html">OutgoingVoiceStreamError</a></p>
+</td>
+<td>
+<code><span class="keyword">enum</span> <span class="keyword">class </span><span class="identifier">OutgoingVoiceStreamError</span></code>
+<p>Errors that are encountered by outgoing streams</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="-reconnect-reason/index.html">ReconnectReason</a></p>
+</td>
+<td>
+<code><span class="keyword">enum</span> <span class="keyword">class </span><span class="identifier">ReconnectReason</span></code>
+<p>Describes why the session disconnected and is attempting to reconnect</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="-session/index.html">Session</a></p>
+</td>
+<td>
+<code><span class="keyword">class </span><span class="identifier">Session</span></code>
+<p>Main SDK object that manages the outgoing and incoming messages
+and notifies the client about it's state changes through a callback object.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="-session-connect-error/index.html">SessionConnectError</a></p>
+</td>
+<td>
+<code><span class="keyword">class </span><span class="identifier">SessionConnectError</span></code>
+<p>Error object describing why the session was unable to connect to the server or channel</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="-session-listener/index.html">SessionListener</a></p>
+</td>
+<td>
+<code><span class="keyword">interface </span><span class="identifier">SessionListener</span></code>
+<p>Events callback interface.
+Implemented by the clients of the SDK.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="-session-logger/index.html">SessionLogger</a></p>
+</td>
+<td>
+<code><span class="keyword">interface </span><span class="identifier">SessionLogger</span></code>
+<p>Abstract logger for the events reported by the SDK.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="-session-logger-adb/index.html">SessionLoggerAdb</a></p>
+</td>
+<td>
+<code><span class="keyword">class </span><span class="identifier">SessionLoggerAdb</span>&nbsp;<span class="symbol">:</span>&nbsp;<a href="-session-logger/index.html"><span class="identifier">SessionLogger</span></a></code>
+<p>A simple logger implementation that writes the messages to the ADB log.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="-session-logger-null/index.html">SessionLoggerNull</a></p>
+</td>
+<td>
+<code><span class="keyword">class </span><span class="identifier">SessionLoggerNull</span>&nbsp;<span class="symbol">:</span>&nbsp;<a href="-session-logger/index.html"><span class="identifier">SessionLogger</span></a></code>
+<p>A no-op logger implementation.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="-session-state/index.html">SessionState</a></p>
+</td>
+<td>
+<code><span class="keyword">enum</span> <span class="keyword">class </span><span class="identifier">SessionState</span></code>
+<p>Describes the state of the Zello channels client's connection to the Zello channels server</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="-voice-receiver/index.html">VoiceReceiver</a></p>
+</td>
+<td>
+<code><span class="keyword">interface </span><span class="identifier">VoiceReceiver</span></code>
+<p>Implement VoiceReceiver to provide custom handling for incoming voice data.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="-voice-sink/index.html">VoiceSink</a></p>
+</td>
+<td>
+<code><span class="keyword">interface </span><span class="identifier">VoiceSink</span></code>
+<p>The VoiceSink allows you to send audio from non-microphone sources to the Zello channel. You get
+access to a VoiceSink by calling <a href="-session/start-voice-message.html">startVoiceMessage</a> and passing a
+<a href="-outgoing-voice-configuration/index.html">OutgoingVoiceConfiguration</a> object specifying your <a href="-voice-source/index.html">VoiceSource</a>. Once the stream to the channels
+server has finished opening, <a href="-voice-source/start-providing-audio.html">startProvidingAudio</a> will be called
+on your VoiceSource. Use the provided VoiceSink to send audio data to the channels server.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="-voice-source/index.html">VoiceSource</a></p>
+</td>
+<td>
+<code><span class="keyword">interface </span><span class="identifier">VoiceSource</span></code>
+<p>Implement VoiceSource on an object that provides audio data to the Zello Channels server</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="-voice-stream/index.html">VoiceStream</a></p>
+</td>
+<td>
+<code><span class="keyword">abstract</span> <span class="keyword">class </span><span class="identifier">VoiceStream</span></code>
+<p>Base class for voice streams between the Zello Channels SDK and the Zello Channels server</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="-voice-stream-state/index.html">VoiceStreamState</a></p>
+</td>
+<td>
+<code><span class="keyword">enum</span> <span class="keyword">class </span><span class="identifier">VoiceStreamState</span></code>
+<p>States the voice stream can be in</p>
+</td>
+</tr>
+</tbody>
+</table>
+</BODY>
+</HTML>

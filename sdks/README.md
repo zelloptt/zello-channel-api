@@ -17,6 +17,34 @@ The Zello Channels SDK 1.0 is currently in beta.
 
 ## Installation
 
+### Android
+
+#### Prerequisites
+
+Use [Android Studio](https://developer.android.com/studio/) 3.2.1 or newer to develop with Zello Channels SDK for Android. The SDK is delivered as .aar library but you can also build it from [source](sdk).
+
+#### Configure your project
+
+Open your project in Android Studio or create a new one. Alternatively you can use a [demo](demo) included with the SDK to get started.
+
+Click `File > New > New Module`. Click `Import .JAR/.AAR Package` then click Next. Browse for `zello-channel-sdk.aar` then click Finish.
+
+Make sure `':zello-channel-sdk'` is listed at the top of your `settings.gradle` file:
+
+```
+include ':app', ':zello-channel-sdk'
+``` 
+
+Add `implementation project(':zello-channel-sdk')` to `dependencies` section of your `build.gradle` file for the main app module. Example:
+
+```gradle
+dependencies {
+    implementation project(':zello-channel-sdk')
+}
+```
+For additional information please refer to the Android Studio [documentation](https://developer.android.com/studio/projects/android-library#AddDependency).
+
+
 ### iOS
 
 #### Prerequisites
@@ -66,6 +94,7 @@ fi
 
 ### Browser JavaScript
 Load SDK and then call `ZCC.Sdk.init` method with optional parameters to disable loading of certain components.
+
 ```html
 <!-- Load sdk using <script> tag: -->
 <script src="https://zello.io/sdks/js/0.1/zcc.sdk.js"></script>
@@ -117,6 +146,18 @@ Development tokens are only valid for use during development of your app. When y
 
 ### Creating a session and logging on
 
+###### Android
+Each connection to the Zello server is represented by a `Session` object. When you create the `Session` object, you provide it with the address for the Zello server, your authentication token, the name of the channel you are connecting to, and optionally a username and password. 
+You should also supply a `SessionListener` object so your app can be informed about session events such as disconnections and incoming messages.
+
+```kotlin
+val session = Session.Builder(this, serverAddress, myToken, "mysteries").
+					setUsername("sherlock", "secret").build()
+session.sessionListener = this
+session.connect()
+```
+
+
 ###### iOS
 Each connection to the Zello server is represented by a `ZCCSession` object. When you create the `ZCCSession` object, you provide it with the address for the Zello server, your authentication token, the name of the channel you are connecting to, and optionally a username and password. 
 You should also supply a `ZCCSessionDelegate` object so your app can be informed about session events such as disconnections and incoming messages.
@@ -157,6 +198,19 @@ session.connect().then(function() {
 `serverURL` can be one of the [API entry points](https://github.com/zelloptt/zello-channel-api/blob/master/API.md#api-entry-points).
 
 ### Sending voice messages
+
+###### Android
+To start a voice message to the channel, call `Session.startVoiceMessage()`. It returns `OutgoingVoiceStream` object representing audio stream to the channel. To stop sending the message, call `stop()` on the outgoing stream object.
+
+```kotlin
+fun pttDown() {
+    stream = session?.startVoiceMessage()
+}
+
+fun pttUp() {
+    stream?.stop()
+}
+```
 
 ###### iOS
 To start a voice message to the channel, call `-[ZCCSession startVoiceMessage]`. `startVoiceMessage` returns a `ZCCOutgoingVoiceStream` object representing the audio stream to the server. To stop sending the message, call `-stop` on the outgoing stream object.
