@@ -1,0 +1,32 @@
+<HTML>
+<HEAD>
+<meta charset="UTF-8">
+<title>SessionListener.onIncomingVoiceWillStart - </title>
+<link rel="stylesheet" href="../../style.css">
+</HEAD>
+<BODY>
+<a href="../index.html">com.zello.channel.sdk</a>&nbsp;/&nbsp;<a href="index.html">SessionListener</a>&nbsp;/&nbsp;<a href="./on-incoming-voice-will-start.html">onIncomingVoiceWillStart</a><br/>
+<br/>
+<h1>onIncomingVoiceWillStart</h1>
+<a name="com.zello.channel.sdk.SessionListener$onIncomingVoiceWillStart(com.zello.channel.sdk.Session, com.zello.channel.sdk.IncomingVoiceStreamInfo)"></a>
+<code><span class="keyword">open</span> <span class="keyword">fun </span><span class="identifier">onIncomingVoiceWillStart</span><span class="symbol">(</span><span class="identifier" id="com.zello.channel.sdk.SessionListener$onIncomingVoiceWillStart(com.zello.channel.sdk.Session, com.zello.channel.sdk.IncomingVoiceStreamInfo)/session">session</span><span class="symbol">:</span>&nbsp;<a href="../-session/index.html"><span class="identifier">Session</span></a><span class="symbol">, </span><span class="identifier" id="com.zello.channel.sdk.SessionListener$onIncomingVoiceWillStart(com.zello.channel.sdk.Session, com.zello.channel.sdk.IncomingVoiceStreamInfo)/streamInfo">streamInfo</span><span class="symbol">:</span>&nbsp;<a href="../-incoming-voice-stream-info/index.html"><span class="identifier">IncomingVoiceStreamInfo</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="../-incoming-voice-configuration/index.html"><span class="identifier">IncomingVoiceConfiguration</span></a><span class="symbol">?</span></code>
+<p>Implement this method to perform custom handling of incoming voice data. If this method is
+implemented by your SessionListener, you can override the Zello Channels SDK's default
+processing of incoming voice streams.</p>
+<p>This method is called when another user begins speaking on the channel. The streamInfo object
+describes the channel and the user who has begun speaking. Your implementation can return
+null to tell the Zello Channels SDK to play the incoming stream through the device speaker.
+If you want to perform different handling of the audio, you can return an <a href="../-incoming-voice-configuration/index.html">IncomingVoiceConfiguration</a>,
+with a reference to a custom <a href="../-voice-receiver/index.html">VoiceReceiver</a>.</p>
+<h3>Parameters</h3>
+<p><a name="session"></a>
+<code>session</code> - the session that is about to open a new incoming voice stream</p>
+<p><a name="streamInfo"></a>
+<code>streamInfo</code> - an object describing the voice source. You can use this information to
+determine whether to override the default audio handling.</p>
+<p><strong>Return</strong><br/>
+a configuration object specifying a custom voice receiver to handle incoming voice
+data. If you return null instead of a configuration object, the stream will play through the
+current audio output route as normal.</p>
+</BODY>
+</HTML>

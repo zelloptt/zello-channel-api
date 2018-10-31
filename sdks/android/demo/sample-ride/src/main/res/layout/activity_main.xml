@@ -1,0 +1,427 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:tools="http://schemas.android.com/tools"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	android:fitsSystemWindows="true"
+	android:orientation="vertical"
+	tools:context="com.zello.sample.ride.MainActivity">
+
+	<android.support.v7.widget.Toolbar
+		android:id="@+id/toolbar"
+		android:layout_width="match_parent"
+		android:layout_height="?attr/actionBarSize"
+		android:background="?attr/colorPrimary"
+		android:theme="@style/LightActionBar" />
+
+	<!-- Error -->
+	<LinearLayout
+		android:id="@+id/errorForm"
+		android:layout_width="match_parent"
+		android:layout_height="match_parent"
+		android:gravity="center"
+		android:orientation="vertical"
+		android:padding="@dimen/form_margin"
+		android:visibility="gone">
+
+		<TextView
+			android:id="@+id/errorText"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="@string/error_sdk"
+			android:textColor="@color/text_normal"
+			android:textSize="@dimen/text_medium" />
+	</LinearLayout>
+
+	<!-- User role -->
+	<LinearLayout
+		android:id="@+id/roleForm"
+		android:layout_width="match_parent"
+		android:layout_height="match_parent"
+		android:clipToPadding="false"
+		android:gravity="center"
+		android:orientation="vertical"
+		android:padding="@dimen/form_margin"
+		android:visibility="gone">
+
+		<LinearLayout
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:gravity="center"
+			android:orientation="horizontal">
+			<LinearLayout
+				android:id="@+id/riderLayout"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:clipToPadding="false"
+				android:orientation="vertical">
+
+				<ImageButton
+					android:id="@+id/riderButton"
+					style="?android:attr/buttonStyle"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:contentDescription="@string/action_rider"
+					android:src="@mipmap/icon_rider" />
+
+				<TextView
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="@dimen/form_margin"
+					android:gravity="center_horizontal"
+					android:text="@string/action_rider"
+					android:textColor="@color/text_normal"
+					android:textSize="@dimen/text_large" />
+			</LinearLayout>
+
+			<LinearLayout
+				android:id="@+id/driverLayout"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_marginLeft="@dimen/form_margin"
+				android:layout_marginStart="@dimen/form_margin"
+				android:clipToPadding="false"
+				android:orientation="vertical">
+
+				<ImageButton
+					android:id="@+id/driverButton"
+					style="?android:attr/buttonStyle"
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:contentDescription="@string/action_driver"
+					android:src="@mipmap/icon_driver" />
+
+				<TextView
+					android:layout_width="match_parent"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="@dimen/form_margin"
+					android:gravity="center_horizontal"
+					android:text="@string/action_driver"
+					android:textColor="@color/text_normal"
+					android:textSize="@dimen/text_large" />
+			</LinearLayout>
+		</LinearLayout>
+
+		<Button
+			android:id="@+id/qaButton"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_marginTop="@dimen/form_margin"
+			android:text="@string/action_qa"
+			android:textSize="@dimen/text_large"/>
+	</LinearLayout>
+
+	<!-- Ride UI -->
+	<FrameLayout
+		android:id="@+id/rideForm"
+		android:layout_width="match_parent"
+		android:layout_height="match_parent"
+		android:visibility="gone">
+
+		<com.google.android.gms.maps.MapView
+			android:id="@+id/rideMap"
+			android:layout_width="match_parent"
+			android:layout_height="match_parent"
+			android:visibility="gone" />
+
+		<LinearLayout
+			android:id="@+id/rideTopPanel"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:background="?attr/colorPrimary"
+			android:elevation="@dimen/actionbar_elevation"
+			android:orientation="horizontal"
+			android:paddingLeft="@dimen/form_margin"
+			android:paddingStart="@dimen/form_margin"
+			android:theme="@style/LightActionBar">
+
+			<LinearLayout
+				android:layout_width="0dp"
+				android:layout_height="wrap_content"
+				android:layout_weight="1"
+				android:gravity="center_vertical"
+				android:orientation="vertical"
+				android:paddingBottom="@dimen/form_margin"
+				android:paddingTop="@dimen/form_margin">
+
+				<TextView
+					android:id="@+id/rideText1"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:ellipsize="marquee"
+					android:marqueeRepeatLimit="marquee_forever"
+					android:singleLine="true"
+					android:textColor="@color/text_normal"
+					android:textSize="@dimen/text_huge"
+					android:textStyle="bold" />
+
+				<TextView
+					android:id="@+id/rideText2"
+					android:layout_width="wrap_content"
+					android:layout_height="wrap_content"
+					android:ellipsize="marquee"
+					android:marqueeRepeatLimit="marquee_forever"
+					android:singleLine="true"
+					android:textColor="@color/text_info"
+					android:textSize="@dimen/text_large" />
+			</LinearLayout>
+
+			<Button
+				android:id="@+id/rideActionNavigatePortrait"
+				style="@style/Button.Borderless"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:drawableTop="@mipmap/icon_navigate"
+				android:text="@string/action_navigate"
+				android:textColor="@color/button_navigate_text"
+				android:visibility="gone" />
+
+			<Button
+				android:id="@+id/rideActionNavigateLandscape"
+				style="@style/Button.Borderless"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:text="@string/action_navigate"
+				android:textColor="@color/button_navigate_text"
+				android:visibility="gone" />
+
+			<Button
+				android:id="@+id/rideActionCancel"
+				style="@style/Button.Borderless"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:text="@string/action_cancel"
+				android:textColor="@color/button_cancel_text"
+				android:visibility="gone" />
+		</LinearLayout>
+
+		<LinearLayout
+			android:id="@+id/rideBottomPanel"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:layout_gravity="bottom|center_horizontal"
+			android:clipChildren="false"
+			android:clipToPadding="false"
+			android:gravity="center"
+			android:orientation="vertical"
+			android:paddingBottom="@dimen/form_margin"
+			android:paddingLeft="@dimen/form_margin"
+			android:paddingRight="@dimen/form_margin">
+
+			<LinearLayout
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:clipChildren="false"
+				android:clipToPadding="false"
+				android:orientation="horizontal">
+
+				<LinearLayout
+					android:layout_width="0dp"
+					android:layout_height="wrap_content"
+					android:layout_weight="2"
+					android:background="@drawable/floating_panel"
+					android:elevation="@dimen/panel_elevation"
+					android:gravity="center_vertical"
+					android:orientation="horizontal">
+
+					<LinearLayout
+						android:id="@+id/rideBottomDriverPanel"
+						android:layout_width="0dp"
+						android:layout_height="wrap_content"
+						android:layout_weight="1"
+						android:gravity="center_vertical"
+						android:orientation="horizontal">
+
+						<ImageView
+							android:layout_width="wrap_content"
+							android:layout_height="wrap_content"
+							android:layout_marginBottom="@dimen/profile_margin"
+							android:layout_marginLeft="@dimen/profile_margin"
+							android:layout_marginStart="@dimen/profile_margin"
+							android:layout_marginTop="@dimen/profile_margin"
+							android:src="@mipmap/avatar_eugene" />
+
+						<LinearLayout
+							android:layout_width="0dp"
+							android:layout_height="wrap_content"
+							android:layout_marginBottom="@dimen/panel_info_margin"
+							android:layout_marginLeft="@dimen/panel_info_margin"
+							android:layout_marginStart="@dimen/panel_info_margin"
+							android:layout_marginTop="@dimen/panel_info_margin"
+							android:layout_weight="1"
+							android:orientation="vertical">
+
+							<TextView
+								android:layout_width="wrap_content"
+								android:layout_height="wrap_content"
+								android:text="@string/rider_status"
+								android:textColor="@color/text_special"
+								android:textSize="@dimen/text_small" />
+
+							<TextView
+								android:layout_width="wrap_content"
+								android:layout_height="wrap_content"
+								android:text="@string/rider_name"
+								android:textColor="@color/text_normal"
+								android:textSize="@dimen/text_large" />
+						</LinearLayout>
+
+						<TextView
+							android:layout_width="wrap_content"
+							android:layout_height="wrap_content"
+							android:layout_margin="@dimen/panel_info_margin"
+							android:text="@string/rider_info"
+							android:textColor="@color/text_info"
+							android:textSize="@dimen/text_medium" />
+					</LinearLayout>
+
+					<LinearLayout
+						android:id="@+id/rideBottomRiderPanel"
+						android:layout_width="0dp"
+						android:layout_height="wrap_content"
+						android:layout_weight="1"
+						android:gravity="center_vertical"
+						android:orientation="horizontal">
+
+						<ImageView
+							android:layout_width="wrap_content"
+							android:layout_height="wrap_content"
+							android:layout_marginBottom="@dimen/profile_margin"
+							android:layout_marginLeft="@dimen/profile_margin"
+							android:layout_marginStart="@dimen/profile_margin"
+							android:layout_marginTop="@dimen/profile_margin"
+							android:src="@mipmap/avatar_william" />
+
+						<LinearLayout
+							android:layout_width="0dp"
+							android:layout_height="wrap_content"
+							android:layout_marginBottom="@dimen/panel_info_margin"
+							android:layout_marginLeft="@dimen/panel_info_margin"
+							android:layout_marginStart="@dimen/panel_info_margin"
+							android:layout_marginTop="@dimen/panel_info_margin"
+							android:layout_weight="1"
+							android:orientation="vertical">
+
+							<TextView
+								android:layout_width="wrap_content"
+								android:layout_height="wrap_content"
+								android:text="@string/driver_name"
+								android:textColor="@color/text_normal"
+								android:textSize="@dimen/text_large" />
+
+							<TextView
+								android:layout_width="wrap_content"
+								android:layout_height="wrap_content"
+								android:text="@string/driver_status"
+								android:textColor="@color/text_info"
+								android:textSize="@dimen/text_small" />
+						</LinearLayout>
+
+						<TextView
+							android:layout_width="wrap_content"
+							android:layout_height="wrap_content"
+							android:layout_margin="@dimen/panel_info_margin"
+							android:background="@drawable/plate_panel"
+							android:padding="@dimen/panel_info_margin"
+							android:text="@string/driver_info"
+							android:textColor="@color/text_normal"
+							android:textSize="@dimen/text_medium" />
+					</LinearLayout>
+				</LinearLayout>
+
+				<com.zello.sample.ride.PttButton
+					style="@style/Button.Ptt"
+					android:id="@+id/talkButtonLandscape"
+					android:layout_width="0dp"
+					android:layout_height="match_parent"
+					android:layout_marginLeft="@dimen/panel_margin"
+					android:layout_marginStart="@dimen/panel_margin"
+					android:layout_weight="1"
+					android:visibility="gone" />
+
+				<Button
+					style="@style/Button.Ptt"
+					android:id="@+id/honkButtonLandscape"
+					android:layout_width="wrap_content"
+					android:layout_height="match_parent"
+					android:layout_marginLeft="@dimen/panel_margin"
+					android:layout_marginStart="@dimen/panel_margin"
+					android:padding="@dimen/form_margin"
+					android:text="@string/action_honk"/>
+			</LinearLayout>
+
+			<LinearLayout
+				android:id="@+id/talkButtonPortraitContainer"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:orientation="horizontal">
+				<com.zello.sample.ride.PttButton
+					style="@style/Button.Ptt"
+					android:id="@+id/talkButtonPortrait"
+					android:layout_width="0dp"
+					android:layout_weight="1"
+					android:layout_height="wrap_content"
+					android:layout_marginTop="@dimen/panel_margin"
+					android:padding="@dimen/form_margin" />
+
+				<Button
+					style="@style/Button.Ptt"
+					android:id="@+id/honkButtonPortrait"
+					android:layout_width="wrap_content"
+					android:layout_height="match_parent"
+					android:layout_marginTop="@dimen/panel_margin"
+					android:layout_marginLeft="@dimen/panel_margin"
+					android:layout_marginStart="@dimen/panel_margin"
+					android:padding="@dimen/form_margin"
+					android:text="@string/action_honk"/>
+			</LinearLayout>
+		</LinearLayout>
+	</FrameLayout>
+
+	<!-- QA UI -->
+	<LinearLayout
+		android:id="@+id/qaForm"
+		android:layout_width="match_parent"
+		android:layout_height="match_parent"
+		android:visibility="gone">
+
+		<fragment
+			android:id="@+id/qaFragment"
+			android:layout_width="match_parent"
+			android:layout_height="match_parent"
+			android:name="com.zello.sample.ride.QaMonitorFragment" />
+
+	</LinearLayout>
+
+
+	<!-- Login progress -->
+	<LinearLayout
+		android:id="@+id/progressForm"
+		android:layout_width="match_parent"
+		android:layout_height="match_parent"
+		android:clipToPadding="false"
+		android:gravity="center_horizontal"
+		android:orientation="vertical"
+		android:padding="@dimen/form_margin"
+		android:visibility="gone">
+
+		<FrameLayout
+			android:layout_width="match_parent"
+			android:layout_height="0dip"
+			android:layout_weight="1">
+
+			<ProgressBar
+				style="?android:attr/progressBarStyleLarge"
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:layout_gravity="center" />
+		</FrameLayout>
+
+		<Button
+			android:id="@+id/progressCancelButton"
+			style="@style/Button.Borderless"
+			android:layout_width="wrap_content"
+			android:layout_height="wrap_content"
+			android:text="@string/action_cancel"
+			android:textColor="@color/button_cancel_text" />
+	</LinearLayout>
+</LinearLayout>

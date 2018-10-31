@@ -1,0 +1,159 @@
+<HTML>
+<HEAD>
+<meta charset="UTF-8">
+<title>Session - </title>
+<link rel="stylesheet" href="../../style.css">
+</HEAD>
+<BODY>
+<a href="../index.html">com.zello.channel.sdk</a>&nbsp;/&nbsp;<a href="./index.html">Session</a><br/>
+<br/>
+<h1>Session</h1>
+<code><span class="keyword">class </span><span class="identifier">Session</span></code>
+<p>Main SDK object that manages the outgoing and incoming messages
+and notifies the client about it's state changes through a callback object.</p>
+<h3>Types</h3>
+<table>
+<tbody>
+<tr>
+<td>
+<p><a href="-builder/index.html">Builder</a></p>
+</td>
+<td>
+<code><span class="keyword">class </span><span class="identifier">Builder</span></code>
+<p>Builder objects are used to create instances of Session class.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3>Properties</h3>
+<table>
+<tbody>
+<tr>
+<td>
+<p><a href="active-streams.html">activeStreams</a></p>
+</td>
+<td>
+<code><span class="keyword">val </span><span class="identifier">activeStreams</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-collection/index.html"><span class="identifier">Collection</span></a><span class="symbol">&lt;</span><a href="../-voice-stream/index.html"><span class="identifier">VoiceStream</span></a><span class="symbol">&gt;</span></code>
+<p>A collection of all active incoming and outgoing streams</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="address.html">address</a></p>
+</td>
+<td>
+<code><span class="keyword">val </span><span class="identifier">address</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><span class="identifier">String</span></a></code>
+<p>the URL of the server to connect to</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="auth-token.html">authToken</a></p>
+</td>
+<td>
+<code><span class="keyword">val </span><span class="identifier">authToken</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><span class="identifier">String</span></a></code>
+<p>the authentication token to send to the server during logon</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="channel.html">channel</a></p>
+</td>
+<td>
+<code><span class="keyword">val </span><span class="identifier">channel</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><span class="identifier">String</span></a></code>
+<p>the name of the channel to connect to</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="password.html">password</a></p>
+</td>
+<td>
+<code><span class="keyword">val </span><span class="identifier">password</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><span class="identifier">String</span></a><span class="symbol">?</span></code>
+<p>the account password for <a href="username.html">username</a> to send to the server during logon. If no password is
+provided, the session will connect in listen-only mode.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="request-timeout-sec.html">requestTimeoutSec</a></p>
+</td>
+<td>
+<code><span class="keyword">var </span><span class="identifier">requestTimeoutSec</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><span class="identifier">Long</span></a></code>
+<p>Requests to the Zello channels server will fail with a timed out error if requestTimeoutSec
+seconds pass without a response from the server. Defaults to 30 seconds.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="session-listener.html">sessionListener</a></p>
+</td>
+<td>
+<code><span class="keyword">var </span><span class="identifier">sessionListener</span><span class="symbol">: </span><a href="../-session-listener/index.html"><span class="identifier">SessionListener</span></a><span class="symbol">?</span></code>
+<p>A callback that is used to notify the client app about state changes.
+Must be accessed from the main UI thread.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="state.html">state</a></p>
+</td>
+<td>
+<code><span class="keyword">var </span><span class="identifier">state</span><span class="symbol">: </span><a href="../-session-state/index.html"><span class="identifier">SessionState</span></a></code>
+<p>The current state of the session object</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="username.html">username</a></p>
+</td>
+<td>
+<code><span class="keyword">val </span><span class="identifier">username</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><span class="identifier">String</span></a><span class="symbol">?</span></code>
+<p>the username to send to the server during logon. If no username is provided,
+the session will connect in listen-only mode.</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3>Functions</h3>
+<table>
+<tbody>
+<tr>
+<td>
+<p><a href="connect.html">connect</a></p>
+</td>
+<td>
+<code><span class="keyword">fun </span><span class="identifier">connect</span><span class="symbol">(</span><span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><span class="identifier">Boolean</span></a></code>
+<p>Asynchronously connect to a server.
+Must be called on the main UI thread.
+Connection state change callbacks are guaranteed to be called on the main UI thread.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="disconnect.html">disconnect</a></p>
+</td>
+<td>
+<code><span class="keyword">fun </span><span class="identifier">disconnect</span><span class="symbol">(</span><span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a></code>
+<p>Close the open connection.
+Must be called on the main UI thread.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="start-voice-message.html">startVoiceMessage</a></p>
+</td>
+<td>
+<code><span class="keyword">fun </span><span class="identifier">startVoiceMessage</span><span class="symbol">(</span><span class="symbol">)</span><span class="symbol">: </span><a href="../-outgoing-voice-stream/index.html"><span class="identifier">OutgoingVoiceStream</span></a><span class="symbol">?</span></code>
+<p>Start an outgoing voice message.
+Must be called on the main UI thread.</p>
+<code><span class="keyword">fun </span><span class="identifier">startVoiceMessage</span><span class="symbol">(</span><span class="identifier" id="com.zello.channel.sdk.Session$startVoiceMessage(com.zello.channel.sdk.OutgoingVoiceConfiguration)/sourceConfig">sourceConfig</span><span class="symbol">:</span>&nbsp;<a href="../-outgoing-voice-configuration/index.html"><span class="identifier">OutgoingVoiceConfiguration</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="../-outgoing-voice-stream/index.html"><span class="identifier">OutgoingVoiceStream</span></a><span class="symbol">?</span></code>
+<p>Creates and starts a voice stream to the server using a custom voice source instead of the
+device microphone.
+Must be called on the main UI thread.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</BODY>
+</HTML>

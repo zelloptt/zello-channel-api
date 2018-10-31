@@ -1,0 +1,19 @@
+<HTML>
+<HEAD>
+<meta charset="UTF-8">
+<title>SessionListener.onDisconnected - </title>
+<link rel="stylesheet" href="../../style.css">
+</HEAD>
+<BODY>
+<a href="../index.html">com.zello.channel.sdk</a>&nbsp;/&nbsp;<a href="index.html">SessionListener</a>&nbsp;/&nbsp;<a href="./on-disconnected.html">onDisconnected</a><br/>
+<br/>
+<h1>onDisconnected</h1>
+<a name="com.zello.channel.sdk.SessionListener$onDisconnected(com.zello.channel.sdk.Session)"></a>
+<code><span class="keyword">abstract</span> <span class="keyword">fun </span><span class="identifier">onDisconnected</span><span class="symbol">(</span><span class="identifier" id="com.zello.channel.sdk.SessionListener$onDisconnected(com.zello.channel.sdk.Session)/session">session</span><span class="symbol">:</span>&nbsp;<a href="../-session/index.html"><span class="identifier">Session</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a></code>
+<p>Called when the session finishes disconnecting from the server. If the session is disconnected
+due to a network change or other unexpected event, this method is <em>not</em> called, and <a href="on-session-will-reconnect.html">onSessionWillReconnect</a>
+is called instead. In that case, the session automatically attempts to reconnect. You can
+prevent automatic reconnect attempts by implementing <a href="on-session-will-reconnect.html">onSessionWillReconnect</a> and returning
+false.</p>
+</BODY>
+</HTML>

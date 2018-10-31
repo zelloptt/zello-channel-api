@@ -1,0 +1,39 @@
+<HTML>
+<HEAD>
+<meta charset="UTF-8">
+<title>VoiceSource - </title>
+<link rel="stylesheet" href="../../style.css">
+</HEAD>
+<BODY>
+<a href="../index.html">com.zello.channel.sdk</a>&nbsp;/&nbsp;<a href="./index.html">VoiceSource</a><br/>
+<br/>
+<h1>VoiceSource</h1>
+<code><span class="keyword">interface </span><span class="identifier">VoiceSource</span></code>
+<p>Implement VoiceSource on an object that provides audio data to the Zello Channels server</p>
+<h3>Functions</h3>
+<table>
+<tbody>
+<tr>
+<td>
+<p><a href="start-providing-audio.html">startProvidingAudio</a></p>
+</td>
+<td>
+<code><span class="keyword">abstract</span> <span class="keyword">fun </span><span class="identifier">startProvidingAudio</span><span class="symbol">(</span><span class="identifier" id="com.zello.channel.sdk.VoiceSource$startProvidingAudio(com.zello.channel.sdk.VoiceSink, kotlin.Int, com.zello.channel.sdk.OutgoingVoiceStream)/sink">sink</span><span class="symbol">:</span>&nbsp;<a href="../-voice-sink/index.html"><span class="identifier">VoiceSink</span></a><span class="symbol">, </span><span class="identifier" id="com.zello.channel.sdk.VoiceSource$startProvidingAudio(com.zello.channel.sdk.VoiceSink, kotlin.Int, com.zello.channel.sdk.OutgoingVoiceStream)/sampleRate">sampleRate</span><span class="symbol">:</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span class="identifier">Int</span></a><span class="symbol">, </span><span class="identifier" id="com.zello.channel.sdk.VoiceSource$startProvidingAudio(com.zello.channel.sdk.VoiceSink, kotlin.Int, com.zello.channel.sdk.OutgoingVoiceStream)/stream">stream</span><span class="symbol">:</span>&nbsp;<a href="../-outgoing-voice-stream/index.html"><span class="identifier">OutgoingVoiceStream</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a></code>
+<p>This method is called when an outgoing stream is ready to receive voice data</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="stop-providing-audio.html">stopProvidingAudio</a></p>
+</td>
+<td>
+<code><span class="keyword">abstract</span> <span class="keyword">fun </span><span class="identifier">stopProvidingAudio</span><span class="symbol">(</span><span class="identifier" id="com.zello.channel.sdk.VoiceSource$stopProvidingAudio(com.zello.channel.sdk.VoiceSink)/sink">sink</span><span class="symbol">:</span>&nbsp;<a href="../-voice-sink/index.html"><span class="identifier">VoiceSink</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a></code>
+<p>Called when an outgoing stream can no longer receive audio. When a voice stream closes, this
+method is called to inform your voice source that the voice sink it has been sending audio to
+is no longer valid. You should stop calling methods on sink and release related resources.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</BODY>
+</HTML>

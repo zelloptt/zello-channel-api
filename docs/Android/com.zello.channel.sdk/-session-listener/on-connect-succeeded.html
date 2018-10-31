@@ -1,0 +1,21 @@
+<HTML>
+<HEAD>
+<meta charset="UTF-8">
+<title>SessionListener.onConnectSucceeded - </title>
+<link rel="stylesheet" href="../../style.css">
+</HEAD>
+<BODY>
+<a href="../index.html">com.zello.channel.sdk</a>&nbsp;/&nbsp;<a href="index.html">SessionListener</a>&nbsp;/&nbsp;<a href="./on-connect-succeeded.html">onConnectSucceeded</a><br/>
+<br/>
+<h1>onConnectSucceeded</h1>
+<a name="com.zello.channel.sdk.SessionListener$onConnectSucceeded(com.zello.channel.sdk.Session)"></a>
+<code><span class="keyword">abstract</span> <span class="keyword">fun </span><span class="identifier">onConnectSucceeded</span><span class="symbol">(</span><span class="identifier" id="com.zello.channel.sdk.SessionListener$onConnectSucceeded(com.zello.channel.sdk.Session)/session">session</span><span class="symbol">:</span>&nbsp;<a href="../-session/index.html"><span class="identifier">Session</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a></code>
+<p>Called when the session finishes connecting to the server and channel. When onConnectSucceeded
+is called, the connection to the server is fully established. You can now call <a href="../-session/start-voice-message.html">startVoiceMessage</a>
+to start speaking to the channel, and will receive incoming messages when other users speak
+to the channel.</p>
+<p>onConnectSucceeded <em>is</em> called after an automatic reconnect, so be aware that your listener
+may see onConnectSucceeded called multiple times without <a href="on-disconnected.html">onDisconnected</a> being called. See
+<a href="on-session-will-reconnect.html">onSessionWillReconnect</a> for more about automatic reconnection.</p>
+</BODY>
+</HTML>

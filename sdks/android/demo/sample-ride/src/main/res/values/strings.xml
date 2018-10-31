@@ -1,0 +1,48 @@
+<resources>
+    <string name="app_name">Embeddable Zello Demo</string>
+    <string name="role_form_title">Select Your Role</string>
+    <string name="ride_rider_text1">En Route</string>
+    <string name="ride_rider_text2">10 minutes</string>
+    <string name="ride_driver_text1">6th &amp; Pressler St</string>
+    <string name="ride_driver_text2">Austin, TX</string>
+    <string name="ride_form_driver_title">En Route</string>
+    <string name="ride_form_driver_overview_title">Overview</string>
+    <string name="progress_form_title">Logging in…</string>
+    <string name="qa_form_title">QA</string>
+
+    <!-- Strings related to login -->
+    <string name="prompt_session">Session name</string>
+    <string name="action_rider">Rider</string>
+    <string name="action_driver">Driver</string>
+    <string name="action_qa">QA</string>
+    <string name="action_sign_in">Continue</string>
+    <string name="action_sign_in_short">Continue</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_navigate">Navigate</string>
+    <string name="error_sdk">There was an error while initializing the SDK.</string>
+    <string name="error_field_required">This field is required</string>
+    <string name="error_connect_unknown">Unexpected error occurred.</string>
+    <string name="error_connect_failed">Failed to connect to the server.</string>
+    <string name="error_connect_credentials">Wrong username or password.</string>
+    <string name="error_invalid_address">Invalid server address.</string>
+    <string name="error_disconnected">Server ended the connection.</string>
+    <string name="error_voice_mic_premission">Please grant the permission to record audio.</string>
+    <string name="error_voice_channel_busy">The channel is busy.</string>
+    <string name="error_voice_device_problem">Couldn\'t start recording.</string>
+	<string name="error_voice_listen_only">No permission to speak on channel</string>
+    <string name="error_voice_unknown">Unexpected error occurred.</string>
+
+    <!-- Strings related to the talk screen -->
+    <string name="talk_to_driver">Talk to Driver</string>
+    <string name="talk_to_rider">Talk to Rider</string>
+    <string name="talk_connecting">Connecting…</string>
+    <string name="rider_name">Eugene</string>
+    <string name="rider_status">Pick Up</string>
+    <string name="rider_info">5 minutes</string>
+    <string name="driver_name">William</string>
+    <string name="driver_status">Drives a Volkswagen Beetle</string>
+    <string name="driver_info">PTT1317</string>
+    <string name="action_honk">Honk</string>
+
+    <string name="mic_permission_rationale">"Microphone permission is needed to record audio."</string>
+</resources>

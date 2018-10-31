@@ -1,0 +1,145 @@
+<HTML>
+<HEAD>
+<meta charset="UTF-8">
+<title>SessionListener - </title>
+<link rel="stylesheet" href="../../style.css">
+</HEAD>
+<BODY>
+<a href="../index.html">com.zello.channel.sdk</a>&nbsp;/&nbsp;<a href="./index.html">SessionListener</a><br/>
+<br/>
+<h1>SessionListener</h1>
+<code><span class="keyword">interface </span><span class="identifier">SessionListener</span></code>
+<p>Events callback interface.
+Implemented by the clients of the SDK.</p>
+<h3>Functions</h3>
+<table>
+<tbody>
+<tr>
+<td>
+<p><a href="on-connect-failed.html">onConnectFailed</a></p>
+</td>
+<td>
+<code><span class="keyword">abstract</span> <span class="keyword">fun </span><span class="identifier">onConnectFailed</span><span class="symbol">(</span><span class="identifier" id="com.zello.channel.sdk.SessionListener$onConnectFailed(com.zello.channel.sdk.Session, com.zello.channel.sdk.SessionConnectError)/session">session</span><span class="symbol">:</span>&nbsp;<a href="../-session/index.html"><span class="identifier">Session</span></a><span class="symbol">, </span><span class="identifier" id="com.zello.channel.sdk.SessionListener$onConnectFailed(com.zello.channel.sdk.Session, com.zello.channel.sdk.SessionConnectError)/error">error</span><span class="symbol">:</span>&nbsp;<a href="../-session-connect-error/index.html"><span class="identifier">SessionConnectError</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a></code>
+<p>Called if an error is encountered before the session has connected to the channel</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="on-connect-started.html">onConnectStarted</a></p>
+</td>
+<td>
+<code><span class="keyword">abstract</span> <span class="keyword">fun </span><span class="identifier">onConnectStarted</span><span class="symbol">(</span><span class="identifier" id="com.zello.channel.sdk.SessionListener$onConnectStarted(com.zello.channel.sdk.Session)/session">session</span><span class="symbol">:</span>&nbsp;<a href="../-session/index.html"><span class="identifier">Session</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a></code>
+<p>Called after the Session has started connecting to the Zello Channels server, but before a
+connection has been established</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="on-connect-succeeded.html">onConnectSucceeded</a></p>
+</td>
+<td>
+<code><span class="keyword">abstract</span> <span class="keyword">fun </span><span class="identifier">onConnectSucceeded</span><span class="symbol">(</span><span class="identifier" id="com.zello.channel.sdk.SessionListener$onConnectSucceeded(com.zello.channel.sdk.Session)/session">session</span><span class="symbol">:</span>&nbsp;<a href="../-session/index.html"><span class="identifier">Session</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a></code>
+<p>Called when the session finishes connecting to the server and channel. When onConnectSucceeded
+is called, the connection to the server is fully established. You can now call <a href="../-session/start-voice-message.html">startVoiceMessage</a>
+to start speaking to the channel, and will receive incoming messages when other users speak
+to the channel.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="on-disconnected.html">onDisconnected</a></p>
+</td>
+<td>
+<code><span class="keyword">abstract</span> <span class="keyword">fun </span><span class="identifier">onDisconnected</span><span class="symbol">(</span><span class="identifier" id="com.zello.channel.sdk.SessionListener$onDisconnected(com.zello.channel.sdk.Session)/session">session</span><span class="symbol">:</span>&nbsp;<a href="../-session/index.html"><span class="identifier">Session</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a></code>
+<p>Called when the session finishes disconnecting from the server. If the session is disconnected
+due to a network change or other unexpected event, this method is <em>not</em> called, and <a href="on-session-will-reconnect.html">onSessionWillReconnect</a>
+is called instead. In that case, the session automatically attempts to reconnect. You can
+prevent automatic reconnect attempts by implementing <a href="on-session-will-reconnect.html">onSessionWillReconnect</a> and returning
+false.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="on-incoming-voice-progress.html">onIncomingVoiceProgress</a></p>
+</td>
+<td>
+<code><span class="keyword">abstract</span> <span class="keyword">fun </span><span class="identifier">onIncomingVoiceProgress</span><span class="symbol">(</span><span class="identifier" id="com.zello.channel.sdk.SessionListener$onIncomingVoiceProgress(com.zello.channel.sdk.Session, com.zello.channel.sdk.IncomingVoiceStream, kotlin.Int)/session">session</span><span class="symbol">:</span>&nbsp;<a href="../-session/index.html"><span class="identifier">Session</span></a><span class="symbol">, </span><span class="identifier" id="com.zello.channel.sdk.SessionListener$onIncomingVoiceProgress(com.zello.channel.sdk.Session, com.zello.channel.sdk.IncomingVoiceStream, kotlin.Int)/stream">stream</span><span class="symbol">:</span>&nbsp;<a href="../-incoming-voice-stream/index.html"><span class="identifier">IncomingVoiceStream</span></a><span class="symbol">, </span><span class="identifier" id="com.zello.channel.sdk.SessionListener$onIncomingVoiceProgress(com.zello.channel.sdk.Session, com.zello.channel.sdk.IncomingVoiceStream, kotlin.Int)/positionMs">positionMs</span><span class="symbol">:</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span class="identifier">Int</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a></code>
+<p>This method is called periodically while receiving audio. This method is called frequently,
+so avoid doing heaving processing work in it. positionMs is in media time from the beginning
+of the stream, not in wall time.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="on-incoming-voice-started.html">onIncomingVoiceStarted</a></p>
+</td>
+<td>
+<code><span class="keyword">abstract</span> <span class="keyword">fun </span><span class="identifier">onIncomingVoiceStarted</span><span class="symbol">(</span><span class="identifier" id="com.zello.channel.sdk.SessionListener$onIncomingVoiceStarted(com.zello.channel.sdk.Session, com.zello.channel.sdk.IncomingVoiceStream)/session">session</span><span class="symbol">:</span>&nbsp;<a href="../-session/index.html"><span class="identifier">Session</span></a><span class="symbol">, </span><span class="identifier" id="com.zello.channel.sdk.SessionListener$onIncomingVoiceStarted(com.zello.channel.sdk.Session, com.zello.channel.sdk.IncomingVoiceStream)/stream">stream</span><span class="symbol">:</span>&nbsp;<a href="../-incoming-voice-stream/index.html"><span class="identifier">IncomingVoiceStream</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a></code>
+<p>When another user begins speaking in the channel, this method is called to provide your app
+with the new incoming voice stream.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="on-incoming-voice-stopped.html">onIncomingVoiceStopped</a></p>
+</td>
+<td>
+<code><span class="keyword">abstract</span> <span class="keyword">fun </span><span class="identifier">onIncomingVoiceStopped</span><span class="symbol">(</span><span class="identifier" id="com.zello.channel.sdk.SessionListener$onIncomingVoiceStopped(com.zello.channel.sdk.Session, com.zello.channel.sdk.IncomingVoiceStream)/session">session</span><span class="symbol">:</span>&nbsp;<a href="../-session/index.html"><span class="identifier">Session</span></a><span class="symbol">, </span><span class="identifier" id="com.zello.channel.sdk.SessionListener$onIncomingVoiceStopped(com.zello.channel.sdk.Session, com.zello.channel.sdk.IncomingVoiceStream)/stream">stream</span><span class="symbol">:</span>&nbsp;<a href="../-incoming-voice-stream/index.html"><span class="identifier">IncomingVoiceStream</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a></code>
+<p>This method is called when a user that was speaking on the channel stops speaking, and the
+stream containing their voice data closes.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="on-incoming-voice-will-start.html">onIncomingVoiceWillStart</a></p>
+</td>
+<td>
+<code><span class="keyword">open</span> <span class="keyword">fun </span><span class="identifier">onIncomingVoiceWillStart</span><span class="symbol">(</span><span class="identifier" id="com.zello.channel.sdk.SessionListener$onIncomingVoiceWillStart(com.zello.channel.sdk.Session, com.zello.channel.sdk.IncomingVoiceStreamInfo)/session">session</span><span class="symbol">:</span>&nbsp;<a href="../-session/index.html"><span class="identifier">Session</span></a><span class="symbol">, </span><span class="identifier" id="com.zello.channel.sdk.SessionListener$onIncomingVoiceWillStart(com.zello.channel.sdk.Session, com.zello.channel.sdk.IncomingVoiceStreamInfo)/streamInfo">streamInfo</span><span class="symbol">:</span>&nbsp;<a href="../-incoming-voice-stream-info/index.html"><span class="identifier">IncomingVoiceStreamInfo</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="../-incoming-voice-configuration/index.html"><span class="identifier">IncomingVoiceConfiguration</span></a><span class="symbol">?</span></code>
+<p>Implement this method to perform custom handling of incoming voice data. If this method is
+implemented by your SessionListener, you can override the Zello Channels SDK's default
+processing of incoming voice streams.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="on-outgoing-voice-error.html">onOutgoingVoiceError</a></p>
+</td>
+<td>
+<code><span class="keyword">abstract</span> <span class="keyword">fun </span><span class="identifier">onOutgoingVoiceError</span><span class="symbol">(</span><span class="identifier" id="com.zello.channel.sdk.SessionListener$onOutgoingVoiceError(com.zello.channel.sdk.Session, com.zello.channel.sdk.OutgoingVoiceStream, com.zello.channel.sdk.OutgoingVoiceStreamError)/session">session</span><span class="symbol">:</span>&nbsp;<a href="../-session/index.html"><span class="identifier">Session</span></a><span class="symbol">, </span><span class="identifier" id="com.zello.channel.sdk.SessionListener$onOutgoingVoiceError(com.zello.channel.sdk.Session, com.zello.channel.sdk.OutgoingVoiceStream, com.zello.channel.sdk.OutgoingVoiceStreamError)/stream">stream</span><span class="symbol">:</span>&nbsp;<a href="../-outgoing-voice-stream/index.html"><span class="identifier">OutgoingVoiceStream</span></a><span class="symbol">, </span><span class="identifier" id="com.zello.channel.sdk.SessionListener$onOutgoingVoiceError(com.zello.channel.sdk.Session, com.zello.channel.sdk.OutgoingVoiceStream, com.zello.channel.sdk.OutgoingVoiceStreamError)/error">error</span><span class="symbol">:</span>&nbsp;<a href="../-outgoing-voice-stream-error/index.html"><span class="identifier">OutgoingVoiceStreamError</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a></code>
+<p>Called if an outgoing stream closes with an error</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="on-outgoing-voice-progress.html">onOutgoingVoiceProgress</a></p>
+</td>
+<td>
+<code><span class="keyword">abstract</span> <span class="keyword">fun </span><span class="identifier">onOutgoingVoiceProgress</span><span class="symbol">(</span><span class="identifier" id="com.zello.channel.sdk.SessionListener$onOutgoingVoiceProgress(com.zello.channel.sdk.Session, com.zello.channel.sdk.OutgoingVoiceStream, kotlin.Int)/session">session</span><span class="symbol">:</span>&nbsp;<a href="../-session/index.html"><span class="identifier">Session</span></a><span class="symbol">, </span><span class="identifier" id="com.zello.channel.sdk.SessionListener$onOutgoingVoiceProgress(com.zello.channel.sdk.Session, com.zello.channel.sdk.OutgoingVoiceStream, kotlin.Int)/stream">stream</span><span class="symbol">:</span>&nbsp;<a href="../-outgoing-voice-stream/index.html"><span class="identifier">OutgoingVoiceStream</span></a><span class="symbol">, </span><span class="identifier" id="com.zello.channel.sdk.SessionListener$onOutgoingVoiceProgress(com.zello.channel.sdk.Session, com.zello.channel.sdk.OutgoingVoiceStream, kotlin.Int)/positionMs">positionMs</span><span class="symbol">:</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span class="identifier">Int</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a></code>
+<p>Called periodically while transmitting audio to report the progress of the stream. This
+method is called frequently, so avoid doing heavy processing work in it. The position reported
+is in media time from the beginning of the stream, not wall time.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="on-outgoing-voice-state-changed.html">onOutgoingVoiceStateChanged</a></p>
+</td>
+<td>
+<code><span class="keyword">abstract</span> <span class="keyword">fun </span><span class="identifier">onOutgoingVoiceStateChanged</span><span class="symbol">(</span><span class="identifier" id="com.zello.channel.sdk.SessionListener$onOutgoingVoiceStateChanged(com.zello.channel.sdk.Session, com.zello.channel.sdk.OutgoingVoiceStream)/session">session</span><span class="symbol">:</span>&nbsp;<a href="../-session/index.html"><span class="identifier">Session</span></a><span class="symbol">, </span><span class="identifier" id="com.zello.channel.sdk.SessionListener$onOutgoingVoiceStateChanged(com.zello.channel.sdk.Session, com.zello.channel.sdk.OutgoingVoiceStream)/stream">stream</span><span class="symbol">:</span>&nbsp;<a href="../-outgoing-voice-stream/index.html"><span class="identifier">OutgoingVoiceStream</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a></code>
+<p>Called whenever the state of an outgoing stream changes</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="on-session-will-reconnect.html">onSessionWillReconnect</a></p>
+</td>
+<td>
+<code><span class="keyword">open</span> <span class="keyword">fun </span><span class="identifier">onSessionWillReconnect</span><span class="symbol">(</span><span class="identifier" id="com.zello.channel.sdk.SessionListener$onSessionWillReconnect(com.zello.channel.sdk.Session, com.zello.channel.sdk.ReconnectReason)/session">session</span><span class="symbol">:</span>&nbsp;<a href="../-session/index.html"><span class="identifier">Session</span></a><span class="symbol">, </span><span class="identifier" id="com.zello.channel.sdk.SessionListener$onSessionWillReconnect(com.zello.channel.sdk.Session, com.zello.channel.sdk.ReconnectReason)/reason">reason</span><span class="symbol">:</span>&nbsp;<a href="../-reconnect-reason/index.html"><span class="identifier">ReconnectReason</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html"><span class="identifier">Boolean</span></a></code>
+<p>Called when the session has become unexpectedly disconnected. If the SessionListener returns
+true, the session will attempt to reconnect to the Zello Channels server.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</BODY>
+</HTML>

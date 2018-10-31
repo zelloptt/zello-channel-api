@@ -17,6 +17,34 @@ The Zello Channels SDK 1.0 is currently in beta.
 
 ## Installation
 
+### Android
+
+#### Prerequisites
+
+Use [Android Studio](https://developer.android.com/studio/) 3.2.1 or newer to develop with Zello Channels SDK for Android. The SDK is delivered as .aar library but you can also build it from [source](android/sdk).
+
+#### Configure your project
+
+Open your project in Android Studio or create a new one. Alternatively you can use a [demo](android/demo) included with the SDK to get started.
+
+Click `File > New > New Module`. Click `Import .JAR/.AAR Package` then click Next. Browse for `zello-channel-sdk.aar` then click Finish.
+
+Make sure `':zello-channel-sdk'` is listed at the top of your `settings.gradle` file:
+
+```
+include ':app', ':zello-channel-sdk'
+``` 
+
+Add `implementation project(':zello-channel-sdk')` to `dependencies` section of your `build.gradle` file for the main app module. Example:
+
+```gradle
+dependencies {
+    implementation project(':zello-channel-sdk')
+}
+```
+For additional information please refer to the Android Studio [documentation](https://developer.android.com/studio/projects/android-library#AddDependency).
+
+
 ### iOS
 
 #### Prerequisites
@@ -66,6 +94,7 @@ fi
 
 ### Browser JavaScript
 Load SDK and then call `ZCC.Sdk.init` method with optional parameters to disable loading of certain components.
+
 ```html
 <!-- Load sdk using <script> tag: -->
 <script src="https://zello.io/sdks/js/0.1/zcc.sdk.js"></script>
@@ -117,6 +146,18 @@ Development tokens are only valid for use during development of your app. When y
 
 ### Creating a session and logging on
 
+###### Android
+Each connection to the Zello server is represented by a `Session` object. When you create the `Session` object, you provide it with the address for the Zello server, your authentication token, the name of the channel you are connecting to, and optionally a username and password. 
+You should also supply a `SessionListener` object so your app can be informed about session events such as disconnections and incoming messages.
+
+```kotlin
+val session = Session.Builder(this, serverAddress, myToken, "mysteries").
+					setUsername("sherlock", "secret").build()
+session.sessionListener = this
+session.connect()
+```
+
+
 ###### iOS
 Each connection to the Zello server is represented by a `ZCCSession` object. When you create the `ZCCSession` object, you provide it with the address for the Zello server, your authentication token, the name of the channel you are connecting to, and optionally a username and password. 
 You should also supply a `ZCCSessionDelegate` object so your app can be informed about session events such as disconnections and incoming messages.
@@ -158,6 +199,19 @@ session.connect().then(function() {
 
 ### Sending voice messages
 
+###### Android
+To start a voice message to the channel, call `Session.startVoiceMessage()`. It returns `OutgoingVoiceStream` object representing audio stream to the channel. To stop sending the message, call `stop()` on the outgoing stream object.
+
+```kotlin
+fun pttDown() {
+    stream = session.startVoiceMessage()
+}
+
+fun pttUp() {
+    stream.stop()
+}
+```
+
 ###### iOS
 To start a voice message to the channel, call `-[ZCCSession startVoiceMessage]`. `startVoiceMessage` returns a `ZCCOutgoingVoiceStream` object representing the audio stream to the server. To stop sending the message, call `-stop` on the outgoing stream object.
 
@@ -170,7 +224,6 @@ To start a voice message to the channel, call `-[ZCCSession startVoiceMessage]`.
 // Action method for Touch Up Inside and Touch Up Outside
 - (IBAction)buttonReleased:(id)sender {
   [self.stream stop];
-  self.stream = nil;
 }
 ```
 
@@ -201,9 +254,28 @@ setTimeout(function() {
 ```
 
 ### Handling session events
+The Zello Channels SDK contains an events interface which you can implement to be notified about changes in incoming and outgoing messages, state, app online status, sign in progress etc. In most cases, your implementation will be a part of your activity code.
+
+###### Android
+In Android, the events interface is `SessionListener`.
+
+|Android Callback|Description
+|---|---
+|`onConnectStarted()`|The Session has opened a web socket connection to the server.
+|`onConnectFailed()`|Either the web socket connection failed or the logon failed. Check the error parameter for more details.
+|`onConnectSucceeded()`|Logon completed successfully and you are set to send and receive voice messages.
+|`onDisconnected()`|Session has disconnected from the server. The Zello Channels SDK attempts to stay connected through network changes, so there may be a delay between the network disconnection and this callback being called, as the SDK retries connecting and eventually times out.
+|`onSessionWillReconnect()`|The Session has become disconnected unexpectedly. By default, it will attempt to reconnect after a delay. You can return `false` from this method to prevent the automatic reconnect.
+|`onOutgoingVoiceError()`|An error has occurred with an outgoing voice stream. When this is called, the stream has been closed.
+|`onOutgoingVoiceStateChanged()`|An outgoing voice stream has changed its internal state.
+|`onOutgoingVoiceProgress()`|This callback is called periodically as voice data is encoded.
+|`onIncomingVoiceWillStart()`|This callback is called when an incoming voice stream is about to start. By returning an incoming voice configuration object, you can perform custom processing of the incoming voice stream, _e.g._ record it to storage or prevent it from producing audio.
+|`onIncomingVoiceStarted()`|An incoming voice stream has been established and has started playing.
+|`onIncomingVoiceStopped()`|An incoming voice stream has finished playing.
+|`onIncomingVoiceProgress()`|This callback is called periodically as incoming voice data is decoded.
 
 ###### iOS
-The Zello Channels SDK contains an events interface which you can implement to be notified about changes in incoming and outgoing messages, state, app online status, sign in progress etc. In most cases, your implementation will be a part of your activity code.
+In iOS, the events interface is `ZCCSessionDelegate`.
 
 |iOS Callback|Description
 |---|---
@@ -211,6 +283,7 @@ The Zello Channels SDK contains an events interface which you can implement to b
 |`session:didFailToConnectWithError:`|Either the web socket connection failed or the logon failed. Check the error parameter for more details.
 |`sessionDidConnect:`|Logon completed successfully and you are set to send and receive voice messages.
 |`sessionDidDisconnect:`|Session has disconnected from the server. The Zello Channels SDK attempts to stay connected through network changes, so there may be a delay between the network disconnection and this callback being called, as the SDK retries connecting and eventually times out.
+|`session:willReconnectForReason:`|The Session has become disconnected unexpectedly. By default, it will attempt to reconnect after a delay. You can return `NO` from this method to prevent the automatic reconnect.
 |`session:outgoingVoice:didEncounterError:`|An error has occurred with an outgoing voice stream. When this is called, the stream has been closed.
 |`session:outgoingVoiceDidChangeState:`|An outgoing voice stream has changed its internal state.
 |`session:outgoingVoice:didUpdateProgress:`|This callback is called periodically as voice data is encoded.
@@ -249,10 +322,12 @@ All apps using Zello SDK must adhere to the following guidelines:
 
 ## Additional resources
 
+* [Android SDK API reference](https://zelloptt.github.io/zello-channel-api/Android/com.zello.channel.sdk/)
 * [iOS SDK API reference](https://zelloptt.github.io/zello-channel-api/iOS/)
 * [Browser Javascript API reference](https://zelloptt.github.io/zello-channel-api/js/Sdk.html)
 * [Zello Channel Server API](https://github.com/zelloptt/zello-channel-api/blob/master/API.md)
 
 ### Licenses
+* Zello Channel SDK for Android incorporates OkHttp, Copyright 2016 Square, Inc. under [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0).
 * ZelloChannelKit incorporates portions of SocketRocket, Copyright 2016-present, Facebook, Inc. under the [BSD license](https://github.com/facebook/SocketRocket/blob/685f756f22bc9dbee9b98cfec47bc05ccc03e9b9/LICENSE).
 * ZelloChannelKit incorporates the Opus audio codec under the [BSD license](http://opus-codec.org/license/).

@@ -1,0 +1,103 @@
+<HTML>
+<HEAD>
+<meta charset="UTF-8">
+<title>VoiceStream - </title>
+<link rel="stylesheet" href="../../style.css">
+</HEAD>
+<BODY>
+<a href="../index.html">com.zello.channel.sdk</a>&nbsp;/&nbsp;<a href="./index.html">VoiceStream</a><br/>
+<br/>
+<h1>VoiceStream</h1>
+<code><span class="keyword">abstract</span> <span class="keyword">class </span><span class="identifier">VoiceStream</span></code>
+<p>Base class for voice streams between the Zello Channels SDK and the Zello Channels server</p>
+<h3>Properties</h3>
+<table>
+<tbody>
+<tr>
+<td>
+<p><a href="channel.html">channel</a></p>
+</td>
+<td>
+<code><span class="keyword">open</span> <span class="keyword">val </span><span class="identifier">channel</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><span class="identifier">String</span></a></code>
+<p>The name of the channel this stream is connected to</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="context.html">context</a></p>
+</td>
+<td>
+<code><span class="keyword">val </span><span class="identifier">context</span><span class="symbol">: </span><span class="identifier">SessionContext</span></code></td>
+</tr>
+<tr>
+<td>
+<p><a href="events.html">events</a></p>
+</td>
+<td>
+<code><span class="keyword">val </span><span class="identifier">events</span><span class="symbol">: </span><a href="../-session-listener/index.html"><span class="identifier">SessionListener</span></a><span class="symbol">?</span></code></td>
+</tr>
+<tr>
+<td>
+<p><a href="position.html">position</a></p>
+</td>
+<td>
+<code><span class="keyword">val </span><span class="identifier">position</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html"><span class="identifier">Long</span></a></code>
+<p>Time in milliseconds that has passed since the message has started playing or recording.
+Roughly matches the amount of data played or recorded, but in the case of an incoming message
+may be significantly higher than the amount of data received and played because of network
+delays and packet losses.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="session.html">session</a></p>
+</td>
+<td>
+<code><span class="keyword">val </span><span class="identifier">session</span><span class="symbol">: </span><a href="../-session/index.html"><span class="identifier">Session</span></a></code></td>
+</tr>
+<tr>
+<td>
+<p><a href="state.html">state</a></p>
+</td>
+<td>
+<code><span class="keyword">var </span><span class="identifier">state</span><span class="symbol">: </span><a href="../-voice-stream-state/index.html"><span class="identifier">VoiceStreamState</span></a></code>
+<p>The stream's current state</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="stream-id.html">streamId</a></p>
+</td>
+<td>
+<code><span class="keyword">var </span><span class="identifier">streamId</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span class="identifier">Int</span></a></code></td>
+</tr>
+</tbody>
+</table>
+<h3>Inheritors</h3>
+<table>
+<tbody>
+<tr>
+<td>
+<p><a href="../-incoming-voice-stream/index.html">IncomingVoiceStream</a></p>
+</td>
+<td>
+<code><span class="keyword">abstract</span> <span class="keyword">class </span><span class="identifier">IncomingVoiceStream</span>&nbsp;<span class="symbol">:</span>&nbsp;<a href="./index.html"><span class="identifier">VoiceStream</span></a></code>
+<p>This class implements voice streams from the Zello channels server to the client device</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="../-outgoing-voice-stream/index.html">OutgoingVoiceStream</a></p>
+</td>
+<td>
+<code><span class="keyword">abstract</span> <span class="keyword">class </span><span class="identifier">OutgoingVoiceStream</span>&nbsp;<span class="symbol">:</span>&nbsp;<a href="./index.html"><span class="identifier">VoiceStream</span></a></code>
+<p>Stream sending voice audio to the Zello Channels server. Create an outgoing voice stream by calling
+<a href="../-session/start-voice-message.html">startVoiceMessage</a> and stop it by calling <a href="../-outgoing-voice-stream/stop.html">stop</a>. After stopping an
+outgoing voice stream, the object is defunct. To send more voice audio to the server, you will need
+to create a new stream.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</BODY>
+</HTML>

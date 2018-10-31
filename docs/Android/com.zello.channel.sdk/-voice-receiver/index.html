@@ -1,0 +1,49 @@
+<HTML>
+<HEAD>
+<meta charset="UTF-8">
+<title>VoiceReceiver - </title>
+<link rel="stylesheet" href="../../style.css">
+</HEAD>
+<BODY>
+<a href="../index.html">com.zello.channel.sdk</a>&nbsp;/&nbsp;<a href="./index.html">VoiceReceiver</a><br/>
+<br/>
+<h1>VoiceReceiver</h1>
+<code><span class="keyword">interface </span><span class="identifier">VoiceReceiver</span></code>
+<p>Implement VoiceReceiver to provide custom handling for incoming voice data.</p>
+<p><a href="prepare.html">prepare</a> will be called on your voice receiver when the incoming stream has finished opening.
+Then <a href="receive.html">receive</a> will be called repeatedly as new audio comes in from the channels server. When the
+stream is closing, <a href="on-stream-stopped.html">onStreamStopped</a> will be called.</p>
+<h3>Functions</h3>
+<table>
+<tbody>
+<tr>
+<td>
+<p><a href="on-stream-stopped.html">onStreamStopped</a></p>
+</td>
+<td>
+<code><span class="keyword">abstract</span> <span class="keyword">fun </span><span class="identifier">onStreamStopped</span><span class="symbol">(</span><span class="identifier" id="com.zello.channel.sdk.VoiceReceiver$onStreamStopped(com.zello.channel.sdk.IncomingVoiceStream)/stream">stream</span><span class="symbol">:</span>&nbsp;<a href="../-incoming-voice-stream/index.html"><span class="identifier">IncomingVoiceStream</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a></code>
+<p>This method is called when the incoming stream has ended.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="prepare.html">prepare</a></p>
+</td>
+<td>
+<code><span class="keyword">abstract</span> <span class="keyword">fun </span><span class="identifier">prepare</span><span class="symbol">(</span><span class="identifier" id="com.zello.channel.sdk.VoiceReceiver$prepare(com.zello.channel.sdk.IncomingVoiceStream, kotlin.Int)/stream">stream</span><span class="symbol">:</span>&nbsp;<a href="../-incoming-voice-stream/index.html"><span class="identifier">IncomingVoiceStream</span></a><span class="symbol">, </span><span class="identifier" id="com.zello.channel.sdk.VoiceReceiver$prepare(com.zello.channel.sdk.IncomingVoiceStream, kotlin.Int)/sampleRate">sampleRate</span><span class="symbol">:</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span class="identifier">Int</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a></code>
+<p>prepare is called when an incoming stream finishes opening.</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="receive.html">receive</a></p>
+</td>
+<td>
+<code><span class="keyword">abstract</span> <span class="keyword">fun </span><span class="identifier">receive</span><span class="symbol">(</span><span class="identifier" id="com.zello.channel.sdk.VoiceReceiver$receive(kotlin.ShortArray, com.zello.channel.sdk.IncomingVoiceStream)/audio">audio</span><span class="symbol">:</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-short-array/index.html"><span class="identifier">ShortArray</span></a><span class="symbol">, </span><span class="identifier" id="com.zello.channel.sdk.VoiceReceiver$receive(kotlin.ShortArray, com.zello.channel.sdk.IncomingVoiceStream)/stream">stream</span><span class="symbol">:</span>&nbsp;<a href="../-incoming-voice-stream/index.html"><span class="identifier">IncomingVoiceStream</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a></code>
+<p>This method is called periodically as new data comes in from the channels server.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</BODY>
+</HTML>

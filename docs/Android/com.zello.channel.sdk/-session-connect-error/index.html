@@ -1,0 +1,93 @@
+<HTML>
+<HEAD>
+<meta charset="UTF-8">
+<title>SessionConnectError - </title>
+<link rel="stylesheet" href="../../style.css">
+</HEAD>
+<BODY>
+<a href="../index.html">com.zello.channel.sdk</a>&nbsp;/&nbsp;<a href="./index.html">SessionConnectError</a><br/>
+<br/>
+<h1>SessionConnectError</h1>
+<code><span class="keyword">class </span><span class="identifier">SessionConnectError</span></code>
+<p>Error object describing why the session was unable to connect to the server or channel</p>
+<h3>Types</h3>
+<table>
+<tbody>
+<tr>
+<td>
+<p><a href="-code/index.html">Code</a></p>
+</td>
+<td>
+<code><span class="keyword">enum</span> <span class="keyword">class </span><span class="identifier">Code</span></code>
+<p>Error type</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3>Constructors</h3>
+<table>
+<tbody>
+<tr>
+<td>
+<p><a href="-init-.html">&lt;init&gt;</a></p>
+</td>
+<td>
+<code><span class="identifier">SessionConnectError</span><span class="symbol">(</span><span class="identifier" id="com.zello.channel.sdk.SessionConnectError$<init>(com.zello.channel.sdk.SessionConnectError.Code, kotlin.collections.Map((kotlin.String, kotlin.Any)))/code">code</span><span class="symbol">:</span>&nbsp;<a href="-code/index.html"><span class="identifier">Code</span></a><span class="symbol">, </span><span class="identifier" id="com.zello.channel.sdk.SessionConnectError$<init>(com.zello.channel.sdk.SessionConnectError.Code, kotlin.collections.Map((kotlin.String, kotlin.Any)))/info">info</span><span class="symbol">:</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html"><span class="identifier">Map</span></a><span class="symbol">&lt;</span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><span class="identifier">String</span></a><span class="symbol">,</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html"><span class="identifier">Any</span></a><span class="symbol">&gt;</span><span class="symbol">?</span>&nbsp;<span class="symbol">=</span>&nbsp;null<span class="symbol">)</span></code>
+<p>Error object describing why the session was unable to connect to the server or channel</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3>Properties</h3>
+<table>
+<tbody>
+<tr>
+<td>
+<p><a href="code.html">code</a></p>
+</td>
+<td>
+<code><span class="keyword">val </span><span class="identifier">code</span><span class="symbol">: </span><a href="-code/index.html"><span class="identifier">Code</span></a></code>
+<p>code describing the specific reason for the failure to connect</p>
+</td>
+</tr>
+<tr>
+<td>
+<p><a href="info.html">info</a></p>
+</td>
+<td>
+<code><span class="keyword">val </span><span class="identifier">info</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html"><span class="identifier">Map</span></a><span class="symbol">&lt;</span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><span class="identifier">String</span></a><span class="symbol">,</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html"><span class="identifier">Any</span></a><span class="symbol">&gt;</span><span class="symbol">?</span></code>
+<p>stores additional information about the error. Individual code values describe the
+contents of the associated info maps</p>
+</td>
+</tr>
+</tbody>
+</table>
+<h3>Functions</h3>
+<table>
+<tbody>
+<tr>
+<td>
+<p><a href="to-string.html">toString</a></p>
+</td>
+<td>
+<code><span class="keyword">fun </span><span class="identifier">toString</span><span class="symbol">(</span><span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><span class="identifier">String</span></a></code></td>
+</tr>
+</tbody>
+</table>
+<h3>Companion Object Properties</h3>
+<table>
+<tbody>
+<tr>
+<td>
+<p><a href="info-key-response.html">infoKeyResponse</a></p>
+</td>
+<td>
+<code><span class="keyword">const</span> <span class="keyword">val </span><span class="identifier">infoKeyResponse</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html"><span class="identifier">String</span></a></code>
+<p>For <a href="-code/-b-a-d_-r-e-s-p-o-n-s-e/index.html">BAD_RESPONSE</a> errors, the <a href="info.html">info</a> map stores
+the <a href="https://developer.android.com/reference/org/json/JSONObject.html">JSONObject</a> representation of the server's response under this key</p>
+</td>
+</tr>
+</tbody>
+</table>
+</BODY>
+</HTML>

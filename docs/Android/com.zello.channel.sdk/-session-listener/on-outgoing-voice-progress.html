@@ -1,0 +1,26 @@
+<HTML>
+<HEAD>
+<meta charset="UTF-8">
+<title>SessionListener.onOutgoingVoiceProgress - </title>
+<link rel="stylesheet" href="../../style.css">
+</HEAD>
+<BODY>
+<a href="../index.html">com.zello.channel.sdk</a>&nbsp;/&nbsp;<a href="index.html">SessionListener</a>&nbsp;/&nbsp;<a href="./on-outgoing-voice-progress.html">onOutgoingVoiceProgress</a><br/>
+<br/>
+<h1>onOutgoingVoiceProgress</h1>
+<a name="com.zello.channel.sdk.SessionListener$onOutgoingVoiceProgress(com.zello.channel.sdk.Session, com.zello.channel.sdk.OutgoingVoiceStream, kotlin.Int)"></a>
+<code><span class="keyword">abstract</span> <span class="keyword">fun </span><span class="identifier">onOutgoingVoiceProgress</span><span class="symbol">(</span><span class="identifier" id="com.zello.channel.sdk.SessionListener$onOutgoingVoiceProgress(com.zello.channel.sdk.Session, com.zello.channel.sdk.OutgoingVoiceStream, kotlin.Int)/session">session</span><span class="symbol">:</span>&nbsp;<a href="../-session/index.html"><span class="identifier">Session</span></a><span class="symbol">, </span><span class="identifier" id="com.zello.channel.sdk.SessionListener$onOutgoingVoiceProgress(com.zello.channel.sdk.Session, com.zello.channel.sdk.OutgoingVoiceStream, kotlin.Int)/stream">stream</span><span class="symbol">:</span>&nbsp;<a href="../-outgoing-voice-stream/index.html"><span class="identifier">OutgoingVoiceStream</span></a><span class="symbol">, </span><span class="identifier" id="com.zello.channel.sdk.SessionListener$onOutgoingVoiceProgress(com.zello.channel.sdk.Session, com.zello.channel.sdk.OutgoingVoiceStream, kotlin.Int)/positionMs">positionMs</span><span class="symbol">:</span>&nbsp;<a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html"><span class="identifier">Int</span></a><span class="symbol">)</span><span class="symbol">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-unit/index.html"><span class="identifier">Unit</span></a></code>
+<p>Called periodically while transmitting audio to report the progress of the stream. This
+method is called frequently, so avoid doing heavy processing work in it. The position reported
+is in media time from the beginning of the stream, not wall time.</p>
+<h3>Parameters</h3>
+<p><a name="session"></a>
+<code>session</code> - the session containing the stream that is reporting progress</p>
+<p><a name="stream"></a>
+<code>stream</code> - the stream that is reporting its progress</p>
+<p><a name="positionMs"></a>
+<code>positionMs</code> - time in milliseconds of voice since the stream started. This may not match
+wall time, especially if the stream has a custom voice source that is providing voice data
+from a file or another source that does not run in real-time.</p>
+</BODY>
+</HTML>
