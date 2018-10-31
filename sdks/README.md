@@ -204,11 +204,11 @@ To start a voice message to the channel, call `Session.startVoiceMessage()`. It 
 
 ```kotlin
 fun pttDown() {
-    stream = session?.startVoiceMessage()
+    stream = session.startVoiceMessage()
 }
 
 fun pttUp() {
-    stream?.stop()
+    stream.stop()
 }
 ```
 
@@ -224,7 +224,6 @@ To start a voice message to the channel, call `-[ZCCSession startVoiceMessage]`.
 // Action method for Touch Up Inside and Touch Up Outside
 - (IBAction)buttonReleased:(id)sender {
   [self.stream stop];
-  self.stream = nil;
 }
 ```
 
@@ -255,9 +254,28 @@ setTimeout(function() {
 ```
 
 ### Handling session events
+The Zello Channels SDK contains an events interface which you can implement to be notified about changes in incoming and outgoing messages, state, app online status, sign in progress etc. In most cases, your implementation will be a part of your activity code.
+
+###### Android
+In Android, the events interface is `SessionListener`.
+
+|Android Callback|Description
+|---|---
+|`onConnectStarted()`|The Session has opened a web socket connection to the server.
+|`onConnectFailed()`|Either the web socket connection failed or the logon failed. Check the error parameter for more details.
+|`onConnectSucceeded()`|Logon completed successfully and you are set to send and receive voice messages.
+|`onDisconnected()`|Session has disconnected from the server. The Zello Channels SDK attempts to stay connected through network changes, so there may be a delay between the network disconnection and this callback being called, as the SDK retries connecting and eventually times out.
+|`onSessionWillReconnect()`|The Session has become disconnected unexpectedly. By default, it will attempt to reconnect after a delay. You can return `false` from this method to prevent the automatic reconnect.
+|`onOutgoingVoiceError()`|An error has occurred with an outgoing voice stream. When this is called, the stream has been closed.
+|`onOutgoingVoiceStateChanged()`|An outgoing voice stream has changed its internal state.
+|`onOutgoingVoiceProgress()`|This callback is called periodically as voice data is encoded.
+|`onIncomingVoiceWillStart()`|This callback is called when an incoming voice stream is about to start. By returning an incoming voice configuration object, you can perform custom processing of the incoming voice stream, _e.g._ record it to storage or prevent it from producing audio.
+|`onIncomingVoiceStarted()`|An incoming voice stream has been established and has started playing.
+|`onIncomingVoiceStopped()`|An incoming voice stream has finished playing.
+|`onIncomingVoiceProgress()`|This callback is called periodically as incoming voice data is decoded.
 
 ###### iOS
-The Zello Channels SDK contains an events interface which you can implement to be notified about changes in incoming and outgoing messages, state, app online status, sign in progress etc. In most cases, your implementation will be a part of your activity code.
+In iOS, the events interface is `ZCCSessionDelegate`.
 
 |iOS Callback|Description
 |---|---
@@ -265,6 +283,7 @@ The Zello Channels SDK contains an events interface which you can implement to b
 |`session:didFailToConnectWithError:`|Either the web socket connection failed or the logon failed. Check the error parameter for more details.
 |`sessionDidConnect:`|Logon completed successfully and you are set to send and receive voice messages.
 |`sessionDidDisconnect:`|Session has disconnected from the server. The Zello Channels SDK attempts to stay connected through network changes, so there may be a delay between the network disconnection and this callback being called, as the SDK retries connecting and eventually times out.
+|`session:willReconnectForReason:`|The Session has become disconnected unexpectedly. By default, it will attempt to reconnect after a delay. You can return `NO` from this method to prevent the automatic reconnect.
 |`session:outgoingVoice:didEncounterError:`|An error has occurred with an outgoing voice stream. When this is called, the stream has been closed.
 |`session:outgoingVoiceDidChangeState:`|An outgoing voice stream has changed its internal state.
 |`session:outgoingVoice:didUpdateProgress:`|This callback is called periodically as voice data is encoded.
