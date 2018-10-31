@@ -635,17 +635,16 @@ class MainActivity : AppCompatActivity(), SessionListener, OnMapReadyCallback, P
 		/**
 		 * Hardcoded server URL
 		 */
-		// TODO: Clear before shipping
-		private val serverAddress = "wss://zellowork.io/ws/mesh"
+		// TODO: Replace with the correct API endpoint
+		private val serverAddress = "wss://zellowork.io/ws/default"
 
-		// TODO: Remove before shipping
-		private val devAuthToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJXbGM2YldWemFEb3ouZ2FqbWlhakhnV3ZhS3VNUnJIakdwYnM5SEdTWEZZaGJzZWZxWmVTYlwvMzA9IiwiZXhwIjoxNTM5OTc5Mjc1LCJhenAiOiJkZXYifQ==.DR46Q8lq5U22m3HuUtK+OdMDMchc3eF+4byGEUmgkdJS1ieEBZ5WJKz/p2aEM19qzCV0NXCsWSc6ZlsDxehrhp+XaBzbnFsyJizG0XwKe5lhgyjHv07oF1uEo82CJqE55nax4EKghPuia9Q+WjlGXzSSRG0djCIN+hyUB/8AvAf8TGTgactC0YzgkVKB06ELOu2MLr6x4LHQvmZMFpD+s9IVKaADwwq8sAf45jDuo272//z50+wm9q+XsfiXs1jzALTH/2elVq5xPuSMvinwp1VjYxLdKm9e2K5+Ski0K0VJ7PQAOOk821DNtDATHlM7V5qDmR6LPkmSGkxBnaDtkA=="
+		private val devAuthToken = "[AUTH TOKEN]"
 
 		/**
 		 * Hardcoded channel name
 		 */
-		// TODO: Clear before shipping
-		private val channelName = "gregTest"
+		// TODO: Replace with the channel name you want to connect to
+		private val channelName = "Everyone"
 
 		/**
 		 * Austin
