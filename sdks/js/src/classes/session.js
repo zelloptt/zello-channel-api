@@ -173,7 +173,7 @@ session.connect(function(err, result) {
       return dfd.reject(err);
     });
 
-    this.wsConnection.addEventListener('close', (err) => {
+    this.wsConnection.addEventListener('close', (closeEvent) => {
       if (this.selfDisconnect) {
         this.selfDisconnect = false;
         return;
@@ -185,7 +185,7 @@ session.connect(function(err, result) {
          * @event Session#session_connection_lost
          * @param {string} error Error description
          */
-        this.emit(Constants.EVENT_SESSION_CONNECTION_LOST, err);
+        this.emit(Constants.EVENT_SESSION_CONNECTION_LOST, closeEvent.reason);
         this.clearExistingReconnectTimeout();
         this.reconnectTimeout = setTimeout(() => {
           this.connectOrReconnect(null, true);
@@ -257,6 +257,18 @@ session.connect(function(err, result) {
       this.refreshToken = jsonData.refresh_token;
     }
     switch (jsonData.command) {
+      case 'on_error':
+        let error = Constants.ERROR_TYPE_UNKNOWN_SERVER_ERROR;
+        if (jsonData.error) {
+          error = jsonData.error;
+        }
+        /**
+         * The Session received error message from server
+         * @event Session#error
+         * @param {string} error Error description
+         */
+        this.emit(Constants.EVENT_ERROR, error);
+        break;
       case 'on_channel_status':
         /**
          * The Session is receiving channel status update

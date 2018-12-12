@@ -1,0 +1,250 @@
+<html>
+<head>
+    <style>
+        * {
+            font-family: Calibri;
+        }
+
+        body {
+            display: flex;
+        }
+
+        button {
+            width: 100px;
+            height: 100px;
+            border-radius: 100px;
+            outline: unset;
+            font-size: 60px;
+        }
+
+        button.disabled {
+            opacity: 0.2;
+            pointer-events: none;
+        }
+
+        #messages {
+            display: block;
+            width: 50%;
+            min-height: 300px;
+            border: 1px solid darkorange;
+            margin-right: 20px;
+            padding: 10px;
+            height: calc(90vh);
+            overflow: auto;
+        }
+
+        #messages p {
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        #messages p.info {
+            color: #b2b2b2;
+        }
+
+        #messages p.ok {
+            color: green;
+        }
+
+        #messages p.error {
+            color: darkred;
+        }
+
+        #messages p:nth-child(2n-1) {
+            background-color: #fbf6ff;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+    <script src="//bondarchukenko.com:8443/dist/zcc.sdk.js"></script>
+    <script>
+
+      function showIncomingDataChunks() {
+        return document.getElementById('show-incoming-decoded-data-chunks').checked;
+      }
+
+      function start() {
+        if (
+          !window.localStorage ||
+          !window.localStorage.network ||
+          !window.localStorage.username ||
+          !window.localStorage.password ||
+          !window.localStorage.token ||
+          !window.localStorage.channel
+        ) {
+          return;
+        }
+        connect(
+          window.localStorage.network,
+          window.localStorage.username,
+          window.localStorage.password,
+          window.localStorage.token,
+          window.localStorage.channel
+        );
+        document.getElementById('messages').innerHTML = '';
+      }
+
+      function appendLog(message, type) {
+        if (!type) {
+          type = 'info';
+        }
+        var current = document.getElementById('messages').innerHTML;
+        document.getElementById('messages').innerHTML =
+          `<p class="${type}"><span>${(new Date()).toLocaleTimeString()}</span> ${message}</p>` + current;
+      }
+
+      function login() {
+        window.localStorage.network = document.getElementById('network').value;
+        window.localStorage.username = document.getElementById('username').value;
+        window.localStorage.password = document.getElementById('password').value;
+        window.localStorage.token = document.getElementById('token').value;
+        window.localStorage.channel = document.getElementById('channel').value;
+        start();
+        return false;
+      }
+
+      function updateButton(status) {
+        if (status.status === 'online') {
+          document.getElementById('button').className = '';
+          return;
+        }
+        document.getElementById('button').className = 'disabled';
+      }
+
+      function connect(network, username, password, token, channel) {
+
+        document.getElementById('network').value = window.localStorage.network;
+        document.getElementById('username').value = window.localStorage.username;
+        document.getElementById('password').value = window.localStorage.password;
+        document.getElementById('token').value = window.localStorage.token;
+        document.getElementById('channel').value = window.localStorage.channel;
+
+        ZCC.Sdk.init({
+          player: true,
+          recorder: false,
+          encoder: false,
+          widget: false
+        }).then(function() {
+
+          var session = new ZCC.Session({
+            serverUrl: 'wss://bondarchukenko.com:3000',
+            channel: channel,
+            authToken: token,
+            listen_only: true,
+            username: username,
+            password: password
+          });
+
+          session.on('session_start_connect', function() {
+            appendLog(`<b>session_start_connect</b>`);
+          });
+
+          session.connect().catch((err) => {
+            console.trace(err);
+          });
+
+          session.on('status', function(status) {
+            updateButton(status);
+            appendLog(`<b>status</b> from <b>${status.channel}</b> channel changed to: <b>${status.status}</b> users online: ${status.users_online}`,
+              'ok'
+            );
+            document.getElementById('button').onmousedown = function() {
+              //outgoingMessage = session.startVoiceMessage();
+              if (!!document.getElementById('button').className.match(/disabled/)) {
+                return false;
+              }
+              console.warn('start', session);
+            };
+
+            document.getElementById('button').onmouseup = function() {
+              //outgoingMessage.stop();
+              console.warn('done', session);
+            };
+
+            document.getElementById('button').onclick = function() {
+              return false;
+            };
+
+          });
+
+          session.on('session_connect', function() {
+            appendLog(`<b>session_connect</b>`);
+          });
+
+          session.on('error', function(error) {
+            appendLog(`<b>error</b>: ${error}`, 'error');
+          });
+
+          session.on('session_fail_connect', function() {
+            appendLog(`<b>session_fail_connect</b>`, 'error');
+          });
+
+          session.on('session_disconnect', function() {
+            appendLog(`<b>session_disconnect</b>`, 'error');
+          });
+
+          session.on('session_connection_lost', function(error) {
+            appendLog(`<b>session_connection_lost</b>: ${error}`, 'error');
+          });
+
+
+          session.on('incoming_voice_data_decoded', function(pcmData, incomingMessage) {
+            if (!showIncomingDataChunks()) {
+              return;
+            }
+            appendLog(`<b>incoming_voice_data_decoded</b> id: <b>${incomingMessage.instanceId}</b>, data: ${pcmData.length} bytes`);
+          });
+
+          session.on('incoming_voice_will_start', function(incomingMessage) {
+            appendLog(`<b>incoming_voice_will_start</b> id: <b>${incomingMessage.instanceId}</b>`, 'ok');
+          });
+
+          session.on('incoming_voice_did_stop', function(message) {
+            appendLog(`<b>incoming_voice_did_stop</b>: <b>${message.instanceId}</b> stopped`, 'ok');
+          });
+
+        }).catch(function(err) {
+          console.trace(err);
+        })
+      }
+    </script>
+</head>
+<body onload="start()">
+
+<div id="messages">
+    not logged in.
+</div>
+
+<form id="sign-in" onsubmit="login()">
+    <p>
+        <button id="button" class="disabled">&#127897;</button>
+    </p>
+    <p>
+        <input type="text" placeholder="Network name" id="network"/>
+    </p>
+    <p>
+        <input type="text" placeholder="Username" id="username"/>
+    </p>
+    <p>
+        <input type="password" placeholder="Password" id="password"/>
+    </p>
+    <p>
+        <input type="text" placeholder="Channel" id="channel"/>
+    </p>
+    <p>
+        <textarea cols="30" rows="10" placeholder="Auth token" id="token"></textarea>
+    </p>
+    <p>
+        <input type="submit" value="Sign In">
+    </p>
+</form>
+
+<section>
+    <h5>Settings</h5>
+    <label>Show incoming decoded data: <input type="checkbox" id="show-incoming-decoded-data-chunks" /></label>
+</section>
+
+</body>
+</html>

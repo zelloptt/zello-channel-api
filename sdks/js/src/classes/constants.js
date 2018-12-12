@@ -21,7 +21,7 @@ module.exports = {
 
   ERROR_SESSION_FAIL_CONNECT: 'Failed to connect.',
 
-  ERROR_TYPE_UNKNOWN: 'unknown',
+  ERROR_TYPE_UNKNOWN_SERVER_ERROR: 'Unknown server error',
   ERROR_TYPE_CONFIGURATION: 'configuration',
 
   EVENT_ERROR: 'error',
