@@ -117,6 +117,7 @@ Starts a new stream to the channel. The successful response includes `stream_id`
 | `codec` | string | The name of audio codec used. Required for `audio` streams. Must be `opus`.
 | `codec_header` | string | base64-encoded codec header buffer. Required for `opus` streams.
 | `packet_duration` | integer | Audio packet duration in milliseconds. Values between 20 ms and 200 ms are supported.
+| `for` | string | Optional username to send message to. Other users in the channel won't be receiving this message
 
 
 #### Request:
@@ -131,6 +132,21 @@ Starts a new stream to the channel. The successful response includes `stream_id`
   "packet_duration": 200
 }
 ``` 
+
+or
+
+```json
+{
+  "command": "start_stream",
+  "seq": 2,
+  "type": "audio",
+  "codec": "opus",
+  "codec_header": "gD4BPA==",
+  "packet_duration": 200,
+  "for": "Driver 2"
+}
+```
+
 #### Response:
 
 ```json

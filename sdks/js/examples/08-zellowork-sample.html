@@ -54,12 +54,15 @@
             background-color: #fbf6ff;
         }
 
-        .hidden {
-            display: none;
+        #for {
+            width: 200px;
         }
     </style>
-    <script src="//bondarchukenko.com:8443/dist/zcc.sdk.js"></script>
+    <script src="https://zello.io/sdks/js/latest/zcc.sdk.js"></script>
     <script>
+
+      var session = null;
+      var outgoingMessage = null;
 
       function showIncomingDataChunks() {
         return document.getElementById('show-incoming-decoded-data-chunks').checked;
@@ -123,13 +126,11 @@
 
         ZCC.Sdk.init({
           player: true,
-          recorder: false,
-          encoder: false,
           widget: false
         }).then(function() {
 
-          var session = new ZCC.Session({
-            serverUrl: 'wss://bondarchukenko.com:3000',
+          session = new ZCC.Session({
+            serverUrl: 'wss://zellowork.io/ws/' + network,
             channel: channel,
             authToken: token,
             listen_only: true,
@@ -151,16 +152,19 @@
               'ok'
             );
             document.getElementById('button').onmousedown = function() {
-              //outgoingMessage = session.startVoiceMessage();
               if (!!document.getElementById('button').className.match(/disabled/)) {
                 return false;
               }
-              console.warn('start', session);
+              let options = {};
+              const forUsername = document.getElementById('for').value;
+              if (forUsername) {
+                options.for = forUsername;
+              }
+              outgoingMessage = session.startVoiceMessage(options);
             };
 
             document.getElementById('button').onmouseup = function() {
-              //outgoingMessage.stop();
-              console.warn('done', session);
+              outgoingMessage.stop();
             };
 
             document.getElementById('button').onclick = function() {
@@ -218,9 +222,7 @@
 </div>
 
 <form id="sign-in" onsubmit="login()">
-    <p>
-        <button id="button" class="disabled">&#127897;</button>
-    </p>
+    <h3>Sign In:</h3>
     <p>
         <input type="text" placeholder="Network name" id="network"/>
     </p>
@@ -239,6 +241,19 @@
     <p>
         <input type="submit" value="Sign In">
     </p>
+
+    <p>
+        <br/><br/>
+    </p>
+
+    <h3>Send voice message:</h3>
+    <p>
+        <input type="text" placeholder="For username (optional)" id="for"/>
+    </p>
+    <p>
+        <button id="button" class="disabled">&#127897;</button>
+    </p>
+
 </form>
 
 <section>

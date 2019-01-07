@@ -153,6 +153,9 @@ outgoingMessage.then(function(result) {
       'codec_header': Utils.buildCodecHeader(this.options.encoderSampleRate, 1, this.options.encoderFrameSize),
       'packet_duration': this.options.encoderFrameSize
     };
+    if (this.options.for) {
+      params.for = this.options.for
+    }
     this.session.startStream(params).then((result) => {
       this.currentMessageId = result.stream_id;
       this.startRecording();

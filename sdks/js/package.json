@@ -4,8 +4,8 @@
   "description": "Zello channels SDK",
   "main": "index.js",
   "scripts": {
-    "build": "node_modules/.bin/webpack",
-    "watch": "NODE_ENV=production node_modules/.bin/webpack --watch",
+    "build": "NODE_ENV=production node_modules/.bin/webpack",
+    "watch": "node_modules/.bin/webpack --watch",
     "docs": "./node_modules/.bin/jsdoc -d ./../../docs/js/ src/classes/"
   },
   "author": "",
