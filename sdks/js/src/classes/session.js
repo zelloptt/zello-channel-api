@@ -238,15 +238,24 @@ session.connect(function(err, result) {
   }
 
   wsBinaryDataHandler(data) {
-    /**
-     * The Session is receiving incoming voice message packet (with encoded audio)
-     * @event Session#incoming_voice_data
-     * @param {Object} incomingVoicePacket voice message packet object
-     * @property {Uint8Array} messageData encoded (opus) data
-     * @property {Number} messageId incoming message id
-     * @property {Number} packetId incoming packet id
-     */
-    this.emit(Constants.EVENT_INCOMING_VOICE_DATA, Utils.parseIncomingBinaryMessage(data));
+    let parsedData = Utils.parseIncomingBinaryMessage(data);
+    switch (parsedData.messageType) {
+      case Constants.MESSAGE_TYPE_AUDIO:
+        /**
+         * The Session is receiving incoming voice message packet (with encoded audio)
+         * @event Session#incoming_voice_data
+         * @param {Object} incomingVoicePacket voice message packet object
+         * @property {Uint8Array} messageData encoded (opus) data
+         * @property {Number} messageId incoming message id
+         * @property {Number} packetId incoming packet id
+         */
+        this.emit(Constants.EVENT_INCOMING_VOICE_DATA, parsedData);
+        break;
+      case Constants.MESSAGE_TYPE_IMAGE:
+        this.emit(Constants.EVENT_INCOMING_IMAGE_DATA, parsedData);
+        break;
+
+    }
   }
 
   jsonDataHandler(jsonData) {
@@ -256,6 +265,7 @@ session.connect(function(err, result) {
     if (jsonData.refresh_token) {
       this.refreshToken = jsonData.refresh_token;
     }
+    const library = Utils.getLoadedLibrary();
     switch (jsonData.command) {
       case 'on_error':
         let error = Constants.ERROR_TYPE_UNKNOWN_SERVER_ERROR;
@@ -294,7 +304,6 @@ session.connect(function(err, result) {
         this.emit(Constants.EVENT_STATUS, jsonData);
         break;
       case 'on_stream_start':
-        const library = Utils.getLoadedLibrary();
         const incomingMessage = new library.IncomingMessage(jsonData, this);
         this.incomingMessages[jsonData.stream_id] = incomingMessage;
         /**
@@ -312,6 +321,30 @@ session.connect(function(err, result) {
          */
         this.emit(Constants.EVENT_INCOMING_VOICE_DID_STOP, this.incomingMessages[jsonData.stream_id]);
         break;
+      case 'on_text_message':
+        /**
+         * Incoming channel text message
+         * @event Session#text_message
+         * @param json textMessage textMessage JSON
+         */
+        this.emit(Constants.EVENT_TEXT_MESSAGE, jsonData);
+        break;
+      case 'on_location':
+        /**
+         * Incoming location coordinates
+         * @event Session#location
+         * @param json location location data JSON
+         */
+        this.emit(Constants.EVENT_LOCATION, jsonData);
+        break;
+      case 'on_image':
+        /**
+         * Incoming image JSON metadata
+         * @event Session#image
+         * @param {ZCC.IncomingImage} IncomingImage incoming image instance
+         */
+        const incomingImage = new library.IncomingImage(jsonData, this);
+        this.emit(Constants.EVENT_IMAGE, incomingImage);
     }
   }
 

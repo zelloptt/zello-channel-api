@@ -101,7 +101,7 @@ Successful response includes `refresh_token` which can be use to quickly reconne
 
 ## Streaming voice messages
 
-After successfully connecting to the channel and reciving [channel status](#on_channel_status) you can start sending voice messages. Each message is sent as stream, which begins with `start_stream` command followed by the sequence of binary packets with audio data and ends with `stop_stream` command. Zello uses [Opus](http://opus-codec.org/) voice codec to compress audio stream.
+After successfully connecting to the channel and receiving [channel status](#on_channel_status) you can start sending voice messages. Each message is sent as stream, which begins with `start_stream` command followed by the sequence of binary packets with audio data and ends with `stop_stream` command. Zello uses [Opus](http://opus-codec.org/) voice codec to compress audio stream.
 
 ### `start_stream`
 
@@ -285,7 +285,57 @@ Indicates a server error.
 }
 ```
 
+### `on_image`
+Indicates incoming image from the channel. This event corresponds to `send_image` command sent by another channel user.
 
+#### Attributes
+
+| Name | Type | Value  / Description
+|---|---|---
+| `command` | string | `on_image`
+| `channel` | string | The name of the channel
+| `from ` | string | The username of the sender of the image
+| `message_id` | integer |  The id of the image message
+| `ct` | string | image content type (`image/jpeg`)
+| `height` | integer |  Image height (some clients don't provide this value)
+| `width` | integer |  Image width (some clients don't provide this value)
+| `source` | string |  Image source (`camera` or `library`)
+
+### Receiving images data
+`on_image` event is followed by the sequence of two binary packets with image thumbnail data and full image data.
+Fields are stored in network byte order similar to audio stream packets.
+
+#### Image thumbnail packet
+`{type(8) = 0x02, message_id(32), image_type(32) = 0x02, data[]}`
+
+#### Full image packet
+`{type(8) = 0x02, message_id(32), image_type(32) = 0x01, data[]}`
+
+### `on_text_message`
+Indicates incoming text message from the channel.
+
+#### Attributes
+| Name | Type | Value  / Description
+|---|---|---
+| `command` | string | `on_text_message`
+| `channel` | string | The name of the channel
+| `from ` | string | The username of the sender of the text message
+| `message_id` | integer |  The id of the text message
+| `text` | string |  Message text
+
+### `on_location`
+Indicates incoming shared location from the channel.
+
+#### Attributes
+| Name | Type | Value  / Description
+|---|---|---
+| `command` | string | `on_location`
+| `channel` | string | The name of the channel
+| `from ` | string | The username of the sender of the shared location
+| `message_id` | integer | The id of the shared location message
+| `latitude` | number | Shared location latitude
+| `latitude` | number | Shared location longitude
+| `rgl` | string |  Shared location reverse geocoding result 
 
 ## Error codes
 

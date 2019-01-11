@@ -46,6 +46,8 @@ module.exports = {
   EVENT_INCOMING_VOICE_DATA: 'incoming_voice_data',
   EVENT_INCOMING_VOICE_DATA_DECODED: 'incoming_voice_data_decoded',
 
+  EVENT_INCOMING_IMAGE_DATA: 'incoming_image_data',
+
   EVENT_DATA: 'data',
   EVENT_DATA_ENCODED: 'data_encoded',
   EVENT_RECORDER_READY: 'recorder_ready',
@@ -55,8 +57,20 @@ module.exports = {
   EVENT_WIDGET_UNMUTE: 'widget_unmute',
   EVENT_WIDGET_SPEAKING_USERNAME_CLICK: 'speaking_username_click',
 
+  EVENT_TEXT_MESSAGE: 'text_message',
+  EVENT_LOCATION: 'location',
+  EVENT_IMAGE: 'image',
+  EVENT_IMAGE_THUMBNAIL: 'image_thumbnail',
+
   SN_STATUS_SUCCESS: 'success',
   SN_STATUS_ONLINE: 'online',
-  SN_STATUS_OFFLINE: 'offline'
+  SN_STATUS_OFFLINE: 'offline',
+
+  MESSAGE_TYPE_AUDIO: 1,
+  MESSAGE_TYPE_IMAGE: 2,
+  MESSAGE_TYPE_JSON: 123,
+
+  IMAGE_TYPE_FULL: 1,
+  IMAGE_TYPE_THUMBNAIL: 2
 
 };

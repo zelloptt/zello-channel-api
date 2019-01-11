@@ -87,6 +87,7 @@ ZCC.Sdk.init({
     let scriptsToLoad = [
       url + 'zcc.session.js',
       url + 'zcc.constants.js',
+      url + 'zcc.incomingimage.js',
       url + 'zcc.incomingmessage.js',
       url + 'zcc.outgoingmessage.js'
     ];

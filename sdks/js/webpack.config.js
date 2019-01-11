@@ -12,6 +12,7 @@ let entryFiles = {
   'Recorder': './src/classes/recorder.js',
   'Widget': './src/classes/widget/index.js',
   'Constants': './src/classes/constants.js',
+  'IncomingImage': './src/classes/incomingImage.js',
   'IncomingMessage': './src/classes/incomingMessage.js',
   'OutgoingMessage': './src/classes/outgoingMessage.js'
 };
