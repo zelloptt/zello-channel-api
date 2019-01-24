@@ -324,27 +324,27 @@ session.connect(function(err, result) {
       case 'on_text_message':
         /**
          * Incoming channel text message
-         * @event Session#text_message
+         * @event Session#incoming_text_message
          * @param json textMessage textMessage JSON
          */
-        this.emit(Constants.EVENT_TEXT_MESSAGE, jsonData);
+        this.emit(Constants.EVENT_INCOMING_TEXT_MESSAGE, jsonData);
         break;
       case 'on_location':
         /**
          * Incoming location coordinates
-         * @event Session#location
+         * @event Session#incoming_location
          * @param json location location data JSON
          */
-        this.emit(Constants.EVENT_LOCATION, jsonData);
+        this.emit(Constants.EVENT_INCOMING_LOCATION, jsonData);
         break;
       case 'on_image':
         /**
          * Incoming image JSON metadata
-         * @event Session#image
+         * @event Session#incoming_image
          * @param {ZCC.IncomingImage} IncomingImage incoming image instance
          */
         const incomingImage = new library.IncomingImage(jsonData, this);
-        this.emit(Constants.EVENT_IMAGE, incomingImage);
+        this.emit(Constants.EVENT_INCOMING_IMAGE, incomingImage);
     }
   }
 

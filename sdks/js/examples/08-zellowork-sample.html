@@ -208,24 +208,24 @@
             appendLog(`<b>incoming_voice_did_stop</b>: <b>${message.instanceId}</b> stopped`, 'ok');
           });
 
-          session.on('text_message', function(message) {
+          session.on('incoming_text_message', function(message) {
             appendLog(`<b>text_message</b>: <b>${message.text}</b> (from user ${message.from})`, 'ok');
           });
 
-          session.on('location', function(location) {
+          session.on('incoming_location', function(location) {
             appendLog(`<b>location</b>: <a href="https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}">${location.rgl}</a> from user ${location.from}`, 'ok');
           });
 
-          session.on('image', function(incomingImage) {
+          session.on('incoming_image', function(incomingImage) {
             let image = incomingImage.messageData;
             let elementId = 'image-' + incomingImage.instanceId;
             let imageWidth = image.width ? image.width : 0;
             let imageHeight = image.height ? image.height : 0;
             appendLog(`<b>image</b>: from <b>${image.from}</b>, source: <b>${image.source}</b>, ct: <b>${image.ct}</b>, dimensions: <b>${imageWidth}x${imageHeight}</b>`, 'ok');
-            incomingImage.on('image_thumbnail', function(data) {
+            incomingImage.on('thumbnail_data', function(data) {
               appendLog(`<img id="${elementId}" width="200" src="data:${image.ct};base64,${btoa(String.fromCharCode.apply(null, data))}" />`);
             });
-            incomingImage.on('image', function(data) {
+            incomingImage.on('image_data', function(data) {
               var largeImageBinary = data.reduce(function(d, byte) {
                 return d + String.fromCharCode(byte);
               }, '');

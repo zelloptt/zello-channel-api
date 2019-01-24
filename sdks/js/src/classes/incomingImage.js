@@ -22,7 +22,7 @@ class IncomingImage extends Emitter {
     this.incomingImageHandler = (data) => {
       this.numberOfFetches++;
       let eventName =
-        data.packetId === Constants.IMAGE_TYPE_FULL ? Constants.EVENT_IMAGE : Constants.EVENT_IMAGE_THUMBNAIL;
+        data.packetId === Constants.IMAGE_TYPE_FULL ? Constants.EVENT_IMAGE_DATA : Constants.EVENT_THUMBNAIL_DATA;
       /**
        * Incoming image thumbnail data available
        * @event IncomingImage#image_thumbnail

@@ -57,10 +57,11 @@ module.exports = {
   EVENT_WIDGET_UNMUTE: 'widget_unmute',
   EVENT_WIDGET_SPEAKING_USERNAME_CLICK: 'speaking_username_click',
 
-  EVENT_TEXT_MESSAGE: 'text_message',
-  EVENT_LOCATION: 'location',
-  EVENT_IMAGE: 'image',
-  EVENT_IMAGE_THUMBNAIL: 'image_thumbnail',
+  EVENT_INCOMING_TEXT_MESSAGE: 'incoming_text_message',
+  EVENT_INCOMING_LOCATION: 'incoming_location',
+  EVENT_INCOMING_IMAGE: 'incoming_image',
+  EVENT_IMAGE_DATA: 'image_data',
+  EVENT_THUMBNAIL_DATA: 'thumbnail_data',
 
   SN_STATUS_SUCCESS: 'success',
   SN_STATUS_ONLINE: 'online',
