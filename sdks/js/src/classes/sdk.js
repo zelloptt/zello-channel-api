@@ -88,6 +88,7 @@ ZCC.Sdk.init({
       url + 'zcc.session.js',
       url + 'zcc.constants.js',
       url + 'zcc.incomingimage.js',
+      url + 'zcc.outgoingimage.js',
       url + 'zcc.incomingmessage.js',
       url + 'zcc.outgoingmessage.js'
     ];

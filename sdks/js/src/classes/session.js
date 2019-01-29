@@ -41,6 +41,7 @@ class Session extends Emitter {
     this.selfDisconnect = false;
     this.incomingMessages = {};
     this.activeOutgoingMessage = null;
+    this.activeOutgoingImage = null;
     this.wasOnline = false;
     this.reconnectTimeout = null;
     this.channelConfigurationError = false;
@@ -478,6 +479,67 @@ var outgoingMessage = session.startVoiceMessage({
      * @param {ZCC.IncomingMessage} incoming message instance
      */
     this.emit(Constants.EVENT_INCOMING_VOICE_DATA_DECODED, pcmData, incomingMessage);
+  }
+
+  /**
+   * Starts sending an image message by creating OutgoingImage instance
+   *
+   * @param {object} options options for outgoing image.
+   * @property {String} for optional username to send this image to
+   * @property {Boolean} preview set it to false to automatically send an image without previewing.
+   *                              if set to true (default) you will need to call OutgoingImage.send() to send an image
+   * @property {File} File object (optional) if provided this file is send as an image with a source 'library'
+   *
+   * @return {ZCC.OutgoingImage} OutgoingImage object
+   * @example
+   *
+   var outgoingImage = session.sendImage({
+    preview: false,
+    for: 'username'
+   });
+   **/
+  sendImage(options = {}) {
+    const library = Utils.getLoadedLibrary();
+    this.activeOutgoingImage = new library.OutgoingImage(this, options);
+    return this.activeOutgoingImage;
+  }
+
+  /**
+   * Sends a text message
+   *
+   * @param {object} options options for outgoing text message.
+   * @property {String} for optional username to send this text message to
+   * @property {String} text message text
+   *
+   * @param {function} [userCallback] callback that is fired on message being send or failed to be sent
+   * @return {promise} promise that resolves once session successfully send a text message and rejects if
+   *                   text message sending failed
+   * @example
+   *
+   session.sendTextMessage({
+    for: 'username',
+    text: 'Hello Zello!'
+   });
+   **/
+  sendTextMessage(options = {}, userCallback = null) {
+    options.seq = this.getSeq();
+    options.command = 'send_text_message';
+    let dfd = Promise.defer();
+    let callback = (err, data) => {
+      if (err) {
+        if (typeof userCallback === 'function') {
+          userCallback.apply(this, [err]);
+        }
+        dfd.reject(err);
+        return;
+      }
+      if (typeof userCallback === 'function') {
+        userCallback.apply(this, [null, data]);
+      }
+      dfd.resolve(data);
+    };
+    this.sendCommand(options, callback);
+    return dfd.promise;
   }
 
 }

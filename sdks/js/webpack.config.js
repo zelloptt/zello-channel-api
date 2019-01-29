@@ -13,6 +13,7 @@ let entryFiles = {
   'Widget': './src/classes/widget/index.js',
   'Constants': './src/classes/constants.js',
   'IncomingImage': './src/classes/incomingImage.js',
+  'OutgoingImage': './src/classes/outgoingImage.js',
   'IncomingMessage': './src/classes/incomingMessage.js',
   'OutgoingMessage': './src/classes/outgoingMessage.js'
 };

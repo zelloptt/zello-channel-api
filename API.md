@@ -202,6 +202,22 @@ Starts sending a new image to the channel. The successful response includes `ima
 | `width` | integer | Full image width in pixels
 | `height` | integer | Full image width in pixels
 | `source` | string | Image source (`camera` or `library`)
+| `for` | string | Optional username to send image to. Other users in the channel won't be receiving this image
+
+
+#### Request: 
+```json
+{
+  "seq": 2,
+  "command": "send_image",
+  "type": "jpeg",
+  "source": "camera",
+  "width": 1279,
+  "height": 959,
+  "thumbnail_content_length": 10616,
+  "content_length": 183716
+}
+```
 
 #### Response:
 
@@ -219,6 +235,36 @@ Starts sending a new image to the channel. The successful response includes `ima
 
 #### Full image packet
 `{type(8) = 0x02, image_id(32), image_type(32) = 0x01, data[]}`
+
+## Sending text messages
+After successfully connecting to the channel and receiving channel status you can start sending text images.
+
+### `send_text_message`
+Sends a new text message to the channel.
+
+| Name | Type | Value  / Description
+|---|---|---
+| `command` | string | `send_text_message`
+| `seq` | integer | Command sequence number
+| `text` | string | Message text. 30 Kb maximum
+| `for` | string | Optional username to send text message to. Other users in the channel won't be receiving this text message
+
+#### Request:
+```json
+{
+  "seq": 3,
+  "command": "send_text_message",
+  "text": "Hello Zello!"
+}
+```
+
+#### Response:
+```json
+{
+  "seq": 3,
+  "success": true
+}
+```
 
 ## Events
 
@@ -386,7 +432,7 @@ Indicates incoming text message from the channel.
   "channel": "test",
   "from": "alex",
   "message_id": 16777216,
-  "text": "Hello zello",
+  "text": "Hello Zello!"
 }
 ```
 
