@@ -5,11 +5,17 @@
             font-family: Calibri;
         }
 
+        a:not(href) {
+            cursor: pointer;
+            border-bottom: 1px solid blue;
+            color: blue;
+        }
+
         body {
             display: flex;
         }
 
-        button {
+        button#button {
             width: 100px;
             height: 100px;
             border-radius: 100px;
@@ -17,7 +23,7 @@
             font-size: 60px;
         }
 
-        button.disabled {
+        .disabled {
             opacity: 0.2;
             pointer-events: none;
         }
@@ -54,18 +60,183 @@
             background-color: #fbf6ff;
         }
 
-        #for {
-            width: 200px;
+        .message-text {
+            max-width: 500px;
+            overflow-wrap: break-word;
+            width: 500px;
+            display: inline-block;
         }
+
+        #drop-image-placeholder,
+        #paste-bin {
+            width: 300px;
+            height: 100px;
+            border: 3px solid silver;
+            padding: 10px;
+        }
+
+        #drop-image-placeholder.drag {
+            border: 3px dotted silver;
+            opacity: 0.5;
+        }
+
+        #text-message {
+            width: 200px;
+            height: 50px;
+        }
+
     </style>
     <script src="https://zello.io/sdks/js/latest/zcc.sdk.js"></script>
     <script>
 
       var session = null;
       var outgoingMessage = null;
+      var imageDropHandlerReady = false;
+      var currentOutgoingImage = null;
 
       function showIncomingDataChunks() {
         return document.getElementById('show-incoming-decoded-data-chunks').checked;
+      }
+
+      function noPreviewForImages() {
+        return document.getElementById('no-preview').checked;
+      }
+
+      function sendImageHandler() {
+        if (!currentOutgoingImage) {
+          return false;
+        }
+        currentOutgoingImage.send();
+        document.getElementById('send-image').className = 'disabled';
+        document.getElementById('preview-image').src = '';
+        return false;
+      }
+
+
+      function handleOutgoingImage(outgoingImage) {
+        document.getElementById('send-image')
+          .removeEventListener('click', sendImageHandler);
+        document.getElementById('send-image')
+          .addEventListener('click', sendImageHandler);
+        document.getElementById('send-image').className = 'disabled';
+        currentOutgoingImage = outgoingImage;
+        if (noPreviewForImages()) {
+            return;
+        }
+        currentOutgoingImage.once('thumbnail_preview_data', function(data) {
+            document.getElementById('preview-image').src = URL.createObjectURL(data);
+        });
+        currentOutgoingImage.once('image_preview_data', function(data) {
+          document.getElementById('preview-full-image').href = URL.createObjectURL(data);
+          document.getElementById('send-image').className = '';
+        });
+      }
+      
+      function setUpCameraImage() {
+        document.getElementById('take-camera-picture').addEventListener('click', function(e) {
+          if (!session) {
+            return false;
+          }
+          var params = {
+            preview: !noPreviewForImages()
+          };
+          var forUsername = document.getElementById('for').value;
+          if (forUsername) {
+            params.for = forUsername;
+          }
+          var outgoingImage = session.sendImage(params);
+          handleOutgoingImage(outgoingImage);
+        });
+      }
+
+      function setUpDragImage() {
+
+        var target = document.getElementById('drop-image-placeholder');
+
+        target.addEventListener("dragover", function(e) {
+          e.preventDefault();
+        }, false);
+
+        target.addEventListener("dragenter", function(e) {
+          console.log('dragenter');
+          target.className = 'drag';
+        }, false);
+
+        target.addEventListener("dragleave", function(e) {
+          console.log('dragleave');
+          target.className = '';
+        }, false);
+
+        target.addEventListener("drop", function(e) {
+          target.className = '';
+          e.preventDefault();
+          if (!session || !e.dataTransfer.files[0]) {
+            return false;
+          }
+          var file = e.dataTransfer.files[0];
+          var type = file.type.toLowerCase();
+          if (!type.match(/^image\//)) {
+            return false;
+          }
+
+          var params = {
+            file: file,
+            preview: !noPreviewForImages()
+          };
+          var forUsername = document.getElementById('for-image').value;
+          if (forUsername) {
+            params.for = forUsername;
+          }
+          var outgoingImage = session.sendImage(params);
+          handleOutgoingImage(outgoingImage);
+        }, false);
+      }
+
+      function setUpImageHandlers() {
+        if (imageDropHandlerReady) {
+          return;
+        }
+        setUpDragImage();
+        setUpCameraImage();
+        imageDropHandlerReady = true;
+      }
+
+      function setUpTextMessageHandler() {
+        document.getElementById('send-text-button').onclick = function() {
+          var options = {
+            text: document.getElementById('text-message').value
+          };
+          var forUsername = document.getElementById('for-text').value;
+          if (forUsername) {
+            options.for = forUsername;
+          }
+          outgoingMessage = session.sendTextMessage(options);
+          return false;
+        };
+      }
+
+      function setUpVoiceHandler() {
+        document.getElementById('button').onmousedown = function() {
+          console.warn('Press button', Date.now());
+          if (!!document.getElementById('button').className.match(/disabled/)) {
+            return false;
+          }
+          var options = {};
+          var forUsername = document.getElementById('for').value;
+          if (forUsername) {
+            options.for = forUsername;
+          }
+          outgoingMessage = session.startVoiceMessage(options);
+        };
+
+        document.getElementById('button').onmouseup = function() {
+          outgoingMessage.stop();
+        };
+
+        document.getElementById('button').onclick = function() {
+          return false;
+        };
+
       }
 
       function start() {
@@ -108,12 +279,18 @@
         return false;
       }
 
-      function updateButton(status) {
+      function updateStatusActions(status) {
         if (status.status === 'online') {
           document.getElementById('button').className = '';
+          document.getElementById('status-actions').className = '';
           return;
         }
         document.getElementById('button').className = 'disabled';
+        document.getElementById('status-actions').className = 'disabled';
+      }
+
+      function escapeHtml(string) {
+        return string.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
       }
 
       function connect(network, username, password, token, channel) {
@@ -130,7 +307,7 @@
         }).then(function() {
 
           session = new ZCC.Session({
-            serverUrl: 'wss://zellowork.io/ws/' + network,
+            serverUrl: 'wss://zellowork.io/ts/' + network,
             channel: channel,
             authToken: token,
             listen_only: true,
@@ -147,30 +324,13 @@
           });
 
           session.on('status', function(status) {
-            updateButton(status);
+            updateStatusActions(status);
             appendLog(`<b>status</b> from <b>${status.channel}</b> channel changed to: <b>${status.status}</b> users online: ${status.users_online}`,
               'ok'
             );
-            document.getElementById('button').onmousedown = function() {
-              if (!!document.getElementById('button').className.match(/disabled/)) {
-                return false;
-              }
-              let options = {};
-              const forUsername = document.getElementById('for').value;
-              if (forUsername) {
-                options.for = forUsername;
-              }
-              outgoingMessage = session.startVoiceMessage(options);
-            };
-
-            document.getElementById('button').onmouseup = function() {
-              outgoingMessage.stop();
-            };
-
-            document.getElementById('button').onclick = function() {
-              return false;
-            };
-
+            setUpImageHandlers();
+            setUpVoiceHandler();
+            setUpTextMessageHandler();
           });
 
           session.on('session_connect', function() {
@@ -193,7 +353,6 @@
             appendLog(`<b>session_connection_lost</b>: ${error}`, 'error');
           });
 
-
           session.on('incoming_voice_data_decoded', function(pcmData, incomingMessage) {
             if (!showIncomingDataChunks()) {
               return;
@@ -209,10 +368,40 @@
             appendLog(`<b>incoming_voice_did_stop</b>: <b>${message.instanceId}</b> stopped`, 'ok');
           });
 
+          session.on('incoming_text_message', function(message) {
+            appendLog(`<b>text_message</b> from user ${message.from} (${message.text.length} bytes): <b class="message-text">${escapeHtml(message.text)}</b>`, 'ok');
+          });
+
+          session.on('incoming_location', function(location) {
+            appendLog(`<b>location</b>: <a href="https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}">${location.rgl}</a> from user ${location.from}`, 'ok');
+          });
+
+          var convertImageBinary = function(data) {
+            return data.reduce(function(d, byte) {
+              return d + String.fromCharCode(byte);
+            }, '')
+          };
+
+          session.on('incoming_image', function(incomingImage) {
+            var image = incomingImage.messageData;
+            var elementId = 'image-' + incomingImage.instanceId;
+            var imageWidth = image.width ? image.width : 0;
+            var imageHeight = image.height ? image.height : 0;
+            appendLog(`<b>image</b>: from <b>${image.from}</b>, source: <b>${image.source}</b>, type: <b>${image.type}</b>, dimensions: <b>${imageWidth}x${imageHeight}</b>`, 'ok');
+            incomingImage.on('thumbnail_data', function(data) {
+              var imageBinary = convertImageBinary(data);
+              appendLog(`<img id="${elementId}" width="200" src="data:image/${image.type};base64,${btoa(imageBinary)}" />`);
+            });
+            incomingImage.on('image_data', function(data) {
+              var imageBinary = convertImageBinary(data);
+              document.getElementById(elementId).src = `data:image/${image.type};base64,${btoa(imageBinary)}`;
+            });
+          });
         }).catch(function(err) {
           console.trace(err);
         })
       }
+
     </script>
 </head>
 <body onload="start()">
@@ -245,20 +434,57 @@
     <p>
         <br/><br/>
     </p>
+    <div id="status-actions" class="disabled">
+        <h3>Send voice message:</h3>
+        <p>
+            <input type="text" placeholder="For username (optional)" id="for"/>
+        </p>
+        <p>
+            <button id="button" class="disabled">&#127897;</button>
+        </p>
 
-    <h3>Send voice message:</h3>
-    <p>
-        <input type="text" placeholder="For username (optional)" id="for"/>
-    </p>
-    <p>
-        <button id="button" class="disabled">&#127897;</button>
-    </p>
+        <p>
+            <br/><br/>
+        </p>
+        <h3>Send text message:</h3>
+        <p>
+            <input type="text" placeholder="For username (optional)" id="for-text"/>
+        </p>
+        <p>
+            <textarea id="text-message">Hello Zello!</textarea>
+        </p>
+        <p>
+            <button id="send-text-button">send</button>
+        </p>
 
+        <p>
+            <br/><br/>
+        </p>
+
+        <h3>Send image:</h3>
+        <p>
+            <input type="text" placeholder="For username (optional)" id="for-image"/>
+        </p>
+        <p id="drop-image-placeholder">
+            1. Drag and drop image file here
+        </p>
+        <p>
+            2. Or <a id="take-camera-picture">capture an image using your camera</a>
+        </p>
+        <p>
+            Preview:<br/>
+            <a id="preview-full-image" target="_blank"><img id="preview-image" /></a>
+            <br/>
+            <a id="send-image" class="disabled">send</a>
+        </p>
+
+    </div>
 </form>
 
 <section>
     <h5>Settings</h5>
-    <label>Show incoming decoded data: <input type="checkbox" id="show-incoming-decoded-data-chunks" /></label>
+    <label>Show incoming decoded audio data: <input type="checkbox" id="show-incoming-decoded-data-chunks" /></label><br/>
+    <label>Send images without previewing: <input type="checkbox" id="no-preview" /></label>
 </section>
 
 </body>

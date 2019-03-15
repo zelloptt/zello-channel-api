@@ -110,6 +110,7 @@ class Utils {
   static parseIncomingBinaryMessage(binaryData) {
     let headerView = new DataView(binaryData.slice(0, 9));
     return {
+      messageType: headerView.getUint8(0),
       messageData: new Uint8Array(binaryData.slice(9)),
       messageId: headerView.getUint32(1, false),
       packetId: headerView.getUint32(5, false)

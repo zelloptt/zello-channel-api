@@ -98,10 +98,11 @@ or
 }
 ```
 Successful response includes `refresh_token` which can be use to quickly reconnect if WebSocket connection is broken due to brief network interruption. 
+`images_supported` flag indicates channel will accept images. `texting_supported` flag indicates if channel will accept text messages. 
 
 ## Streaming voice messages
 
-After successfully connecting to the channel and reciving [channel status](#on_channel_status) you can start sending voice messages. Each message is sent as stream, which begins with `start_stream` command followed by the sequence of binary packets with audio data and ends with `stop_stream` command. Zello uses [Opus](http://opus-codec.org/) voice codec to compress audio stream.
+After successfully connecting to the channel and receiving [channel status](#on_channel_status) you can start sending voice messages. Each message is sent as stream, which begins with `start_stream` command followed by the sequence of binary packets with audio data and ends with `stop_stream` command. Zello uses [Opus](http://opus-codec.org/) voice codec to compress audio stream.
 
 ### `start_stream`
 
@@ -183,12 +184,93 @@ The same packet structure is used for any streamed data (e.g. audio) travelling 
 
 `{type(8) = 0x01, stream_id(32), packet_id(32), data[]}`
 
+## Sending images
+After successfully connecting to the channel and receiving channel status you can start sending images. 
+If channel does not support image messaging you will receive an error for `send_image` command. 
+Each image begins with send_image command followed by the sequence of binary packets with image thumbnail data and full image data. 
+
+### `send_image`
+Starts sending a new image to the channel. The successful response includes `image_id` which must be used in all data packets for this image.
+
+| Name | Type | Value  / Description
+|---|---|---
+| `command` | string | `send_image `
+| `seq` | integer | Command sequence number
+| `type` | string | Image type. Only `jpeg` is currently supported
+| `thumbnail_content_length` | integer | Image thumbnail content length in bytes
+| `content_length` | integer | Full image content length in bytes
+| `width` | integer | Full image width in pixels
+| `height` | integer | Full image width in pixels
+| `source` | string | Image source (`camera` or `library`)
+| `for` | string | Optional username to send image to. Other users in the channel won't be receiving this image
+
+
+#### Request: 
+```json
+{
+  "seq": 2,
+  "command": "send_image",
+  "type": "jpeg",
+  "source": "camera",
+  "width": 1279,
+  "height": 959,
+  "thumbnail_content_length": 10616,
+  "content_length": 183716
+}
+```
+
+#### Response:
+
+```json
+{
+  "seq": 2,
+  "success": true,
+  "image_id": 22695
+}
+```
+
+### Sending image binary data
+#### Image thumbnail packet
+`{type(8) = 0x02, image_id(32), image_type(32) = 0x02, data[]}`
+
+#### Full image packet
+`{type(8) = 0x02, image_id(32), image_type(32) = 0x01, data[]}`
+
+## Sending text messages
+After successfully connecting to the channel and receiving channel status you can start sending text images.
+
+### `send_text_message`
+Sends a new text message to the channel.
+
+| Name | Type | Value  / Description
+|---|---|---
+| `command` | string | `send_text_message`
+| `seq` | integer | Command sequence number
+| `text` | string | Message text. 30 Kb maximum
+| `for` | string | Optional username to send text message to. Other users in the channel won't be receiving this text message
+
+#### Request:
+```json
+{
+  "seq": 3,
+  "command": "send_text_message",
+  "text": "Hello Zello!"
+}
+```
+
+#### Response:
+```json
+{
+  "seq": 3,
+  "success": true
+}
+```
 
 ## Events
 
 ### `on_channel_status`
 
-Indicates there was a change in channel status, which may include channel being connected / disconnected or number of online users changed.
+Indicates there was a change in channel status, which may include channel being connected/disconnected, number of online users changed, or supported features changed.
 
 #### Attributes
 
@@ -198,6 +280,8 @@ Indicates there was a change in channel status, which may include channel being 
 | `channel ` | string | The name of the channel
 | `status ` | string | Channel status. Can be `online` or `offline`
 | `users_online ` | integer | Number of users currently connected to the channel.
+| `images_supported` | boolean | Channel will accept image messages.
+| `texting_supported` | boolean | Channel will accept text messages.
 | `error` | string | Includes error description, when channel disconnected due to error. 
 | `error_type` | string | `unknown`, `configuration` Indicates error type. When set to `configuration` indicates that current channel configuration doesn't allow connecting using the channel API credentials used.
 
@@ -208,7 +292,9 @@ Indicates there was a change in channel status, which may include channel being 
   "command": "on_channel_status",
   "channel": "test",
   "status": "online",
-  "users_online": 2
+  "users_online": 2,
+  "images": true,
+  "texting": true
 }
 ```
 
@@ -285,7 +371,99 @@ Indicates a server error.
 }
 ```
 
+### `on_image`
+Indicates incoming image from the channel. This event corresponds to `send_image` command sent by another channel user.
 
+#### Attributes
+
+| Name | Type | Value  / Description
+|---|---|---
+| `command` | string | `on_image`
+| `channel` | string | The name of the channel
+| `from ` | string | The username of the sender of the image
+| `message_id` | integer |  The id of the image message
+| `type` | string | image content type (`jpeg`)
+| `height` | integer |  Image height (some clients don't provide this value)
+| `width` | integer |  Image width (some clients don't provide this value)
+| `source` | string |  Image source (`camera` or `library`)
+
+#### Example:
+
+```json
+{
+  "command": "on_image",
+  "channel": "test",
+  "from":"alex",
+  "message_id": 59725,
+  "source": "camera",
+  "width": 591,
+  "height": 1280,
+  "ct": "jpeg"
+}
+```
+
+### Receiving images data
+`on_image` event is followed by the sequence of two binary packets with image thumbnail data and full image data.
+Fields are stored in network byte order similar to audio stream packets.
+
+#### Image thumbnail packet
+`{type(8) = 0x02, message_id(32), image_type(32) = 0x02, data[]}`
+
+#### Full image packet
+`{type(8) = 0x02, message_id(32), image_type(32) = 0x01, data[]}`
+
+### `on_text_message`
+Indicates incoming text message from the channel.
+
+#### Attributes
+| Name | Type | Value  / Description
+|---|---|---
+| `command` | string | `on_text_message`
+| `channel` | string | The name of the channel
+| `from ` | string | The username of the sender of the text message
+| `message_id` | integer |  The id of the text message
+| `text` | string |  Message text
+
+#### Example:
+
+```json
+{
+  "command": "on_text_message",
+  "channel": "test",
+  "from": "alex",
+  "message_id": 16777216,
+  "text": "Hello Zello!"
+}
+```
+
+### `on_location`
+Indicates incoming shared location from the channel.
+
+#### Attributes
+| Name | Type | Value  / Description
+|---|---|---
+| `command` | string | `on_location`
+| `channel` | string | The name of the channel
+| `from ` | string | The username of the sender of the shared location
+| `message_id` | integer | The id of the shared location message
+| `latitude` | number | Shared location latitude
+| `latitude` | number | Shared location longitude
+| `rgl` | string |  Shared location reverse geocoding result 
+
+
+#### Example:
+
+```json
+{
+  "command": "on_location",
+  "channel": "test",
+  "from": "alex",
+  "message_id": 16777217,
+  "latitude": 30.27386375722625,
+  "longitude": -97.76014980128478,
+  "rgl": "1317 W 6th St, Austin"
+}
+```
 
 ## Error codes
 

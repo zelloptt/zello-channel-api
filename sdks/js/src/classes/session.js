@@ -41,6 +41,7 @@ class Session extends Emitter {
     this.selfDisconnect = false;
     this.incomingMessages = {};
     this.activeOutgoingMessage = null;
+    this.activeOutgoingImage = null;
     this.wasOnline = false;
     this.reconnectTimeout = null;
     this.channelConfigurationError = false;
@@ -238,15 +239,24 @@ session.connect(function(err, result) {
   }
 
   wsBinaryDataHandler(data) {
-    /**
-     * The Session is receiving incoming voice message packet (with encoded audio)
-     * @event Session#incoming_voice_data
-     * @param {Object} incomingVoicePacket voice message packet object
-     * @property {Uint8Array} messageData encoded (opus) data
-     * @property {Number} messageId incoming message id
-     * @property {Number} packetId incoming packet id
-     */
-    this.emit(Constants.EVENT_INCOMING_VOICE_DATA, Utils.parseIncomingBinaryMessage(data));
+    let parsedData = Utils.parseIncomingBinaryMessage(data);
+    switch (parsedData.messageType) {
+      case Constants.MESSAGE_TYPE_AUDIO:
+        /**
+         * The Session is receiving incoming voice message packet (with encoded audio)
+         * @event Session#incoming_voice_data
+         * @param {Object} incomingVoicePacket voice message packet object
+         * @property {Uint8Array} messageData encoded (opus) data
+         * @property {Number} messageId incoming message id
+         * @property {Number} packetId incoming packet id
+         */
+        this.emit(Constants.EVENT_INCOMING_VOICE_DATA, parsedData);
+        break;
+      case Constants.MESSAGE_TYPE_IMAGE:
+        this.emit(Constants.EVENT_INCOMING_IMAGE_DATA, parsedData);
+        break;
+
+    }
   }
 
   jsonDataHandler(jsonData) {
@@ -256,6 +266,7 @@ session.connect(function(err, result) {
     if (jsonData.refresh_token) {
       this.refreshToken = jsonData.refresh_token;
     }
+    const library = Utils.getLoadedLibrary();
     switch (jsonData.command) {
       case 'on_error':
         let error = Constants.ERROR_TYPE_UNKNOWN_SERVER_ERROR;
@@ -294,7 +305,6 @@ session.connect(function(err, result) {
         this.emit(Constants.EVENT_STATUS, jsonData);
         break;
       case 'on_stream_start':
-        const library = Utils.getLoadedLibrary();
         const incomingMessage = new library.IncomingMessage(jsonData, this);
         this.incomingMessages[jsonData.stream_id] = incomingMessage;
         /**
@@ -312,6 +322,30 @@ session.connect(function(err, result) {
          */
         this.emit(Constants.EVENT_INCOMING_VOICE_DID_STOP, this.incomingMessages[jsonData.stream_id]);
         break;
+      case 'on_text_message':
+        /**
+         * Incoming channel text message
+         * @event Session#incoming_text_message
+         * @param json textMessage textMessage JSON
+         */
+        this.emit(Constants.EVENT_INCOMING_TEXT_MESSAGE, jsonData);
+        break;
+      case 'on_location':
+        /**
+         * Incoming location coordinates
+         * @event Session#incoming_location
+         * @param json location location data JSON
+         */
+        this.emit(Constants.EVENT_INCOMING_LOCATION, jsonData);
+        break;
+      case 'on_image':
+        /**
+         * Incoming image JSON metadata
+         * @event Session#incoming_image
+         * @param {ZCC.IncomingImage} IncomingImage incoming image instance
+         */
+        const incomingImage = new library.IncomingImage(jsonData, this);
+        this.emit(Constants.EVENT_INCOMING_IMAGE, incomingImage);
     }
   }
 
@@ -445,6 +479,67 @@ var outgoingMessage = session.startVoiceMessage({
      * @param {ZCC.IncomingMessage} incoming message instance
      */
     this.emit(Constants.EVENT_INCOMING_VOICE_DATA_DECODED, pcmData, incomingMessage);
+  }
+
+  /**
+   * Starts sending an image message by creating OutgoingImage instance
+   *
+   * @param {object} options options for outgoing image.
+   * @property {String} for optional username to send this image to
+   * @property {Boolean} preview set it to false to automatically send an image without previewing.
+   *                              if set to true (default) you will need to call OutgoingImage.send() to send an image
+   * @property {File} File object (optional) if provided this file is send as an image with a source 'library'
+   *
+   * @return {ZCC.OutgoingImage} OutgoingImage object
+   * @example
+   *
+   var outgoingImage = session.sendImage({
+    preview: false,
+    for: 'username'
+   });
+   **/
+  sendImage(options = {}) {
+    const library = Utils.getLoadedLibrary();
+    this.activeOutgoingImage = new library.OutgoingImage(this, options);
+    return this.activeOutgoingImage;
+  }
+
+  /**
+   * Sends a text message
+   *
+   * @param {object} options options for outgoing text message.
+   * @property {String} for optional username to send this text message to
+   * @property {String} text message text
+   *
+   * @param {function} [userCallback] callback that is fired on message being send or failed to be sent
+   * @return {promise} promise that resolves once session successfully send a text message and rejects if
+   *                   text message sending failed
+   * @example
+   *
+   session.sendTextMessage({
+    for: 'username',
+    text: 'Hello Zello!'
+   });
+   **/
+  sendTextMessage(options = {}, userCallback = null) {
+    options.seq = this.getSeq();
+    options.command = 'send_text_message';
+    let dfd = Promise.defer();
+    let callback = (err, data) => {
+      if (err) {
+        if (typeof userCallback === 'function') {
+          userCallback.apply(this, [err]);
+        }
+        dfd.reject(err);
+        return;
+      }
+      if (typeof userCallback === 'function') {
+        userCallback.apply(this, [null, data]);
+      }
+      dfd.resolve(data);
+    };
+    this.sendCommand(options, callback);
+    return dfd.promise;
   }
 
 }
