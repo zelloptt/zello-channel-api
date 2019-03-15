@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Interface: Recorder</title>
+    <title>JSDoc: Class: OutgoingImage</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,7 +17,7 @@
 
 <div id="main">
 
-    <h1 class="page-title">Interface: Recorder</h1>
+    <h1 class="page-title">Class: OutgoingImage</h1>
 
     
 
@@ -28,7 +28,9 @@
 
 <header>
     
-        <h2>Recorder</h2>
+        <h2><span class="attribs"><span class="type-signature"></span></span>OutgoingImage</h2>
+        
+            <div class="class-description">Outgoing image class. Instances are returned from <code>Session.sendImage</code> method</div>
         
     
 </header>
@@ -37,12 +39,19 @@
     <div class="container-overview">
     
         
-            <div class="description">Recorder interface. Recorder is used by <code>OutgoingMessage</code> to record and send voice data
-Custom recorder implementation should call method <code>onready</code> once recorder is initialized and method
-<code>ondata</code> once PCM data portion is ready</div>
-        
 
-        
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 <dl class="details">
@@ -74,7 +83,7 @@ Custom recorder implementation should call method <code>onready</code> once reco
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="recorder.js.html">recorder.js</a>, <a href="recorder.js.html#line1">line 1</a>
+        <a href="outgoingImage.js.html">outgoingImage.js</a>, <a href="outgoingImage.js.html#line12">line 12</a>
     </li></ul></dd>
     
 
@@ -86,7 +95,22 @@ Custom recorder implementation should call method <code>onready</code> once reco
 </dl>
 
 
-        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     
     </div>
 
@@ -113,7 +137,7 @@ Custom recorder implementation should call method <code>onready</code> once reco
     
 
     
-    <h4 class="name" id="ondata"><span class="type-signature"></span>ondata<span class="signature">(data)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="send"><span class="type-signature"></span>send<span class="signature">()</span><span class="type-signature"></span></h4>
     
 
     
@@ -121,7 +145,103 @@ Custom recorder implementation should call method <code>onready</code> once reco
 
 
 <div class="description">
-    Emit recorded data portion to let <code>OutgoingMessage</code> instance get recorder data.
+    Sends an outgoing image
+call this method if  <code>options.preview</code> is set to <code>true</code> (default behaviour).
+Otherwise image is sent automatically when instance is created by <code>session.sendImage</code>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="outgoingImage.js.html">outgoingImage.js</a>, <a href="outgoingImage.js.html#line83">line 83</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+    
+
+    
+
+    
+        <h3 class="subsection-title">Events</h3>
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="event:image_preview_data">image_preview_data</h4>
+    
+
+    
+
+
+
+<div class="description">
+    Outgoing image full size image data available for preview
 </div>
 
 
@@ -163,7 +283,7 @@ Custom recorder implementation should call method <code>onready</code> once reco
             <td class="type">
             
                 
-<span class="param-type">Float32Array</span>
+<span class="param-type">Blob</span>
 
 
             
@@ -173,7 +293,7 @@ Custom recorder implementation should call method <code>onready</code> once reco
 
             
 
-            <td class="description last">pcm data portion</td>
+            <td class="description last">preview full size image blob</td>
         </tr>
 
     
@@ -214,7 +334,7 @@ Custom recorder implementation should call method <code>onready</code> once reco
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="recorder.js.html">recorder.js</a>, <a href="recorder.js.html#line175">line 175</a>
+        <a href="outgoingImage.js.html">outgoingImage.js</a>, <a href="outgoingImage.js.html#line164">line 164</a>
     </li></ul></dd>
     
 
@@ -243,10 +363,141 @@ Custom recorder implementation should call method <code>onready</code> once reco
 
 
         
+            
+
+    
+
+    
+    <h4 class="name" id="event:thumbnail_preview_data">thumbnail_preview_data</h4>
     
 
     
 
+
+
+<div class="description">
+    Outgoing image thumbnail data available for preview
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>data</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Blob</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">preview image thumbnail blob</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="outgoingImage.js.html">outgoingImage.js</a>, <a href="outgoingImage.js.html#line150">line 150</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
     
 </article>
 

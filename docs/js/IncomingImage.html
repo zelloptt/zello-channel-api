@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Interface: Recorder</title>
+    <title>JSDoc: Class: IncomingImage</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,7 +17,7 @@
 
 <div id="main">
 
-    <h1 class="page-title">Interface: Recorder</h1>
+    <h1 class="page-title">Class: IncomingImage</h1>
 
     
 
@@ -28,7 +28,9 @@
 
 <header>
     
-        <h2>Recorder</h2>
+        <h2><span class="attribs"><span class="type-signature"></span></span>IncomingImage</h2>
+        
+            <div class="class-description">Incoming image class. Instances are returned as arguments for corresponding <code>ZCC.Session</code> events</div>
         
     
 </header>
@@ -37,12 +39,19 @@
     <div class="container-overview">
     
         
-            <div class="description">Recorder interface. Recorder is used by <code>OutgoingMessage</code> to record and send voice data
-Custom recorder implementation should call method <code>onready</code> once recorder is initialized and method
-<code>ondata</code> once PCM data portion is ready</div>
-        
 
-        
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 <dl class="details">
@@ -74,7 +83,7 @@ Custom recorder implementation should call method <code>onready</code> once reco
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="recorder.js.html">recorder.js</a>, <a href="recorder.js.html#line1">line 1</a>
+        <a href="incomingImage.js.html">incomingImage.js</a>, <a href="incomingImage.js.html#line8">line 8</a>
     </li></ul></dd>
     
 
@@ -86,7 +95,22 @@ Custom recorder implementation should call method <code>onready</code> once reco
 </dl>
 
 
-        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     
     </div>
 
@@ -105,7 +129,11 @@ Custom recorder implementation should call method <code>onready</code> once reco
     
 
     
-        <h3 class="subsection-title">Methods</h3>
+
+    
+
+    
+        <h3 class="subsection-title">Events</h3>
 
         
             
@@ -113,7 +141,7 @@ Custom recorder implementation should call method <code>onready</code> once reco
     
 
     
-    <h4 class="name" id="ondata"><span class="type-signature"></span>ondata<span class="signature">(data)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="event:image">image</h4>
     
 
     
@@ -121,7 +149,7 @@ Custom recorder implementation should call method <code>onready</code> once reco
 
 
 <div class="description">
-    Emit recorded data portion to let <code>OutgoingMessage</code> instance get recorder data.
+    Incoming full image data available
 </div>
 
 
@@ -163,7 +191,7 @@ Custom recorder implementation should call method <code>onready</code> once reco
             <td class="type">
             
                 
-<span class="param-type">Float32Array</span>
+<span class="param-type">Uint8Array</span>
 
 
             
@@ -173,7 +201,7 @@ Custom recorder implementation should call method <code>onready</code> once reco
 
             
 
-            <td class="description last">pcm data portion</td>
+            <td class="description last">full image data</td>
         </tr>
 
     
@@ -214,7 +242,7 @@ Custom recorder implementation should call method <code>onready</code> once reco
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="recorder.js.html">recorder.js</a>, <a href="recorder.js.html#line175">line 175</a>
+        <a href="incomingImage.js.html">incomingImage.js</a>, <a href="incomingImage.js.html#line31">line 31</a>
     </li></ul></dd>
     
 
@@ -243,10 +271,141 @@ Custom recorder implementation should call method <code>onready</code> once reco
 
 
         
+            
+
+    
+
+    
+    <h4 class="name" id="event:image_thumbnail">image_thumbnail</h4>
     
 
     
 
+
+
+<div class="description">
+    Incoming image thumbnail data available
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>data</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Uint8Array</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">thumbnail data</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="incomingImage.js.html">incomingImage.js</a>, <a href="incomingImage.js.html#line26">line 26</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
     
 </article>
 

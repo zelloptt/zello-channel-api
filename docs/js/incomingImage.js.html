@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>JSDoc: Interface: Recorder</title>
+    <title>JSDoc: Source: incomingImage.js</title>
 
     <script src="scripts/prettify/prettify.js"> </script>
     <script src="scripts/prettify/lang-css.js"> </script>
@@ -17,240 +17,62 @@
 
 <div id="main">
 
-    <h1 class="page-title">Interface: Recorder</h1>
+    <h1 class="page-title">Source: incomingImage.js</h1>
 
     
 
 
 
-
-<section>
-
-<header>
     
-        <h2>Recorder</h2>
-        
-    
-</header>
-
-<article>
-    <div class="container-overview">
-    
-        
-            <div class="description">Recorder interface. Recorder is used by <code>OutgoingMessage</code> to record and send voice data
-Custom recorder implementation should call method <code>onready</code> once recorder is initialized and method
-<code>ondata</code> once PCM data portion is ready</div>
-        
-
-        
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="recorder.js.html">recorder.js</a>, <a href="recorder.js.html#line1">line 1</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-        
-    
-    </div>
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-        <h3 class="subsection-title">Methods</h3>
-
-        
-            
-
-    
-
-    
-    <h4 class="name" id="ondata"><span class="type-signature"></span>ondata<span class="signature">(data)</span><span class="type-signature"></span></h4>
-    
-
-    
-
-
-
-<div class="description">
-    Emit recorded data portion to let <code>OutgoingMessage</code> instance get recorder data.
-</div>
-
-
-
-
-
-
-
-
-
-    <h5>Parameters:</h5>
-    
-
-<table class="params">
-    <thead>
-    <tr>
-        
-        <th>Name</th>
-        
-
-        <th>Type</th>
-
-        
-
-        
-
-        <th class="last">Description</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    
-
-        <tr>
-            
-                <td class="name"><code>data</code></td>
-            
-
-            <td class="type">
-            
-                
-<span class="param-type">Float32Array</span>
-
-
-            
-            </td>
-
-            
-
-            
-
-            <td class="description last">pcm data portion</td>
-        </tr>
-
-    
-    </tbody>
-</table>
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="recorder.js.html">recorder.js</a>, <a href="recorder.js.html#line175">line 175</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
-    
-
-    
-
-    
-</article>
-
-</section>
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>const Emitter = require('./emitter');
+const Constants = require('./constants');
+
+/**
+ * @hideconstructor
+ * @classdesc Incoming image class. Instances are returned as arguments for corresponding &lt;code>ZCC.Session&lt;/code> events
+ **/
+class IncomingImage extends Emitter {
+
+  constructor(messageData, session) {
+    super();
+    this.messageData = messageData;
+    this.options = Object.assign({}, session.options, {messageData: messageData});
+    this.instanceId = messageData.message_id;
+    this.session = session;
+    this.initSessionHandlers();
+    this.clearHandlersAfterFetches = 2;
+    this.numberOfFetches = 0;
+  }
+
+  initSessionHandlers() {
+    this.incomingImageHandler = (data) => {
+      this.numberOfFetches++;
+      let eventName =
+        data.packetId === Constants.IMAGE_TYPE_FULL ? Constants.EVENT_IMAGE_DATA : Constants.EVENT_THUMBNAIL_DATA;
+      /**
+       * Incoming image thumbnail data available
+       * @event IncomingImage#image_thumbnail
+       * @param {Uint8Array} data thumbnail data
+       */
+      /**
+       * Incoming full image data available
+       * @event IncomingImage#image
+       * @param {Uint8Array} data full image data
+       */
+      this.emit(eventName, data.messageData);
+      if (this.numberOfFetches === this.clearHandlersAfterFetches) {
+        this.session.off([Constants.EVENT_INCOMING_IMAGE_DATA, this.instanceId], this.incomingImageHandler);
+      }
+    };
+    this.session.on([Constants.EVENT_INCOMING_IMAGE_DATA, this.instanceId], this.incomingImageHandler);
+  }
+}
+
+module.exports = IncomingImage;</code></pre>
+        </article>
+    </section>
 
 
 
