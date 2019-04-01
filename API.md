@@ -266,6 +266,22 @@ Sends a new text message to the channel.
 }
 ```
 
+## Sending  locations
+After successfully connecting to the channel and receiving channel status you can start sending locations.
+
+### `send_location`
+Sends user's location to the channel.
+
+| Name | Type | Value  / Description
+|---|---|---
+| `command` | string | `send_location`
+| `seq` | integer | Command sequence number
+| `latitude` | number | Shared location latitude
+| `longitude` | number | Shared location longitude
+| `acc` | number | Shared location accuracy in meters
+| `rgl` | string |  Shared location reverse geocoding result
+| `for` | string | Optional username to send location to. Other users in the channel won't be receiving this location data 
+
 ## Events
 
 ### `on_channel_status`
@@ -447,7 +463,7 @@ Indicates incoming shared location from the channel.
 | `from ` | string | The username of the sender of the shared location
 | `message_id` | integer | The id of the shared location message
 | `latitude` | number | Shared location latitude
-| `latitude` | number | Shared location longitude
+| `longitude` | number | Shared location longitude
 | `rgl` | string |  Shared location reverse geocoding result 
 
 
