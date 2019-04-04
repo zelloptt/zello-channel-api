@@ -194,7 +194,7 @@ class Widget extends Emitter {
 
     this.session.on(Constants.EVENT_SESSION_START_CONNECT, () => {
       this.state.status = (this.state.wasConnected) ? 'reconnecting' : 'connecting';
-      this.updateMainHtml();
+      this.updateReceivingState(null);
     });
 
     this.session.on(Constants.EVENT_SESSION_CONNECT, () => {
@@ -203,12 +203,12 @@ class Widget extends Emitter {
 
     this.session.on(Constants.EVENT_SESSION_FAIL_CONNECT, () => {
       this.state.status = 'connect-failed';
-      this.updateMainHtml();
+      this.updateReceivingState(null);
     });
 
     this.session.on(Constants.EVENT_SESSION_DISCONNECT, () => {
       this.state.status = 'disconnected';
-      this.updateMainHtml();
+      this.updateReceivingState(null);
     });
 
     this.session.on(Constants.EVENT_INCOMING_VOICE_WILL_START, () => {
