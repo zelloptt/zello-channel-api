@@ -230,8 +230,8 @@
             var options = {
               latitude: position.coords.latitude,
               longitude: position.coords.longitude,
-              acc: position.coords.accuracy,
-              rgl: document.getElementById('rgl').value
+              accuracy: position.coords.accuracy,
+              formatted_address: document.getElementById('rgl').value
             };
             var forUsername = document.getElementById('for').value;
             if (forUsername) {
@@ -429,7 +429,7 @@
           });
 
           session.on('incoming_location', function(location) {
-            appendLog(`<b>location</b>: <a href="https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}">${location.rgl}</a> from user ${location.from}`, 'ok');
+            appendLog(`<b>location</b>: <a href="https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}">${location.formatted_address}</a> from user ${location.from} with accuracy ${location.accuracy}`, 'ok');
           });
 
           var convertImageBinary = function(data) {
