@@ -382,46 +382,12 @@ session.connect(function(err, result) {
     this.wsConnection.send(data);
   }
 
-  startStream(params, userCallback = null) {
-    params.seq = this.getSeq();
-    params.command = 'start_stream';
-    let dfd = Promise.defer();
-    let callback = (err, data) => {
-      if (err) {
-        if (typeof userCallback === 'function') {
-          userCallback.apply(this, [err]);
-        }
-        dfd.reject(err);
-        return;
-      }
-      if (typeof userCallback === 'function') {
-        userCallback.apply(this, [null, data]);
-      }
-      dfd.resolve(data);
-    };
-    this.sendCommand(params, callback);
-    return dfd.promise;
+  startStream(options = {}, userCallback = null) {
+    return this.sendCommandWithCallback('start_stream', options, userCallback);
   }
 
-  stopStream(params, userCallback = null) {
-    params.seq = this.getSeq();
-    params.command = 'stop_stream';
-    let dfd = Promise.defer();
-    let callback = (err, data) => {
-      if (err) {
-        if (typeof userCallback === 'function') {
-          userCallback.apply(this, [err]);
-        }
-        dfd.reject(err);
-        return;
-      }
-      if (typeof userCallback === 'function') {
-        userCallback.apply(this, [null, data]);
-      }
-      dfd.resolve(data);
-    };
-    this.sendCommand(params, callback);
-    return dfd.promise;
+  stopStream(options = {}, userCallback = null) {
+    return this.sendCommandWithCallback('stop_stream', options, userCallback);
   }
 
   /**
@@ -522,8 +488,16 @@ var outgoingMessage = session.startVoiceMessage({
    });
    **/
   sendTextMessage(options = {}, userCallback = null) {
+    return this.sendCommandWithCallback('send_text_message', options, userCallback);
+  }
+
+  sendLocation(options = {}, userCallback = null) {
+    return this.sendCommandWithCallback('send_location', options, userCallback)
+  }
+
+  sendCommandWithCallback(command, options, userCallback = null) {
     options.seq = this.getSeq();
-    options.command = 'send_text_message';
+    options.command = command;
     let dfd = Promise.defer();
     let callback = (err, data) => {
       if (err) {

@@ -85,6 +85,26 @@
             height: 50px;
         }
 
+        #tabs h3 {
+            display: inline-block;
+            cursor: pointer;
+            color: silver;
+            border-bottom: 1px dotted;
+            margin-right: 10px;
+        }
+
+        #tabs h3.active {
+            color: black;
+        }
+
+        #tabs-contents section {
+            display: none;
+        }
+
+        #tabs-contents section.active {
+            display: block;
+        }
+
     </style>
     <script src="https://zello.io/sdks/js/latest/zcc.sdk.js"></script>
     <script>
@@ -183,7 +203,7 @@
             file: file,
             preview: !noPreviewForImages()
           };
-          var forUsername = document.getElementById('for-image').value;
+          var forUsername = document.getElementById('for').value;
           if (forUsername) {
             params.for = forUsername;
           }
@@ -201,12 +221,34 @@
         imageDropHandlerReady = true;
       }
 
+      function setUpLocationHandler() {
+        document.getElementById('send-location-button').onclick = function() {
+          if (!navigator.geolocation) {
+            return false;
+          }
+          navigator.geolocation.getCurrentPosition(function(position) {
+            var options = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              accuracy: position.coords.accuracy,
+              formatted_address: document.getElementById('rgl').value
+            };
+            var forUsername = document.getElementById('for').value;
+            if (forUsername) {
+              options.for = forUsername;
+            }
+            session.sendLocation(options);
+          });
+          return false;
+        };
+      }
+
       function setUpTextMessageHandler() {
         document.getElementById('send-text-button').onclick = function() {
           var options = {
             text: document.getElementById('text-message').value
           };
-          var forUsername = document.getElementById('for-text').value;
+          var forUsername = document.getElementById('for').value;
           if (forUsername) {
             options.for = forUsername;
           }
@@ -293,6 +335,19 @@
         return string.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
       }
 
+      function switchTabs(el) {
+        var tabs = document.getElementsByClassName('tab-header');
+        for (var i = 0; i < tabs.length; i++) {
+          tabs[i].className = 'tab-header';
+        }
+        var panes = document.getElementsByClassName('tab-contents');
+        for (var i = 0; i < panes.length; i++) {
+          panes[i].className = 'tab-contents';
+        }
+        el.className = 'tab-header active';
+        document.getElementById(el.getAttribute('tab') + '-tab').className = 'tab-contents active';
+      }
+
       function connect(network, username, password, token, channel) {
 
         document.getElementById('network').value = window.localStorage.network;
@@ -331,6 +386,7 @@
             setUpImageHandlers();
             setUpVoiceHandler();
             setUpTextMessageHandler();
+            setUpLocationHandler();
           });
 
           session.on('session_connect', function() {
@@ -373,7 +429,7 @@
           });
 
           session.on('incoming_location', function(location) {
-            appendLog(`<b>location</b>: <a href="https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}">${location.rgl}</a> from user ${location.from}`, 'ok');
+            appendLog(`<b>location</b>: <a href="https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}">${location.formatted_address}</a> from user ${location.from} with accuracy ${location.accuracy}`, 'ok');
           });
 
           var convertImageBinary = function(data) {
@@ -411,7 +467,6 @@
 </div>
 
 <form id="sign-in" onsubmit="login()">
-    <h3>Sign In:</h3>
     <p>
         <input type="text" placeholder="Network name" id="network"/>
     </p>
@@ -431,61 +486,60 @@
         <input type="submit" value="Sign In">
     </p>
 
-    <p>
-        <br/><br/>
-    </p>
     <div id="status-actions" class="disabled">
-        <h3>Send voice message:</h3>
-        <p>
-            <input type="text" placeholder="For username (optional)" id="for"/>
-        </p>
-        <p>
-            <button id="button" class="disabled">&#127897;</button>
-        </p>
+        <div id="tabs">
+            <h3 class="tab-header active" tab="send-voice" onclick="switchTabs(this);">Send voice message</h3>
+            <h3 class="tab-header" tab="send-text" onclick="switchTabs(this);">Send text message</h3>
+            <h3 class="tab-header" tab="send-image" onclick="switchTabs(this);">Send image</h3>
+            <h3 class="tab-header" tab="send-location" onclick="switchTabs(this);">Send location</h3>
+            <h3 class="tab-header" tab="settings" onclick="switchTabs(this);">Settings</h3>
+        </div>
 
-        <p>
-            <br/><br/>
-        </p>
-        <h3>Send text message:</h3>
-        <p>
-            <input type="text" placeholder="For username (optional)" id="for-text"/>
-        </p>
-        <p>
-            <textarea id="text-message">Hello Zello!</textarea>
-        </p>
-        <p>
-            <button id="send-text-button">send</button>
-        </p>
+        <input type="text" placeholder="For username (optional)" id="for"/>
 
-        <p>
-            <br/><br/>
-        </p>
+        <div id="tabs-contents">
+            <section id="send-voice-tab" class="tab-contents active">
 
-        <h3>Send image:</h3>
-        <p>
-            <input type="text" placeholder="For username (optional)" id="for-image"/>
-        </p>
-        <p id="drop-image-placeholder">
-            1. Drag and drop image file here
-        </p>
-        <p>
-            2. Or <a id="take-camera-picture">capture an image using your camera</a>
-        </p>
-        <p>
-            Preview:<br/>
-            <a id="preview-full-image" target="_blank"><img id="preview-image" /></a>
-            <br/>
-            <a id="send-image" class="disabled">send</a>
-        </p>
+                <p>
+                    <button id="button" class="disabled">&#127897;</button>
+                </p>
+            </section>
+            <section id="send-text-tab" class="tab-contents">
 
+                <p>
+                    <textarea id="text-message">Hello Zello!</textarea>
+                </p>
+                <p>
+                    <button id="send-text-button">send</button>
+                </p>
+            </section>
+            <section id="send-image-tab" class="tab-contents">
+                <p id="drop-image-placeholder">
+                    1. Drag and drop image file here
+                </p>
+                <p>
+                    2. Or <a id="take-camera-picture">capture an image using your camera</a>
+                </p>
+                <p>
+                    Preview:<br/>
+                    <a id="preview-full-image" target="_blank"><img id="preview-image"/></a>
+                    <br/>
+                    <a id="send-image" class="disabled">send</a>
+                </p>
+            </section>
+            <section id="send-location-tab" class="tab-contents">
+                <p>
+                    <input type="text" placeholder="RGL (optional)" id="rgl"/>
+                    <button id="send-location-button">send location</button>
+                </p>
+            </section>
+            <section id="settings-tab" class="tab-contents">
+                <label>Show incoming decoded audio data: <input type="checkbox" id="show-incoming-decoded-data-chunks"/></label><br/>
+                <label>Send images without previewing: <input type="checkbox" id="no-preview"/></label>
+            </section>
+        </div>
     </div>
 </form>
-
-<section>
-    <h5>Settings</h5>
-    <label>Show incoming decoded audio data: <input type="checkbox" id="show-incoming-decoded-data-chunks" /></label><br/>
-    <label>Send images without previewing: <input type="checkbox" id="no-preview" /></label>
-</section>
 
 </body>
 </html>

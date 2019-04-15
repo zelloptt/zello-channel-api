@@ -117,7 +117,7 @@ Starts a new stream to the channel. The successful response includes `stream_id`
 | `type` | string | Stream type. Only `audio` is currently supported
 | `codec` | string | The name of audio codec used. Required for `audio` streams. Must be `opus`.
 | `codec_header` | string | base64-encoded codec header buffer. Required for `opus` streams.
-| `packet_duration` | integer | Audio packet duration in milliseconds. Values between 20 ms and 200 ms are supported.
+| `packet_duration` | integer | Audio packet duration in milliseconds. Values between 2.5 ms and 60 ms are supported.
 | `for` | string | Optional username to send message to. Other users in the channel won't be receiving this message
 
 
@@ -130,7 +130,7 @@ Starts a new stream to the channel. The successful response includes `stream_id`
   "type": "audio",
   "codec": "opus",
   "codec_header": "gD4BPA==",
-  "packet_duration": 200
+  "packet_duration": 20
 }
 ``` 
 
@@ -143,7 +143,7 @@ or
   "type": "audio",
   "codec": "opus",
   "codec_header": "gD4BPA==",
-  "packet_duration": 200,
+  "packet_duration": 20,
   "for": "Driver 2"
 }
 ```
@@ -266,6 +266,22 @@ Sends a new text message to the channel.
 }
 ```
 
+## Sending  locations
+After successfully connecting to the channel and receiving channel status you can start sending locations.
+
+### `send_location`
+Sends user's location to the channel.
+
+| Name | Type | Value  / Description
+|---|---|---
+| `command` | string | `send_location`
+| `seq` | integer | Command sequence number
+| `latitude` | number | Shared location latitude
+| `longitude` | number | Shared location longitude
+| `accuracy` | number | Shared location accuracy in meters
+| `formatted_address` | string |  Shared location reverse geocoding result (street address)
+| `for` | string | Optional username to send location to. Other users in the channel won't be receiving this location data 
+
 ## Events
 
 ### `on_channel_status`
@@ -311,7 +327,7 @@ Indicates the start of the new incoming stream. This event corresponds to `start
 | `type` | string | Stream type. Only `audio` is currently supported
 | `codec` | string | The name of audio codec used. Required for `audio` streams. Must be `opus`
 | `codec_header` | string | base64-encoded codec header buffer. Required for `opus` streams
-| `packet_duration` | integer | Audio packet duration in milliseconds. Values between 20 ms and 200 ms are supported
+| `packet_duration` | integer | Audio packet duration in milliseconds. Values between 2.5 ms and 60 ms are supported
 | `stream_id ` | integer |  The id of the stream that started
 | `channel ` | string | The name of the channel
 | `from ` | string | The username of the sender of the message
@@ -325,7 +341,7 @@ Indicates the start of the new incoming stream. This event corresponds to `start
   "type": "audio",
   "codec": "opus",
   "codec_header": "gD4BPA==",
-  "packet_duration": 200,
+  "packet_duration": 20,
   "stream_id": 22695,
   "channel": "test",
   "from": "alex"
@@ -447,8 +463,9 @@ Indicates incoming shared location from the channel.
 | `from ` | string | The username of the sender of the shared location
 | `message_id` | integer | The id of the shared location message
 | `latitude` | number | Shared location latitude
-| `latitude` | number | Shared location longitude
-| `rgl` | string |  Shared location reverse geocoding result 
+| `longitude` | number | Shared location longitude
+| `formatted_address` | string |  Shared location reverse geocoding result (street address) 
+| `accuracy` | number | Shared location accuracy in meters 
 
 
 #### Example:
