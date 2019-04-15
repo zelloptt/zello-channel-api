@@ -279,7 +279,7 @@ Sends user's location to the channel.
 | `latitude` | number | Shared location latitude
 | `longitude` | number | Shared location longitude
 | `accuracy` | number | Shared location accuracy in meters
-| `formatted_address` | string |  Shared location reverse geocoding result
+| `formatted_address` | string |  Shared location reverse geocoding result (street address)
 | `for` | string | Optional username to send location to. Other users in the channel won't be receiving this location data 
 
 ## Events
@@ -464,7 +464,7 @@ Indicates incoming shared location from the channel.
 | `message_id` | integer | The id of the shared location message
 | `latitude` | number | Shared location latitude
 | `longitude` | number | Shared location longitude
-| `formatted_address` | string |  Shared location reverse geocoding result 
+| `formatted_address` | string |  Shared location reverse geocoding result (street address) 
 | `accuracy` | number | Shared location accuracy in meters 
 
 
