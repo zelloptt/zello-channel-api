@@ -18,7 +18,7 @@
     "css-loader": "^0.28.11",
     "ejs-compiled-loader": "^1.1.0",
     "eventemitter2": "^5.0.1",
-    "handlebars": "^4.0.11",
+    "handlebars": "^4.0.14",
     "handlebars-loader": "^1.7.0",
     "jsdoc": "^3.5.5",
     "node-sass": "^4.9.0",
