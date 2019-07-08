@@ -140,6 +140,9 @@ ZCC.Sdk.init({
     for (let i = 0; i < scripts.length; i++) {
       let script = scripts[i];
       let src = script.getAttribute('src');
+      if (!src) {
+        continue;
+      }
       if (src.match(/zcc.sdk\.js$/)) {
         myUrl = src.replace(/zcc.sdk.js$/, '');
         return myUrl;
