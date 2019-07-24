@@ -61,7 +61,7 @@
               setTimeout(function() {
                 outgoingMessage = session.startVoiceMessage({
                   recorder: CustomRecorder,
-                  originalSampleRate: incomingMessageFrameRate
+                  recorderSampleRate: incomingMessage.options.sampleRate
                 });
                 outgoingMessage.on(ZCC.Constants.EVENT_DATA, function(data) {
                   console.warn('data to be encoded:', data);
