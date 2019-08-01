@@ -26,7 +26,7 @@ class Session extends Emitter {
     super();
     const library = Utils.getLoadedLibrary();
     Session.validateInitialOptions(options);
-    this.options = Object.assign(library.Sdk.initOptions, {
+    this.options = Object.assign({}, library.Sdk.initOptions, {
       maxConnectAttempts: 5,
       connectRetryTimeoutMs: 1000,
       autoSendAudio: true
