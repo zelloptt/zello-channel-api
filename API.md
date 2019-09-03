@@ -98,7 +98,7 @@ or
 }
 ```
 Successful response includes `refresh_token` which can be use to quickly reconnect if WebSocket connection is broken due to brief network interruption. 
-`images_supported` flag indicates channel will accept images. `texting_supported` flag indicates if channel will accept text messages. 
+`images_supported` flag indicates channel will accept images. `texting_supported` flag indicates if channel will accept text messages. `locations_supported` flag indicates if channel will accept locations.
 
 ## Streaming voice messages
 
@@ -298,6 +298,7 @@ Indicates there was a change in channel status, which may include channel being 
 | `users_online ` | integer | Number of users currently connected to the channel.
 | `images_supported` | boolean | Channel will accept image messages.
 | `texting_supported` | boolean | Channel will accept text messages.
+| `locations_supported` | boolean | Channel will accept locations.
 | `error` | string | Includes error description, when channel disconnected due to error. 
 | `error_type` | string | `unknown`, `configuration` Indicates error type. When set to `configuration` indicates that current channel configuration doesn't allow connecting using the channel API credentials used.
 
@@ -309,8 +310,9 @@ Indicates there was a change in channel status, which may include channel being 
   "channel": "test",
   "status": "online",
   "users_online": 2,
-  "images": true,
-  "texting": true
+  "images_supported": true,
+  "texting_supported": true,
+  "locations_supported": true
 }
 ```
 
