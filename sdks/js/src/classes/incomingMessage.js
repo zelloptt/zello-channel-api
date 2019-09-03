@@ -78,6 +78,9 @@ class IncomingMessage extends Emitter {
       if (this.player && Utils.isFunction(this.player.destroy) && !IncomingMessage.PersistentPlayer) {
         this.player.destroy();
       }
+      if (this.decoder && Utils.isFunction(this.decoder.destroy)) {
+        this.decoder.destroy();
+      }
       this.session.off([Constants.EVENT_INCOMING_VOICE_DATA, this.instanceId], this.incomingVoiceHandler);
       this.session.off([Constants.EVENT_INCOMING_VOICE_DID_STOP, this.instanceId], this.incomingVoiceDidStopHandler);
     };
