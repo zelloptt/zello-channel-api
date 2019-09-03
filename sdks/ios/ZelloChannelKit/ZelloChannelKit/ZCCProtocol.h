@@ -12,6 +12,7 @@ FOUNDATION_EXPORT NSString * const ZCCCommandKey;
 FOUNDATION_EXPORT NSString * const ZCCCommandLogon;
 FOUNDATION_EXPORT NSString * const ZCCCommandStartStream;
 FOUNDATION_EXPORT NSString * const ZCCCommandStopStream;
+FOUNDATION_EXPORT NSString * const ZCCCommandSendTextMessage;
 
 FOUNDATION_EXPORT NSString * const ZCCSeqKey;
 FOUNDATION_EXPORT NSString * const ZCCAuthTokenKey;
@@ -28,10 +29,15 @@ FOUNDATION_EXPORT NSString * const ZCCStreamIDKey;
 
 FOUNDATION_EXPORT NSString * const ZCCStreamTypeAudio;
 
+FOUNDATION_EXPORT NSString * const ZCCTextContentKey;
+FOUNDATION_EXPORT NSString * const ZCCToUserKey;
+FOUNDATION_EXPORT NSString * const ZCCFromUserKey;
+
 FOUNDATION_EXPORT NSString * const ZCCEventOnChannelStatus;
 FOUNDATION_EXPORT NSString * const ZCCEventOnStreamStart;
 FOUNDATION_EXPORT NSString * const ZCCEventOnStreamStop;
 FOUNDATION_EXPORT NSString * const ZCCEventOnError;
+FOUNDATION_EXPORT NSString * const ZCCEventOnTextMessage;
 
 FOUNDATION_EXPORT NSString * const ZCCChannelStatusStatusKey;
 FOUNDATION_EXPORT NSString * const ZCCChannelStatusNumberOfUsersKey;

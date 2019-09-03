@@ -12,20 +12,30 @@
 #import "QAViewController.h"
 #import "Zello.h"
 
+typedef NS_ENUM(NSInteger, ChannelMessageType) {
+  ChannelMessageTypeVoice,
+  ChannelMessageTypeText
+};
+
 @interface ChannelMessage : NSObject
+@property (nonatomic, readonly) ChannelMessageType type;
 @property (nonatomic) BOOL recording;
 @property (nonatomic, copy) NSString *sender;
 @property (nonatomic, strong) NSDate *receivedDate;
 @property (nonatomic) AudioStreamBasicDescription audioDescription;
 @property (nonatomic, strong) NSMutableData *audioData;
+@property (nonatomic, copy) NSString *textMessage;
+
+- (instancetype)initWithType:(ChannelMessageType)type;
 @end
 
 @implementation ChannelMessage
 
-- (instancetype)init {
+- (instancetype)initWithType:(ChannelMessageType)type {
   self = [super init];
   if (self) {
     _audioData = [NSMutableData data];
+    _type = type;
   }
   return self;
 }
@@ -86,13 +96,23 @@
   }
   ChannelMessage *message = self.messages[indexPath.row];
   cell.textLabel.text = message.sender;
-  cell.detailTextLabel.text = [self.dateFormatter stringFromDate:message.receivedDate];
-  if (message.recording) {
-    cell.textLabel.textColor = UIColor.redColor;
-  } else {
-    cell.textLabel.textColor = UIColor.blackColor;
+  switch (message.type) {
+    case ChannelMessageTypeText:
+      cell.textLabel.textColor = UIColor.blackColor;
+      cell.detailTextLabel.text = message.textMessage;
+      break;
+
+    case ChannelMessageTypeVoice:
+      cell.detailTextLabel.text = [self.dateFormatter stringFromDate:message.receivedDate];
+      if (message.recording) {
+        cell.textLabel.textColor = UIColor.redColor;
+      } else {
+        cell.textLabel.textColor = UIColor.blackColor;
+      }
+      break;
   }
   return cell;
+
 }
 
 #pragma mark - UITableViewDelegate
@@ -119,11 +139,25 @@
   self.monitorSwitch.enabled = NO;
   receiverConfig.playThroughSpeaker = self.monitorSwitch.on;
 
-  ChannelMessage *incoming = [[ChannelMessage alloc] init];
+  ChannelMessage *incoming = [[ChannelMessage alloc] initWithType:ChannelMessageTypeVoice];
   incoming.sender = streamInfo.sender;
   incoming.receivedDate = [NSDate date];
   incoming.recording = YES;
 
+  [self addNewMessage:incoming];
+
+  return receiverConfig;
+}
+
+- (void)session:(ZCCSession *)session didReceiveText:(NSString *)message from:(NSString *)sender {
+  NSLog(@"Text message '%@' from %@", message, sender);
+  ChannelMessage *incoming = [[ChannelMessage alloc] initWithType:ChannelMessageTypeText];
+  incoming.textMessage = message;
+  incoming.sender = sender;
+  [self addNewMessage:incoming];
+}
+
+- (void)addNewMessage:(ChannelMessage *)incoming {
   [self.messagesTableView beginUpdates];
   if (self.messages.count > 4) {
     [self.messages removeObjectAtIndex:4];
@@ -132,8 +166,6 @@
   [self.messages insertObject:incoming atIndex:0];
   [self.messagesTableView insertRowsAtIndexPaths:@[[NSIndexPath indexPathForRow:0 inSection:0]] withRowAnimation:UITableViewRowAnimationTop];
   [self.messagesTableView endUpdates];
-
-  return receiverConfig;
 }
 
 #pragma mark - ZCCVoiceReceiver

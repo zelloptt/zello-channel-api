@@ -32,6 +32,21 @@
   return logonCommand;
 }
 
++ (NSString *)sendText:(NSString *)message sequenceNumber:(NSInteger)sequenceNumber toUser:(NSString *)username {
+  NSMutableDictionary *text = [@{ZCCCommandKey:ZCCCommandSendTextMessage,
+                                 ZCCSeqKey:@(sequenceNumber),
+                                 ZCCTextContentKey:message} mutableCopy];
+  if (username.length > 0) {
+    text[ZCCToUserKey] = username;
+  }
+  NSError *serializationError = nil;
+  NSString *textCommand = [[NSString alloc] initWithData:[NSJSONSerialization dataWithJSONObject:text options:0 error:&serializationError] encoding:NSUTF8StringEncoding];
+  if (!textCommand) {
+    NSLog(@"[ZCC] Error serializing text: %@", serializationError);
+  }
+  return textCommand;
+}
+
 + (NSString *)startStreamWithSequenceNumber:(NSInteger)sequenceNumber params:(ZCCStreamParams *)params {
   NSString *base64Header = [params.codecHeader base64EncodedStringWithOptions:0];
   NSDictionary *startStream = @{ZCCCommandKey:ZCCCommandStartStream,

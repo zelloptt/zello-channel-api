@@ -12,6 +12,7 @@ NSString * const ZCCCommandKey = @"command";
 NSString * const ZCCCommandLogon = @"logon";
 NSString * const ZCCCommandStartStream = @"start_stream";
 NSString * const ZCCCommandStopStream = @"stop_stream";
+NSString * const ZCCCommandSendTextMessage = @"send_text_message";
 
 NSString * const ZCCSeqKey = @"seq";
 NSString * const ZCCAuthTokenKey = @"auth_token";
@@ -28,10 +29,15 @@ NSString * const ZCCStreamIDKey = @"stream_id";
 
 NSString * const ZCCStreamTypeAudio = @"audio";
 
+NSString * const ZCCTextContentKey = @"text";
+NSString * const ZCCToUserKey = @"for";
+NSString * const ZCCFromUserKey = @"from";
+
 NSString * const ZCCEventOnChannelStatus = @"on_channel_status";
 NSString * const ZCCEventOnStreamStart = @"on_stream_start";
 NSString * const ZCCEventOnStreamStop = @"on_stream_stop";
 NSString * const ZCCEventOnError = @"on_error";
+NSString * const ZCCEventOnTextMessage = @"on_text_message";
 
 NSString * const ZCCChannelStatusStatusKey = @"status";
 NSString * const ZCCChannelStatusNumberOfUsersKey = @"users_online";

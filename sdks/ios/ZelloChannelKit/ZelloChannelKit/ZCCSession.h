@@ -17,6 +17,29 @@ NS_ASSUME_NONNULL_BEGIN
 @class ZCCOutgoingVoiceConfiguration;
 @class ZCCOutgoingVoiceStream;
 
+@interface ZCCLocationInfo: NSObject
+@property (nonatomic, readonly) double latitude;
+@property (nonatomic, readonly) double longitude;
+/// Sender's reported accuracy in meters
+@property (nonatomic, readonly) double accuracy;
+/// Reverse geocoded location from the sender
+@property (nonatomic, readonly) NSString *address;
+@end
+
+/**
+ * Describes the features available in the channel that this session is connected to
+ */
+typedef NS_OPTIONS(NSInteger, ZCCChannelFeatures) {
+  /// The channel does not support any features other than voice messages
+  ZCCChannelFeaturesNone = 0,
+  /// If present, the channel supports image messages
+  ZCCChannelFeaturesImageMessages = 1 << 1,
+  /// If present, the channel supports text messages
+  ZCCChannelFeaturesTextMessages = 1 << 2,
+  /// If present, the channel supports location messages
+  ZCCChannelFeaturesLocationMessages = 1 << 3
+};
+
 /**
  * Describes the state of the Zello channels client's connection to the Zello channels server.
  */
@@ -73,6 +96,12 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
 
 /// The current state of the session object
 @property (atomic, readonly) ZCCSessionState state;
+
+/**
+ * Features supported by the currently connected channel. If a message is sent that the server does
+ * not support in this channel, an error will be returned through a delegate callback.
+ */
+@property (nonatomic, readonly) ZCCChannelFeatures channelFeatures;
 
 /// Collection of active streams
 @property (atomic, readonly, nonnull) NSArray <ZCCVoiceStream *> *activeStreams;
@@ -134,6 +163,43 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
  */
 - (void)connect;
 
+
+/**
+ * Sends an image message to the currently connected channel
+ */
+// TODO: Document -sendImage:
+- (void)sendImage:(nonnull UIImage *)image;
+
+/**
+ * Sends an image message to a user in the currently connected channel.
+ */
+// TODO: Document -sendImage:toUser:
+- (void)sendImage:(nonnull UIImage *)image toUser:(nonnull NSString *)username NS_SWIFT_NAME(sendImage(_:to:));
+
+/**
+ * Sends the user's current location to the channel
+ */
+// TODO: Document -sendLocation
+- (void)sendLocation;
+
+/**
+ * Sends the user's current location to a user in the currently connected channel
+ */
+// TODO: Document -sendLocationToUser:
+- (void)sendLocationToUser:(NSString *)username NS_SWIFT_NAME(sendLocation(to:));
+
+/**
+ * Sends a text message to the channel
+ */
+// TODO: Document -sendText:
+- (void)sendText:(NSString *)text;
+
+/**
+ * Sends a text message to a user in the currently connected channel
+ */
+// TODO: Document -sendText:toUser:
+- (void)sendText:(NSString *)text toUser:(NSString *)username NS_SWIFT_NAME(sendText(_:to:));
+
 /**
  * Creates and starts a voice stream to the server.
  *
@@ -144,6 +210,20 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
  * granted to the app, returns nil.
  */
 - (nullable ZCCOutgoingVoiceStream *)startVoiceMessage;
+
+/**
+ * Creates and starts a voice stream to a specific user in the channel.
+ *
+ * The stream is created synchronously but started asynchronously, so it won't actually begin
+ * transmitting until a session:outgoingVoiceDidChangeState: message is sent to the delegate.
+ *
+ * @param username the username for the user to send the message to. Other users in the channel
+ *                 won't receive the message.
+ *
+ * @return the stream that will be handling the voice message. If microphone permission has not been
+ *         granted to the app, returns nil.
+ */
+- (nullable ZCCOutgoingVoiceStream *)startVoiceMessageToUser:(nonnull NSString *)username NS_SWIFT_NAME(startVoiceMessage(to:));
 
 /**
  * Creates and starts a voice stream to the server using a custom voice source instead of the device
@@ -159,12 +239,36 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
  */
 - (ZCCOutgoingVoiceStream *)startVoiceMessageWithSource:(ZCCOutgoingVoiceConfiguration *)sourceConfiguration;
 
+/**
+ * Creates a voice stream to a user in the channel, with a custom voice source
+ */
+// TODO: Document -startVoiceMessageToUser:source:
+- (ZCCOutgoingVoiceStream *)startVoiceMessageToUser:(NSString *)username source:(ZCCOutgoingVoiceConfiguration *)sourceConfiguration NS_SWIFT_NAME(startVoiceMessage(to:source:));
+
 @end
 
 /**
  * When events occur in the Zello session, they are reported to the delegate.
  */
 @protocol ZCCSessionDelegate <NSObject>
+
+@optional
+/**
+ * Called when an image message is received
+ */
+- (void)session:(ZCCSession *)session didReceiveImage:(UIImage *)image from:(NSString *)sender;
+
+/**
+ * Called when a text message is received
+ */
+@optional
+- (void)session:(ZCCSession *)session didReceiveText:(NSString *)message from:(NSString *)sender;
+
+/**
+ * Called when a location message is received
+ */
+@optional
+- (void)session:(ZCCSession *)session didReceiveLocation:(ZCCLocationInfo *)location from:(NSString *)sender;
 
 @optional
 /**

@@ -30,6 +30,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)socket:(ZCCSocket *)socket didReceiveAudioData:(NSData *)data streamId:(NSUInteger)streamId packetId:(NSUInteger)packetId;
 
+- (void)socket:(ZCCSocket *)socket didReceiveTextMessage:(NSString *)message sender:(NSString *)sender;
+
 /**
  * Called if we receive a binary message with an unrecognized type byte. data contains the entire
  * data message, including the type byte. If we receive a binary message of length zero, this will
@@ -81,6 +83,8 @@ typedef void (^ZCCStartStreamCallback)(BOOL succeeded, NSUInteger streamId, NSSt
 - (void)open;
 
 - (void)sendLogonWithAuthToken:(nullable NSString *)authToken refreshToken:(nullable NSString *)refreshToken channel:(NSString *)channel username:(NSString *)username password:(NSString *)password callback:(ZCCLogonCallback)callback timeoutAfter:(NSTimeInterval)timeout;
+
+- (void)sendTextMessage:(NSString *)message toUser:(nullable NSString *)username timeoutAfter:(NSTimeInterval)timeout;
 
 - (void)sendStartStreamWithParams:(ZCCStreamParams *)params callback:(ZCCStartStreamCallback)callback timeoutAfter:(NSTimeInterval)timeout;
 

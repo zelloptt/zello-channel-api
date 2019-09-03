@@ -59,6 +59,9 @@ static void LogWarningForDevelopmentToken(NSString *token) {
   return;
 }
 
+@implementation ZCCLocationInfo
+@end
+
 @interface ZCCSession () <ZCCSocketDelegate, ZCCVoiceStreamsManagerDelegate>
 
 @property (nonatomic, strong, nonnull) ZCCPermissionsManager *permissionsManager;
@@ -127,6 +130,11 @@ static void LogWarningForDevelopmentToken(NSString *token) {
   return self.streamsManager.activeStreams;
 }
 
+- (ZCCChannelFeatures)channelFeatures {
+  // TODO: Implement -channelFeatures
+  return ZCCChannelFeaturesNone;
+}
+
 - (NSTimeInterval)requestTimeout {
   __block NSTimeInterval timeout;
   [self.runner runSync:^{
@@ -190,6 +198,30 @@ static void LogWarningForDevelopmentToken(NSString *token) {
   }];
 }
 
+- (void)sendImage:(UIImage *)image {
+  // TODO: Implement -sendImage:
+}
+
+- (void)sendImage:(UIImage *)image toUser:(NSString *)username {
+  // TODO: Implement -sendImage:toUser:
+}
+
+- (void)sendLocation {
+  // TODO: Implement -sendLocation
+}
+
+- (void)sendLocationToUser:(NSString *)username {
+  // TODO: Implement -sendLocationToUser:
+}
+
+- (void)sendText:(NSString *)text {
+  [self.webSocket sendTextMessage:text toUser:nil timeoutAfter:self.requestTimeout];
+}
+
+- (void)sendText:(NSString *)text toUser:(NSString *)username {
+  [self.webSocket sendTextMessage:text toUser:username timeoutAfter:self.requestTimeout];
+}
+
 - (ZCCOutgoingVoiceStream *)startVoiceMessage {
   if (self.state != ZCCSessionStateConnected) {
     return nil;
@@ -201,6 +233,11 @@ static void LogWarningForDevelopmentToken(NSString *token) {
   return [self startStreamWithConfiguration:nil];
 }
 
+- (ZCCOutgoingVoiceStream *)startVoiceMessageToUser:(NSString *)username {
+  // TODO: Implement -startVoiceMessageToUser:
+  return nil;
+}
+
 - (ZCCOutgoingVoiceStream *)startVoiceMessageWithSource:(ZCCOutgoingVoiceConfiguration *)sourceConfiguration {
   // Validate configuration
   if (![ZCCOutgoingVoiceConfiguration.supportedSampleRates containsObject:@(sourceConfiguration.sampleRate)]) {
@@ -209,6 +246,11 @@ static void LogWarningForDevelopmentToken(NSString *token) {
   }
 
   return [self startStreamWithConfiguration:sourceConfiguration];
+}
+
+- (ZCCOutgoingVoiceStream *)startVoiceMessageToUser:(NSString *)username source:(ZCCOutgoingVoiceConfiguration *)sourceConfiguration {
+  // TODO: Implement -startVoiceMessageToUser:source:
+  return nil;
 }
 
 #pragma mark - ZCCVoiceStreamsManagerDelegate
@@ -386,6 +428,15 @@ static void LogWarningForDevelopmentToken(NSString *token) {
 - (void)socket:(ZCCSocket *)socket didReceiveAudioData:(NSData *)data streamId:(NSUInteger)streamId packetId:(NSUInteger)packetId {
   NSLog(@"[ZCC] Incoming data for stream %ld (packet %ld)", (long)streamId, (long)packetId);
   [self.streamsManager onIncomingData:data streamId:streamId packetId:packetId];
+}
+
+- (void)socket:(ZCCSocket *)socket didReceiveTextMessage:(NSString *)message sender:(NSString *)sender {
+  id<ZCCSessionDelegate> delegate = self.delegate;
+  if ([delegate respondsToSelector:@selector(session:didReceiveText:from:)]) {
+    dispatch_async(self.delegateCallbackQueue, ^{
+      [delegate session:self didReceiveText:message from:sender];
+    });
+  }
 }
 
 - (void)socket:(nonnull ZCCSocket *)socket didReportError:(nonnull NSString *)errorMessage {
