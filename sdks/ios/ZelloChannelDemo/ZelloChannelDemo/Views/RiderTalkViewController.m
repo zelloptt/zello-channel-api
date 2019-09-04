@@ -10,15 +10,17 @@
 
 #import "RiderTalkViewController.h"
 #import "common.h"
+#import "Zello.h"
 
 @interface RiderTalkViewController () <ZCCSessionDelegate>
-@property (nonatomic, strong) IBOutlet UIButton *buttonCancel;
-@property (nonatomic, strong) IBOutlet UIButton *buttonDetail;
-@property (nonatomic, strong) IBOutlet UILabel *labelTitle;
-@property (nonatomic, strong) IBOutlet UILabel *labelDetail;
-@property (nonatomic, strong) IBOutlet UILabel *labelHeaderTitle;
-@property (nonatomic, strong) IBOutlet UILabel *labelHeaderDetail;
-@property (nonatomic, strong) IBOutlet UIImageView *imageViewAvatar;
+@property (nonatomic, weak) IBOutlet UIButton *buttonCancel;
+@property (nonatomic, weak) IBOutlet UIButton *buttonDetail;
+@property (nonatomic, weak) IBOutlet UILabel *labelTitle;
+@property (nonatomic, weak) IBOutlet UILabel *labelDetail;
+@property (nonatomic, weak) IBOutlet UILabel *labelHeaderTitle;
+@property (nonatomic, weak) IBOutlet UILabel *labelHeaderDetail;
+@property (nonatomic, weak) IBOutlet UIImageView *imageViewAvatar;
+@property (nonatomic, weak) IBOutlet UITextField *feedbackTextField;
 @end
 
 @implementation RiderTalkViewController
@@ -43,6 +45,13 @@
 - (IBAction)onButtonCancel:(id)sender {
   [self.navigationController.navigationBar setBarStyle:UIBarStyleBlack];
   [self.navigationController popViewControllerAnimated:YES];
+}
+
+- (IBAction)sendTextMessage {
+  if (self.feedbackTextField.text.length > 0) {
+    [Zello.session sendText:self.feedbackTextField.text];
+    self.feedbackTextField.text = nil;
+  }
 }
 
 #pragma mark - ZCCSessionDelegate

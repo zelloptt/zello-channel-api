@@ -17,7 +17,8 @@
 
 typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
   ZCCSocketRequestTypeLogon = 1,
-  ZCCSocketRequestTypeStartStream
+  ZCCSocketRequestTypeStartStream,
+  ZCCSocketRequestTypeTextMessage
 };
 
 @interface ZCCSocketResponseCallback : NSObject
@@ -115,6 +116,20 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
       callback(NO, nil, failureReason);
     } timeoutBlock:^(ZCCSocketResponseCallback *responseCallback) {
       responseCallback.logonCallback(NO, nil, @"Timed out");
+    }];
+  }];
+}
+
+- (void)sendTextMessage:(NSString *)message toUser:(NSString *)username timeoutAfter:(NSTimeInterval)timeout {
+  [self.workRunner runSync:^{
+    [self sendRequest:^NSString *(NSInteger seqNo) {
+      return [ZCCCommands sendText:message sequenceNumber:seqNo toUser:username];
+    } type:ZCCSocketRequestTypeTextMessage timeout:timeout prepareCallback:^(ZCCSocketResponseCallback *responseCallback) {
+      // TODO: Implement response prep handler
+    } failBlock:^(NSString *failureReason) {
+      // TODO: Implement failure handler
+    } timeoutBlock:^(ZCCSocketResponseCallback *responseCallback) {
+      // TODO: Implement timeout handler
     }];
   }];
 }
@@ -305,6 +320,10 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
     }
     if ([command isEqualToString:ZCCEventOnError]) {
       [self handleError:json original:string];
+      return;
+    }
+    if ([command isEqualToString:ZCCEventOnTextMessage]) {
+      [self handleTextMessage:json original:string];
       return;
     }
 
@@ -524,6 +543,24 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
       [delegate socket:self didReportError:errorMessage];
     }];
   }
+}
+
+- (void)handleTextMessage:(NSDictionary *)encoded original:(NSString *)original {
+  id message = encoded[ZCCTextContentKey];
+  if (![message isKindOfClass:[NSString class]]) {
+    [self reportInvalidStringMessage:original];
+    return;
+  }
+  id sender = encoded[ZCCFromUserKey];
+  if (![sender isKindOfClass:[NSString class]]) {
+    [self reportInvalidStringMessage:original];
+    return;
+  }
+
+  id<ZCCSocketDelegate> delegate = self.delegate;
+  [self.delegateRunner runAsync:^{
+    [delegate socket:self didReceiveTextMessage:message sender:sender];
+  }];
 }
 
 - (void)reportInvalidStringMessage:(NSString *)message {
