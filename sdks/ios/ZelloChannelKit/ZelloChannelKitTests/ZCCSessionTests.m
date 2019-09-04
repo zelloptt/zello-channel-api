@@ -333,6 +333,36 @@
   OCMVerifyAll(self.sessionDelegate);
 }
 
+#pragma mark -sendText:
+
+- (void)testSendText_SendsSocketMessage {
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+  [self connectSession:session];
+
+  XCTestExpectation *textSent = [[XCTestExpectation alloc] initWithDescription:@"send_text_message sent"];
+  OCMExpect([self.socket sendTextMessage:@"test message" toUser:nil timeoutAfter:30.0]).andDo(^(NSInvocation *invocation) {
+    [textSent fulfill];
+  });
+  [session sendText:@"test message"];
+
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[textSent] timeout:3.0], XCTWaiterResultCompleted);
+  OCMVerifyAll(self.socket);
+}
+
+- (void)testSendTextToUser_SendsSocketMessage {
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+  [self connectSession:session];
+
+  XCTestExpectation *textSent = [[XCTestExpectation alloc] initWithDescription:@"send_text_message sent"];
+  OCMExpect([self.socket sendTextMessage:@"test message" toUser:@"bogusUser" timeoutAfter:30.0]).andDo(^(NSInvocation *invocation) {
+    [textSent fulfill];
+  });
+  [session sendText:@"test message" toUser:@"bogusUser"];
+
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[textSent] timeout:3.0], XCTWaiterResultCompleted);
+  OCMVerifyAll(self.socket);
+}
+
 #pragma mark ZCCSocketDelegate
 
 // Verify that we report a connection loss during logon correctly
@@ -427,6 +457,22 @@
   OCMVerify([streamsManager onIncomingStreamStart:23 header:params.codecHeader packetDuration:46 channel:@"test" from:@"sender" receiverConfiguration:[OCMArg checkWithBlock:^BOOL(ZCCIncomingVoiceConfiguration *actual) {
     return actual.playThroughSpeaker == NO && actual.receiver == customReceiver;
   }]]);
+}
+
+// Verify that we report text messages
+- (void)testSocketDidReceiveText_CallsDelegate {
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+  [self connectSession:session];
+
+  XCTestExpectation *received = [[XCTestExpectation alloc] initWithDescription:@"Received text"];
+  OCMExpect([self.sessionDelegate session:session didReceiveText:@"test message" from:@"exampleSender"]).andDo(^(NSInvocation *invocation) {
+    [received fulfill];
+  });
+
+  [session socket:self.socket didReceiveTextMessage:@"test message" sender:@"exampleSender"];
+
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[received] timeout:3.0], XCTWaiterResultCompleted);
+  OCMVerifyAll(self.sessionDelegate);
 }
 
 @end

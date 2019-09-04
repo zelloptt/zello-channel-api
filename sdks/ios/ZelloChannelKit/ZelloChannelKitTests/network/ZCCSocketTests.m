@@ -12,11 +12,19 @@
 #import "ZCCSocket.h"
 #import "ZCCWebSocketFactory.h"
 
+static BOOL messageIsEqualToDictionary(NSString *message, NSDictionary *expected) {
+  NSData *messageData = [message dataUsingEncoding:NSUTF8StringEncoding];
+  NSDictionary *actual = [NSJSONSerialization JSONObjectWithData:messageData options:0 error:NULL];
+  return [expected isEqualToDictionary:actual];
+}
+
 @interface ZCCSocket (Testing) <ZCCSRWebSocketDelegate>
 @end
 
 @interface ZCCSocketTests : XCTestCase
 @property (nonatomic, strong) ZCCSocket *socket;
+/// Mocked ZCCSocketDelegate
+@property (nonatomic, strong) id socketDelegate;
 
 /// Mocked underlying ZCCSRWebSocket
 @property (nonatomic, strong) id webSocket;
@@ -35,6 +43,8 @@
     return self.webSocket;
   };
   self.socket = [[ZCCSocket alloc] initWithURL:[NSURL URLWithString:@"wss://example.com/"] socketFactory:factory];
+  self.socketDelegate = OCMProtocolMock(@protocol(ZCCSocketDelegate));
+  self.socket.delegate = self.socketDelegate;
 
   self.logonCallbackCalled = [[XCTestExpectation alloc] initWithDescription:@"Logon callback called"];
 }
@@ -75,9 +85,7 @@
                              @"password":@"pass",
                              @"channel":@"channel"};
   OCMExpect([self.webSocket sendString:[OCMArg checkWithBlock:^BOOL(NSString *message) {
-    NSData *messageData = [message dataUsingEncoding:NSUTF8StringEncoding];
-    NSDictionary *actual = [NSJSONSerialization JSONObjectWithData:messageData options:0 error:NULL];
-    return [expected isEqualToDictionary:actual];
+    return messageIsEqualToDictionary(message, expected);
   }] error:(NSError * __autoreleasing *)[OCMArg anyPointer]]).andReturn(YES);
 
   [self.socket sendLogonWithAuthToken:@"token" refreshToken:nil channel:@"channel" username:@"user" password:@"pass" callback:logonCallback timeoutAfter:0.0];
@@ -168,6 +176,75 @@
   [self.socket sendLogonWithAuthToken:@"token" refreshToken:nil channel:@"channel" username:@"user" password:@"pass" callback:logonCallback timeoutAfter:0.0];
   XCTAssertEqual([XCTWaiter waitForExpectations:@[self.logonCallbackCalled] timeout:3.0], XCTWaiterResultCompleted);
   OCMVerifyAll(self.webSocket);
+}
+
+#pragma mark Texting
+
+// Verify that we send the right command for a text to the whole channel
+- (void)testSendText_noUser_sendsCommand {
+  NSDictionary *expected = @{@"command":@"send_text_message",
+                             @"seq":@(1),
+                             @"text":@"test message"};
+  OCMExpect([self.webSocket sendString:[OCMArg checkWithBlock:^BOOL(NSString *message) {
+    return messageIsEqualToDictionary(message, expected);
+  }] error:(NSError * __autoreleasing *)[OCMArg anyPointer]]).andReturn(YES);
+
+  [self.socket sendTextMessage:@"test message" toUser:nil timeoutAfter:30.0];
+
+  OCMVerifyAll(self.webSocket);
+}
+
+// Verify that we send the right command for a text to a specific user
+- (void)testSendText_toUser_sendsCommand {
+  NSDictionary *expected = @{@"command":@"send_text_message",
+                             @"seq":@(1),
+                             @"text":@"test message",
+                             @"for":@"bogusUser"};
+  OCMExpect([self.webSocket sendString:[OCMArg checkWithBlock:^BOOL(NSString *message) {
+    return messageIsEqualToDictionary(message, expected);
+  }] error:(NSError * __autoreleasing *)[OCMArg anyPointer]]).andReturn(YES);
+
+  [self.socket sendTextMessage:@"test message" toUser:@"bogusUser" timeoutAfter:30.0];
+
+  OCMVerifyAll(self.webSocket);
+}
+
+- (void)testReceiveText_postsToDelegate {
+  NSString *event = @"{\"command\":\"on_text_message\",\"channel\":\"exampleChannel\",\"from\":\"exampleSender\",\"message_id\":3456,\"text\":\"my test message\"}";
+  XCTestExpectation *receivedText = [[XCTestExpectation alloc] initWithDescription:@"delegate called"];
+  OCMExpect([self.socketDelegate socket:self.socket didReceiveTextMessage:@"my test message" sender:@"exampleSender"]).andDo(^(NSInvocation *invocation) {
+    [receivedText fulfill];
+  });
+
+  [self.socket webSocket:self.webSocket didReceiveMessageWithString:event];
+
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[receivedText] timeout:3.0], XCTWaiterResultCompleted);
+  OCMVerifyAll(self.socketDelegate);
+}
+
+- (void)testReceiveText_invalidMessages {
+  // Missing message text
+  NSString *event = @"{\"command\":\"on_text_message\",\"channel\":\"exampleChannel\",\"from\":\"exampleSender\",\"message_id\":1234}";
+  XCTestExpectation *posted = [[XCTestExpectation alloc] initWithDescription:@"delegate called"];
+  OCMExpect([self.socketDelegate socket:self.socket didReceiveUnrecognizedMessage:event]).andDo(^(NSInvocation *invocation) {
+    [posted fulfill];
+  });
+
+  [self.socket webSocket:self.webSocket didReceiveMessageWithString:event];
+
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[posted] timeout:3.0], XCTWaiterResultCompleted);
+  OCMVerifyAll(self.socketDelegate);
+
+  event = @"{\"command\":\"on_text_message\",\"channel\":\"exampleChannel\",\"message_id\":1234,\"text\":\"my test message\"}";
+  XCTestExpectation *again = [[XCTestExpectation alloc] initWithDescription:@"delegate called"];
+  OCMExpect([self.socketDelegate socket:self.socket didReceiveUnrecognizedMessage:event]).andDo(^(NSInvocation *invocation) {
+    [again fulfill];
+  });
+
+  [self.socket webSocket:self.webSocket didReceiveMessageWithString:event];
+
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[again] timeout:3.0], XCTWaiterResultCompleted);
+  OCMVerifyAll(self.socketDelegate);
 }
 
 @end
