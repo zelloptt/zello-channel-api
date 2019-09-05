@@ -81,6 +81,9 @@ static void LogWarningForDevelopmentToken(NSString *token) {
 @property (nonatomic, copy, nullable) NSString *refreshToken;
 @property (nonatomic) NSTimeInterval nextReconnectDelay;
 
+/// Returns whether the session is connected and has record permission so we can send a voice message
+@property (nonatomic, readonly) BOOL readyToSendVoiceMessages;
+
 @end
 
 @implementation ZCCSession {
@@ -133,6 +136,17 @@ static void LogWarningForDevelopmentToken(NSString *token) {
 - (ZCCChannelFeatures)channelFeatures {
   // TODO: Implement -channelFeatures
   return ZCCChannelFeaturesNone;
+}
+
+- (BOOL)readyToSendVoiceMessages {
+  if (self.state != ZCCSessionStateConnected) {
+    return NO;
+  }
+  if ([self.permissionsManager recordPermission] != AVAudioSessionRecordPermissionGranted) {
+    return NO;
+  }
+
+  return YES;
 }
 
 - (NSTimeInterval)requestTimeout {
@@ -215,27 +229,27 @@ static void LogWarningForDevelopmentToken(NSString *token) {
 }
 
 - (void)sendText:(NSString *)text {
-  [self.webSocket sendTextMessage:text toUser:nil timeoutAfter:self.requestTimeout];
+  [self.webSocket sendTextMessage:text recipient:nil timeoutAfter:self.requestTimeout];
 }
 
 - (void)sendText:(NSString *)text toUser:(NSString *)username {
-  [self.webSocket sendTextMessage:text toUser:username timeoutAfter:self.requestTimeout];
+  [self.webSocket sendTextMessage:text recipient:username timeoutAfter:self.requestTimeout];
 }
 
 - (ZCCOutgoingVoiceStream *)startVoiceMessage {
-  if (self.state != ZCCSessionStateConnected) {
-    return nil;
-  }
-  if ([self.permissionsManager recordPermission] != AVAudioSessionRecordPermissionGranted) {
+  if (!self.readyToSendVoiceMessages) {
     return nil;
   }
 
-  return [self startStreamWithConfiguration:nil];
+  return [self startStreamWithConfiguration:nil recipient:nil];
 }
 
 - (ZCCOutgoingVoiceStream *)startVoiceMessageToUser:(NSString *)username {
-  // TODO: Implement -startVoiceMessageToUser:
-  return nil;
+  if (!self.readyToSendVoiceMessages) {
+    return nil;
+  }
+
+  return [self startStreamWithConfiguration:nil recipient:username];
 }
 
 - (ZCCOutgoingVoiceStream *)startVoiceMessageWithSource:(ZCCOutgoingVoiceConfiguration *)sourceConfiguration {
@@ -244,8 +258,11 @@ static void LogWarningForDevelopmentToken(NSString *token) {
     NSException *parameterException = [NSException exceptionWithName:NSInvalidArgumentException reason:@"Unsupported sampleRate. Check ZCCOutgoingVoiceConfiguration.supportedSampleRates." userInfo:nil];
     @throw parameterException;
   }
+  if (!self.readyToSendVoiceMessages) {
+    return nil;
+  }
 
-  return [self startStreamWithConfiguration:sourceConfiguration];
+  return [self startStreamWithConfiguration:sourceConfiguration recipient:nil];
 }
 
 - (ZCCOutgoingVoiceStream *)startVoiceMessageToUser:(NSString *)username source:(ZCCOutgoingVoiceConfiguration *)sourceConfiguration {
@@ -552,10 +569,10 @@ static void LogWarningForDevelopmentToken(NSString *token) {
     self.webSocket = nil;
 }
 
-- (ZCCOutgoingVoiceStream *)startStreamWithConfiguration:(ZCCOutgoingVoiceConfiguration *)configuration {
+- (ZCCOutgoingVoiceStream *)startStreamWithConfiguration:(ZCCOutgoingVoiceConfiguration *)configuration recipient:(NSString *)username {
   __block ZCCOutgoingVoiceStream *stream;
   [self.runner runSync:^{
-    stream = [self.streamsManager startStream:self.channel socket:self.webSocket voiceConfiguration:configuration];
+    stream = [self.streamsManager startStream:self.channel recipient:username socket:self.webSocket voiceConfiguration:configuration];
   }];
   return stream;
 }

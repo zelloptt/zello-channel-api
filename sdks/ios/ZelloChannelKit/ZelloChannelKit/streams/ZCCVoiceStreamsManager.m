@@ -32,10 +32,10 @@ static const NSTimeInterval streamsCheckIntervalSec = 1.0;
   return self;
 }
 
-- (ZCCOutgoingVoiceStream *)startStream:(NSString *)channel socket:(ZCCSocket *)socket voiceConfiguration:(ZCCOutgoingVoiceConfiguration *)configuration {
+- (ZCCOutgoingVoiceStream *)startStream:(NSString *)channel recipient:(NSString *)username socket:(ZCCSocket *)socket voiceConfiguration:(ZCCOutgoingVoiceConfiguration *)configuration {
   [self stopStream];
 
-  ZCCOutgoingVoiceStream *stream = [[ZCCOutgoingVoiceStream alloc] initWithChannel:channel socket:socket configuration:configuration];
+  ZCCOutgoingVoiceStream *stream = [[ZCCOutgoingVoiceStream alloc] initWithChannel:channel recipient:username socket:socket configuration:configuration];
   stream.delegate = self;
 
   [self runAsync:^{
