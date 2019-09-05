@@ -138,14 +138,14 @@ static void LogWarningForDevelopmentToken(NSString *token) {
 - (NSTimeInterval)requestTimeout {
   __block NSTimeInterval timeout;
   [self.runner runSync:^{
-    timeout = _requestTimeout;
+    timeout = self->_requestTimeout;
   }];
   return timeout;
 }
 
 - (void)setRequestTimeout:(NSTimeInterval)timeout {
   [self.runner runSync:^{
-    _requestTimeout = timeout;
+    self->_requestTimeout = timeout;
     self.streamsManager.requestTimeout = timeout;
   }];
 }

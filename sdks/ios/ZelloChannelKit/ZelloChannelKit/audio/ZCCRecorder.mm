@@ -93,23 +93,23 @@ static void AQInputPropertyChangedHandler(void *inUserData, AudioQueueRef inAQ, 
 
 - (void)dealloc {
   [_runner runSync:^{
-    if (_started && !_stopped) {
-      AudioQueueRemovePropertyListener(_queue, kAudioQueueProperty_IsRunning, AQInputPropertyChangedHandler, (__bridge void *)_selfRef);
-      _stopped = YES;
-      [_delegate audioSourceDidStop:self];
+    if (self->_started && !self->_stopped) {
+      AudioQueueRemovePropertyListener(self->_queue, kAudioQueueProperty_IsRunning, AQInputPropertyChangedHandler, (__bridge void *)self->_selfRef);
+      self->_stopped = YES;
+      [self->_delegate audioSourceDidStop:self];
     }
-    if (_queue) {
-      AudioQueueReset(_queue);
-      AudioQueueDispose(_queue, true);
-      _queue = NULL;
+    if (self->_queue) {
+      AudioQueueReset(self->_queue);
+      AudioQueueDispose(self->_queue, true);
+      self->_queue = NULL;
     }
-    if (_buffer != NULL) {
-      free(_buffer);
-      _buffer = NULL;
+    if (self->_buffer != NULL) {
+      free(self->_buffer);
+      self->_buffer = NULL;
     }
-    if (_levels != NULL) {
-      free(_levels);
-      _levels = NULL;
+    if (self->_levels != NULL) {
+      free(self->_levels);
+      self->_levels = NULL;
     }
   }];
 }
@@ -121,22 +121,22 @@ static void AQInputPropertyChangedHandler(void *inUserData, AudioQueueRef inAQ, 
     }
 
     /// Means we were already deallocated
-    if (_buffer == NULL) {
+    if (self->_buffer == NULL) {
       return;
     }
 
     if (inBuffer->mAudioDataByteSize > 0) {
       self.totalRecorded += inBuffer->mAudioDataByteSize;
 
-      memcpy(_buffer + self.offset, inBuffer->mAudioData, inBuffer->mAudioDataByteSize);
+      memcpy(self->_buffer + self.offset, inBuffer->mAudioData, inBuffer->mAudioDataByteSize);
       self.offset += inBuffer->mAudioDataByteSize;
 
       if (self.offset >= self.bufferSize) {
-        [self.delegate audioSource:self didProduceData:[NSData dataWithBytes:_buffer length:(NSUInteger)self.bufferSize]];
+        [self.delegate audioSource:self didProduceData:[NSData dataWithBytes:self->_buffer length:(NSUInteger)self.bufferSize]];
         self.totalSent += self.bufferSize;
         self.offset -= self.bufferSize;
         if (self.offset > 0) {
-          memcpy(_buffer, _buffer + self.bufferSize, (size_t)self.offset);
+          memcpy(self->_buffer, self->_buffer + self.bufferSize, (size_t)self.offset);
         }
       }
     }
@@ -185,21 +185,21 @@ static void AQInputPropertyChangedHandler(void *inUserData, AudioQueueRef inAQ, 
     if (self.prepared) {
       return;
     }
-    _streamDescription = [ZCCAudioUtils audioStreamBasicDescriptionWithChannels:(NSInteger)channels sampleRate:(NSInteger)sampleRate];
+    self->_streamDescription = [ZCCAudioUtils audioStreamBasicDescriptionWithChannels:(NSInteger)channels sampleRate:(NSInteger)sampleRate];
 
     self.nChannels = channels;
-    _levels = (AudioQueueLevelMeterState *)malloc(channels * sizeof(AudioQueueLevelMeterState));
-    self.bufferSize = _streamDescription.mBytesPerFrame * count;
+    self->_levels = (AudioQueueLevelMeterState *)malloc(channels * sizeof(AudioQueueLevelMeterState));
+    self.bufferSize = self->_streamDescription.mBytesPerFrame * count;
     self.queueBufferSize = MAX(80u, self.bufferSize / 4);
 
-    _buffer = (unsigned char *)malloc(2 * self.bufferSize);
+    self->_buffer = (unsigned char *)malloc(2 * self.bufferSize);
     self.offset = 0;
     self.totalSent = 0;
     self.totalRecorded = 0;
 
     NSRunLoop *rl = [ZCCAudioHelper instance].audioRunLoop;
-    OSStatus error = AudioQueueNewInput(&_streamDescription, AQInputBufferHandler, (__bridge void *)self.selfRef,
-                                        rl.getCFRunLoop, kCFRunLoopCommonModes, 0, &_queue);
+    OSStatus error = AudioQueueNewInput(&self->_streamDescription, AQInputBufferHandler, (__bridge void *)self.selfRef,
+                                        rl.getCFRunLoop, kCFRunLoopCommonModes, 0, &self->_queue);
 
     id<ZCCAudioSourceDelegate> delegate = self.delegate;
     if (error) {
@@ -208,17 +208,17 @@ static void AQInputPropertyChangedHandler(void *inUserData, AudioQueueRef inAQ, 
     }
 
     UInt32 set = 1;
-    AudioQueueSetProperty(_queue, kAudioQueueProperty_EnableLevelMetering, &set, sizeof(set));
+    AudioQueueSetProperty(self->_queue, kAudioQueueProperty_EnableLevelMetering, &set, sizeof(set));
 
-    error = AudioQueueAddPropertyListener(_queue, kAudioQueueProperty_IsRunning, AQInputPropertyChangedHandler, (__bridge void *)self.selfRef);
+    error = AudioQueueAddPropertyListener(self->_queue, kAudioQueueProperty_IsRunning, AQInputPropertyChangedHandler, (__bridge void *)self.selfRef);
     if (error != noErr) {
       [delegate audioSourceDidEncounterInitializationError:self];
       return;
     }
 
     for (NSInteger i = 0; i < kNumberBuffers; ++i) {
-      AudioQueueAllocateBuffer(_queue, (UInt32)self.queueBufferSize, &_buffers[i]);
-      AudioQueueEnqueueBuffer(_queue, _buffers[i], 0, NULL);
+      AudioQueueAllocateBuffer(self->_queue, (UInt32)self.queueBufferSize, &self->_buffers[i]);
+      AudioQueueEnqueueBuffer(self->_queue, self->_buffers[i], 0, NULL);
     }
     self.prepared = YES;
 
@@ -237,13 +237,13 @@ static void AQInputPropertyChangedHandler(void *inUserData, AudioQueueRef inAQ, 
     self.started = NO;
     self.stopped = NO;
     self.shouldStop = NO;
-    OSStatus error = AudioQueueStart(_queue, NULL);
+    OSStatus error = AudioQueueStart(self->_queue, NULL);
     if (error) {
       NSString *category = [[ZCCAudioHelper instance] getAudioCategory];
        if ([category compare:AVAudioSessionCategoryPlayAndRecord] != NSOrderedSame) {
         [[ZCCAudioHelper instance] setAudioCategoryPlayAndRecord];
       }
-      error = AudioQueueStart(_queue, NULL);
+      error = AudioQueueStart(self->_queue, NULL);
       if (error) {
         self.stopped = YES;
         [self.delegate audioSourceDidEncounterError:self];
@@ -263,8 +263,8 @@ static void AQInputPropertyChangedHandler(void *inUserData, AudioQueueRef inAQ, 
     }
 
     self.shouldStop = YES;
-    AudioQueueFlush(_queue);
-    AudioQueueStop(_queue, false);
+    AudioQueueFlush(self->_queue);
+    AudioQueueStop(self->_queue, false);
     // Handle the case when we stop before we started
     if (!self.started) {
       self.stopped = YES;
@@ -290,17 +290,17 @@ static void AQInputPropertyChangedHandler(void *inUserData, AudioQueueRef inAQ, 
   __block NSNumber *res = @ - 100.0;
 
   [self.runner runSync:^{
-    if (_queue == NULL || self.stopped) {
+    if (self->_queue == NULL || self.stopped) {
       return;
     }
     UInt32 data_sz = (UInt32)self.nChannels * sizeof(AudioQueueLevelMeterState);
-    OSStatus status = AudioQueueGetProperty(_queue, kAudioQueueProperty_CurrentLevelMeterDB, _levels, &data_sz);
+    OSStatus status = AudioQueueGetProperty(self->_queue, kAudioQueueProperty_CurrentLevelMeterDB, self->_levels, &data_sz);
     if (status) {
       return;
     }
     float maxPower = -100.0;
     for (NSUInteger i = 0; i < self.nChannels; ++i) {
-      maxPower = MAX(maxPower, (float)_levels[i].mAveragePower);
+      maxPower = MAX(maxPower, (float)self->_levels[i].mAveragePower);
     }
     res = [NSNumber numberWithFloat:maxPower];
   }];
