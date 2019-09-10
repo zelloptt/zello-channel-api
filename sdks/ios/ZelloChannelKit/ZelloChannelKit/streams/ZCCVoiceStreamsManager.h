@@ -31,7 +31,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, weak, nullable) id<ZCCVoiceStreamsManagerDelegate> delegate;
 @property (nonatomic) NSTimeInterval requestTimeout;
 
-- (ZCCOutgoingVoiceStream *)startStream:(NSString *)channel socket:(ZCCSocket *)socket voiceConfiguration:(nullable ZCCOutgoingVoiceConfiguration *)configuration;
+- (ZCCOutgoingVoiceStream *)startStream:(NSString *)channel recipient:(nullable NSString *)username socket:(ZCCSocket *)socket voiceConfiguration:(nullable ZCCOutgoingVoiceConfiguration *)configuration;
 - (void)stopStream;
 - (void)onIncomingData:(NSData *)data streamId:(NSUInteger)streamId packetId:(NSUInteger)packetId;
 - (void)onIncomingStreamStart:(NSUInteger)streamId

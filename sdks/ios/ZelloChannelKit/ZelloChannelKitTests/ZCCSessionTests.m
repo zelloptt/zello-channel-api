@@ -284,7 +284,7 @@
   [self connectSession:session];
 
   XCTestExpectation *startStreamSent = [[XCTestExpectation alloc] initWithDescription:@"start_stream sent"];
-  OCMExpect([self.socket sendStartStreamWithParams:OCMOCK_ANY callback:OCMOCK_ANY timeoutAfter:30.0]).andDo(^(NSInvocation *invocation) {
+  OCMExpect([self.socket sendStartStreamWithParams:OCMOCK_ANY recipient:nil callback:OCMOCK_ANY timeoutAfter:30.0]).andDo(^(NSInvocation *invocation) {
     [startStreamSent fulfill];
   });
 
@@ -292,6 +292,23 @@
   XCTAssertNotNil(stream);
   XCTAssertEqual([XCTWaiter waitForExpectations:@[startStreamSent] timeout:3.0], XCTWaiterResultCompleted);
 
+  OCMVerifyAll(self.socket);
+}
+
+// Verify that we start opening a stream to a specific user if we're connected and have microphone permission
+- (void)testStartVoiceMessageToUser_ConnectedMicrophonePermissionGranted_StartsConnecting {
+  OCMStub([self.permissionsManager recordPermission]).andReturn(AVAudioSessionRecordPermissionGranted);
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+  [self connectSession:session];
+
+  XCTestExpectation *startStreamSent = [[XCTestExpectation alloc] initWithDescription:@"start_stream sent"];
+  OCMExpect([self.socket sendStartStreamWithParams:OCMOCK_ANY recipient:@"exampleUser" callback:OCMOCK_ANY timeoutAfter:30.0]).andDo(^(NSInvocation *invocation) {
+    [startStreamSent fulfill];
+  });
+
+  ZCCOutgoingVoiceStream *stream = [session startVoiceMessageToUser:@"exampleUser"];
+  XCTAssertNotNil(stream);
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[startStreamSent] timeout:3.0], XCTWaiterResultCompleted);
   OCMVerifyAll(self.socket);
 }
 
@@ -303,9 +320,9 @@
 
   XCTestExpectation *startStreamSent = [[XCTestExpectation alloc] initWithDescription:@"start_stream sent"];
   __block ZCCStartStreamCallback streamStarted;
-  OCMExpect([self.socket sendStartStreamWithParams:OCMOCK_ANY callback:OCMOCK_ANY timeoutAfter:30.0]).andDo(^(NSInvocation *invocation) {
+  OCMExpect([self.socket sendStartStreamWithParams:OCMOCK_ANY recipient:nil callback:OCMOCK_ANY timeoutAfter:30.0]).andDo(^(NSInvocation *invocation) {
     __unsafe_unretained ZCCStartStreamCallback callback = nil;
-    [invocation getArgument:&callback atIndex:3];
+    [invocation getArgument:&callback atIndex:4];
     streamStarted = callback;
     [startStreamSent fulfill];
   });
@@ -340,7 +357,7 @@
   [self connectSession:session];
 
   XCTestExpectation *textSent = [[XCTestExpectation alloc] initWithDescription:@"send_text_message sent"];
-  OCMExpect([self.socket sendTextMessage:@"test message" toUser:nil timeoutAfter:30.0]).andDo(^(NSInvocation *invocation) {
+  OCMExpect([self.socket sendTextMessage:@"test message" recipient:nil timeoutAfter:30.0]).andDo(^(NSInvocation *invocation) {
     [textSent fulfill];
   });
   [session sendText:@"test message"];
@@ -354,7 +371,7 @@
   [self connectSession:session];
 
   XCTestExpectation *textSent = [[XCTestExpectation alloc] initWithDescription:@"send_text_message sent"];
-  OCMExpect([self.socket sendTextMessage:@"test message" toUser:@"bogusUser" timeoutAfter:30.0]).andDo(^(NSInvocation *invocation) {
+  OCMExpect([self.socket sendTextMessage:@"test message" recipient:@"bogusUser" timeoutAfter:30.0]).andDo(^(NSInvocation *invocation) {
     [textSent fulfill];
   });
   [session sendText:@"test message" toUser:@"bogusUser"];

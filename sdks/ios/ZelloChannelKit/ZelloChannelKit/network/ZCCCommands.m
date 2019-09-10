@@ -32,7 +32,7 @@
   return logonCommand;
 }
 
-+ (NSString *)sendText:(NSString *)message sequenceNumber:(NSInteger)sequenceNumber toUser:(NSString *)username {
++ (NSString *)sendText:(NSString *)message sequenceNumber:(NSInteger)sequenceNumber recipient:(NSString *)username {
   NSMutableDictionary *text = [@{ZCCCommandKey:ZCCCommandSendTextMessage,
                                  ZCCSeqKey:@(sequenceNumber),
                                  ZCCTextContentKey:message} mutableCopy];
@@ -47,15 +47,17 @@
   return textCommand;
 }
 
-+ (NSString *)startStreamWithSequenceNumber:(NSInteger)sequenceNumber params:(ZCCStreamParams *)params {
++ (NSString *)startStreamWithSequenceNumber:(NSInteger)sequenceNumber params:(ZCCStreamParams *)params recipient:(NSString *)username {
   NSString *base64Header = [params.codecHeader base64EncodedStringWithOptions:0];
-  NSDictionary *startStream = @{ZCCCommandKey:ZCCCommandStartStream,
-                                ZCCSeqKey:@(sequenceNumber),
-                                ZCCStreamTypeKey:params.type,
-                                ZCCStreamCodecKey:params.codecName,
-                                ZCCStreamCodecHeaderKey:base64Header,
-                                ZCCStreamPacketDurationKey:@(params.packetDuration)
-                                };
+  NSMutableDictionary *startStream = [@{ZCCCommandKey:ZCCCommandStartStream,
+                                        ZCCSeqKey:@(sequenceNumber),
+                                        ZCCStreamTypeKey:params.type,
+                                        ZCCStreamCodecKey:params.codecName,
+                                        ZCCStreamCodecHeaderKey:base64Header,
+                                        ZCCStreamPacketDurationKey:@(params.packetDuration)} mutableCopy];
+  if (username.length > 0) {
+    startStream[ZCCToUserKey] = username;
+  }
   NSError *error = nil;
   NSString *command = [[NSString alloc] initWithData:[NSJSONSerialization dataWithJSONObject:startStream options:0 error:&error] encoding:NSUTF8StringEncoding];
   if (!command) {

@@ -9,7 +9,11 @@
 #import <OCMock/OCMock.h>
 #import "ZCCSRWebSocket.h"
 #import <XCTest/XCTest.h>
+#import "ZCCAudioSource.h"
+#import "ZCCEncoder.h"
+#import "ZCCEncoderOpus.h"
 #import "ZCCSocket.h"
+#import "ZCCStreamParams.h"
 #import "ZCCWebSocketFactory.h"
 
 static BOOL messageIsEqualToDictionary(NSString *message, NSDictionary *expected) {
@@ -178,6 +182,30 @@ static BOOL messageIsEqualToDictionary(NSString *message, NSDictionary *expected
   OCMVerifyAll(self.webSocket);
 }
 
+#pragma mark Voice messages
+
+// Verify we include recipient's name in start_stream if one is specified
+- (void)testStartStream_recipient_sendsCorrectCommand {
+  NSDictionary *expected = @{@"command":@"start_stream",
+                             @"seq":@(1),
+                             @"type":@"audio",
+                             @"codec":@"opus",
+                             @"codec_header":@"QB8BPA==",
+                             @"packet_duration":@(60),
+                             @"for":@"bogusUser"};
+  OCMExpect([self.webSocket sendString:[OCMArg checkWithBlock:^BOOL(NSString *message) {
+    return messageIsEqualToDictionary(message, expected);
+  }] error:(NSError * __autoreleasing *)[OCMArg anyPointer]]).andReturn(YES);
+
+  id recorder = OCMProtocolMock(@protocol(ZCCAudioSource));
+  ZCCEncoder *encoder = [[ZCCEncoderOpus alloc] initWithRecorder:recorder];
+  ZCCStreamParams *params = [[ZCCStreamParams alloc] initWithType:@"audio" encoder:encoder];
+  [self.socket sendStartStreamWithParams:params recipient:@"bogusUser" callback:^(BOOL succeeded, NSUInteger streamId, NSString * _Nullable errorMessage) {
+  } timeoutAfter:30.0];
+
+  OCMVerifyAll(self.webSocket);
+}
+
 #pragma mark Texting
 
 // Verify that we send the right command for a text to the whole channel
@@ -189,7 +217,7 @@ static BOOL messageIsEqualToDictionary(NSString *message, NSDictionary *expected
     return messageIsEqualToDictionary(message, expected);
   }] error:(NSError * __autoreleasing *)[OCMArg anyPointer]]).andReturn(YES);
 
-  [self.socket sendTextMessage:@"test message" toUser:nil timeoutAfter:30.0];
+  [self.socket sendTextMessage:@"test message" recipient:nil timeoutAfter:30.0];
 
   OCMVerifyAll(self.webSocket);
 }
@@ -204,7 +232,7 @@ static BOOL messageIsEqualToDictionary(NSString *message, NSDictionary *expected
     return messageIsEqualToDictionary(message, expected);
   }] error:(NSError * __autoreleasing *)[OCMArg anyPointer]]).andReturn(YES);
 
-  [self.socket sendTextMessage:@"test message" toUser:@"bogusUser" timeoutAfter:30.0];
+  [self.socket sendTextMessage:@"test message" recipient:@"bogusUser" timeoutAfter:30.0];
 
   OCMVerifyAll(self.webSocket);
 }

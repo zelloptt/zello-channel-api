@@ -120,10 +120,10 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
   }];
 }
 
-- (void)sendTextMessage:(NSString *)message toUser:(NSString *)username timeoutAfter:(NSTimeInterval)timeout {
+- (void)sendTextMessage:(NSString *)message recipient:(NSString *)username timeoutAfter:(NSTimeInterval)timeout {
   [self.workRunner runSync:^{
     [self sendRequest:^NSString *(NSInteger seqNo) {
-      return [ZCCCommands sendText:message sequenceNumber:seqNo toUser:username];
+      return [ZCCCommands sendText:message sequenceNumber:seqNo recipient:username];
     } type:ZCCSocketRequestTypeTextMessage timeout:timeout prepareCallback:^(ZCCSocketResponseCallback *responseCallback) {
       // TODO: Implement response prep handler
     } failBlock:^(NSString *failureReason) {
@@ -135,11 +135,12 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
 }
 
 - (void)sendStartStreamWithParams:(ZCCStreamParams *)params
+                           recipient:(NSString *)username
                          callback:(nonnull ZCCStartStreamCallback)callback
                      timeoutAfter:(NSTimeInterval)timeout {
   [self.workRunner runSync:^{
     [self sendRequest:^(NSInteger seqNo) {
-      return [ZCCCommands startStreamWithSequenceNumber:seqNo params:params];
+      return [ZCCCommands startStreamWithSequenceNumber:seqNo params:params recipient:username];
     } type:ZCCSocketRequestTypeStartStream timeout:timeout prepareCallback:^(ZCCSocketResponseCallback *responseCallback) {
       responseCallback.startStreamCallback = callback;
     } failBlock:^(NSString *failureReason) {
@@ -344,6 +345,11 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
 
     case ZCCSocketRequestTypeStartStream:
       [self handleStartStreamResponse:encoded callback:callback original:original];
+      break;
+
+    case ZCCSocketRequestTypeTextMessage:
+      // TODO: Handle potential error. Test by turning off texting in test channel?
+      NSLog(@"Text message response: %@", original);
       break;
   }
   if (callback.timeoutBlock) {

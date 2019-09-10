@@ -16,9 +16,9 @@ NS_ASSUME_NONNULL_BEGIN
 
 + (nullable NSString *)logonWithSequenceNumber:(NSInteger)sequenceNumber authToken:(nullable NSString *)authToken refreshToken:(nullable NSString *)refreshToken channel:(NSString *)channel username:(NSString *)username password:(NSString *)password;
 
-+ (nullable NSString *)sendText:(NSString *)message sequenceNumber:(NSInteger)sequenceNumber toUser:(nullable NSString *)username;
++ (nullable NSString *)sendText:(NSString *)message sequenceNumber:(NSInteger)sequenceNumber recipient:(nullable NSString *)username;
 
-+ (nullable NSString *)startStreamWithSequenceNumber:(NSInteger)sequenceNumber params:(ZCCStreamParams *)params;
++ (nullable NSString *)startStreamWithSequenceNumber:(NSInteger)sequenceNumber params:(ZCCStreamParams *)params recipient:(nullable NSString *)username;
 
 + (nullable NSString *)stopStreamWithSequenceNumber:(NSInteger)sequenceNumber streamId:(NSUInteger)streamId;
 

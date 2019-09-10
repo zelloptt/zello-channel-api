@@ -84,9 +84,17 @@ typedef void (^ZCCStartStreamCallback)(BOOL succeeded, NSUInteger streamId, NSSt
 
 - (void)sendLogonWithAuthToken:(nullable NSString *)authToken refreshToken:(nullable NSString *)refreshToken channel:(NSString *)channel username:(NSString *)username password:(NSString *)password callback:(ZCCLogonCallback)callback timeoutAfter:(NSTimeInterval)timeout;
 
-- (void)sendTextMessage:(NSString *)message toUser:(nullable NSString *)username timeoutAfter:(NSTimeInterval)timeout;
+- (void)sendTextMessage:(NSString *)message recipient:(nullable NSString *)username timeoutAfter:(NSTimeInterval)timeout;
 
-- (void)sendStartStreamWithParams:(ZCCStreamParams *)params callback:(ZCCStartStreamCallback)callback timeoutAfter:(NSTimeInterval)timeout;
+/**
+ * Sends a start_stream command to start sending a voice message
+ *
+ * @param params codec parameters for the stream
+ * @param username if non-nil, the stream will only be received by the named user
+ * @param callback block that is called when we receive a response from the server
+ * @param timeout how long to wait for a response from the server
+ */
+- (void)sendStartStreamWithParams:(ZCCStreamParams *)params recipient:(nullable NSString *)username callback:(ZCCStartStreamCallback)callback timeoutAfter:(NSTimeInterval)timeout;
 
 - (void)sendStopStream:(NSUInteger)streamId;
 
