@@ -378,7 +378,28 @@
   OCMVerifyAll(self.socket);
 }
 
-// TODO: Verify receiving images
+// Verify that -sendImage:toUser: sends to the recipient
+- (void)testSendImageToUser_sendsToRecipient {
+  UIImage *testImage = solidImage(UIColor.redColor, CGSizeMake(100.0f, 100.0f), 1.0);
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+  [self connectSession:session];
+
+  ZCCImageMessageBuilder *builder = [ZCCImageMessageBuilder builderWithImage:testImage];
+  [builder setRecipient:@"bogusUser"];
+  ZCCImageMessage *expected = [builder message];
+  OCMExpect([self.socket sendImage:expected callback:OCMOCK_ANY timeoutAfter:30.0]).andDo(^(NSInvocation *invocation) {
+    __unsafe_unretained ZCCSendImageCallback callback;
+    [invocation getArgument:&callback atIndex:3];
+    callback(YES, 32, nil);
+  });
+  OCMExpect([self.socket sendImageData:expected imageId:32 timeoutAfter:30.0]);
+
+  [session sendImage:testImage toUser:@"bogusUser"];
+
+  OCMVerifyAll(self.socket);
+}
+
+// Verify receiving images
 - (void)testOnImage_SendsImageToDelegate {
   ZCCSession *session = [self sessionWithUsername:nil password:nil];
   [self connectSession:session];
@@ -455,7 +476,6 @@
   OCMVerifyAll(self.sessionDelegate);
   [uiImage stopMocking];
 }
-
 
 #pragma mark -sendText:
 

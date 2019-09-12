@@ -227,7 +227,11 @@ static void LogWarningForDevelopmentToken(NSString *token) {
 }
 
 - (void)sendImage:(UIImage *)image toUser:(NSString *)username {
-  // TODO: Implement -sendImage:toUser:
+  if (self.state != ZCCSessionStateConnected) {
+    return;
+  }
+
+  [self.imageManager sendImage:image recipient:username socket:self.webSocket];
 }
 
 - (void)sendLocation {
