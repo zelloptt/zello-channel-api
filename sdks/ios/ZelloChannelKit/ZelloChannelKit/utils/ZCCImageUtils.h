@@ -14,6 +14,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 + (UIImage *)resizeImage:(UIImage *)image maxSize:(CGSize)newSize ignoringScreenScale:(BOOL)ignoreScreenScale;
 
++ (nullable NSData *)JPEGRepresentationForImage:(UIImage *)image maxSize:(NSUInteger)maxSize;
+
 @end
 
 NS_ASSUME_NONNULL_END

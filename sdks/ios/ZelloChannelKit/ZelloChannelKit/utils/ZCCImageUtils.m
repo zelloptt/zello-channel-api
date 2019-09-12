@@ -48,4 +48,21 @@
   return newImage;
 }
 
++ (nullable NSData *)JPEGRepresentationForImage:(UIImage *)image maxSize:(NSUInteger)maxSize {
+  NSData *imageData = nil;
+
+  for (float quality = 0.95f; quality > 0; quality -= 0.1f) {
+    imageData = UIImageJPEGRepresentation(image, quality);
+    if (imageData.length < maxSize) {
+      break;
+    }
+  }
+
+  if (!imageData) {
+    NSLog(@"[ZCC] Image too large.");
+    imageData = UIImageJPEGRepresentation(image, 0.1f); // Pass back lowest quality
+  }
+  return imageData;
+}
+
 @end

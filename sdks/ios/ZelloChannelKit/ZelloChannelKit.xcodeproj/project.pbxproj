@@ -63,6 +63,8 @@
 		D10433E2232835C600FD9153 /* ZCCImageMessageManager.m in Sources */ = {isa = PBXBuildFile; fileRef = D10433DC232835C600FD9153 /* ZCCImageMessageManager.m */; };
 		D10433E3232835C600FD9153 /* ZCCImageMessageManager.h in Headers */ = {isa = PBXBuildFile; fileRef = D10433DD232835C600FD9153 /* ZCCImageMessageManager.h */; };
 		D10433E4232835C700FD9153 /* ZCCImageMessage.h in Headers */ = {isa = PBXBuildFile; fileRef = D10433DE232835C600FD9153 /* ZCCImageMessage.h */; };
+		D113195D232AB0850023B488 /* ZCCImageMessageManagerTests.m in Sources */ = {isa = PBXBuildFile; fileRef = D113195C232AB0850023B488 /* ZCCImageMessageManagerTests.m */; };
+		D113195F232AB0F90023B488 /* TestAssets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D113195E232AB0F90023B488 /* TestAssets.xcassets */; };
 		D116CDFD2022362F001999F1 /* ZCCCommands.h in Headers */ = {isa = PBXBuildFile; fileRef = D116CDFB2022362F001999F1 /* ZCCCommands.h */; };
 		D116CDFE2022362F001999F1 /* ZCCCommands.m in Sources */ = {isa = PBXBuildFile; fileRef = D116CDFC2022362F001999F1 /* ZCCCommands.m */; };
 		D116CE0120223691001999F1 /* ZCCSocket.h in Headers */ = {isa = PBXBuildFile; fileRef = D116CDFF20223691001999F1 /* ZCCSocket.h */; };
@@ -137,7 +139,6 @@
 		D1D61FE5204DB80200FE5392 /* ZCCIncomingVoiceConfiguration.h in Headers */ = {isa = PBXBuildFile; fileRef = D1D61FE3204DB80200FE5392 /* ZCCIncomingVoiceConfiguration.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		D1D61FE6204DB80200FE5392 /* ZCCIncomingVoiceConfiguration.m in Sources */ = {isa = PBXBuildFile; fileRef = D1D61FE4204DB80200FE5392 /* ZCCIncomingVoiceConfiguration.m */; };
 		D1D61FE8204DBD1700FE5392 /* ZCCIncomingVoiceStreamInfo+Internal.h in Headers */ = {isa = PBXBuildFile; fileRef = D1D61FE7204DBD1700FE5392 /* ZCCIncomingVoiceStreamInfo+Internal.h */; };
-		D1DC87852322C09A00CBB9CF /* ZCCImageMessageManagerTests.m in Sources */ = {isa = PBXBuildFile; fileRef = D1DC87842322C09A00CBB9CF /* ZCCImageMessageManagerTests.m */; };
 		D1DC87892322C22800CBB9CF /* ImageUtilities.m in Sources */ = {isa = PBXBuildFile; fileRef = D1DC87882322C22800CBB9CF /* ImageUtilities.m */; };
 		D1DFA0A0202B95D000B4E05E /* ZCCVoiceStreamsManager.m in Sources */ = {isa = PBXBuildFile; fileRef = D1DFA09E202B95D000B4E05E /* ZCCVoiceStreamsManager.m */; };
 		D1DFA0A1202B95D000B4E05E /* ZCCVoiceStreamsManager.h in Headers */ = {isa = PBXBuildFile; fileRef = D1DFA09F202B95D000B4E05E /* ZCCVoiceStreamsManager.h */; };
@@ -246,6 +247,8 @@
 		D10433DC232835C600FD9153 /* ZCCImageMessageManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ZCCImageMessageManager.m; sourceTree = "<group>"; };
 		D10433DD232835C600FD9153 /* ZCCImageMessageManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ZCCImageMessageManager.h; sourceTree = "<group>"; };
 		D10433DE232835C600FD9153 /* ZCCImageMessage.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ZCCImageMessage.h; sourceTree = "<group>"; };
+		D113195C232AB0850023B488 /* ZCCImageMessageManagerTests.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ZCCImageMessageManagerTests.m; sourceTree = "<group>"; };
+		D113195E232AB0F90023B488 /* TestAssets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = TestAssets.xcassets; sourceTree = "<group>"; };
 		D116CDFB2022362F001999F1 /* ZCCCommands.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ZCCCommands.h; sourceTree = "<group>"; };
 		D116CDFC2022362F001999F1 /* ZCCCommands.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ZCCCommands.m; sourceTree = "<group>"; };
 		D116CDFF20223691001999F1 /* ZCCSocket.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ZCCSocket.h; sourceTree = "<group>"; };
@@ -324,7 +327,6 @@
 		D1D61FE3204DB80200FE5392 /* ZCCIncomingVoiceConfiguration.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ZCCIncomingVoiceConfiguration.h; sourceTree = "<group>"; };
 		D1D61FE4204DB80200FE5392 /* ZCCIncomingVoiceConfiguration.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ZCCIncomingVoiceConfiguration.m; sourceTree = "<group>"; };
 		D1D61FE7204DBD1700FE5392 /* ZCCIncomingVoiceStreamInfo+Internal.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "ZCCIncomingVoiceStreamInfo+Internal.h"; sourceTree = "<group>"; };
-		D1DC87842322C09A00CBB9CF /* ZCCImageMessageManagerTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ZCCImageMessageManagerTests.m; sourceTree = "<group>"; };
 		D1DC87872322C1E400CBB9CF /* ImageUtilities.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ImageUtilities.h; sourceTree = "<group>"; };
 		D1DC87882322C22800CBB9CF /* ImageUtilities.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ImageUtilities.m; sourceTree = "<group>"; };
 		D1DFA09E202B95D000B4E05E /* ZCCVoiceStreamsManager.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = ZCCVoiceStreamsManager.m; sourceTree = "<group>"; };
@@ -595,11 +597,12 @@
 			children = (
 				D1DC87862322C1BA00CBB9CF /* TestUtilities */,
 				D1B190C12065A8CC009309CA /* audio */,
+				D113195B232AAF8A0023B488 /* images */,
 				D16DC03220697552003F9A6A /* network */,
-				D1DC87832322C08100CBB9CF /* streams */,
 				D1E9CC9C2321B62600510CEA /* utils */,
 				A8043FBB1FD5BE9000BFD1BF /* Info.plist */,
 				D1C8ABB7206445AC009A39CF /* ZCCSessionTests.m */,
+				D113195E232AB0F90023B488 /* TestAssets.xcassets */,
 			);
 			path = ZelloChannelKitTests;
 			sourceTree = "<group>";
@@ -634,6 +637,14 @@
 				D10433DC232835C600FD9153 /* ZCCImageMessageManager.m */,
 				D17DBAB5232842F500EE970A /* ZCCIncomingImageInfo.h */,
 				D17DBAB6232842F500EE970A /* ZCCIncomingImageInfo.m */,
+			);
+			path = images;
+			sourceTree = "<group>";
+		};
+		D113195B232AAF8A0023B488 /* images */ = {
+			isa = PBXGroup;
+			children = (
+				D113195C232AB0850023B488 /* ZCCImageMessageManagerTests.m */,
 			);
 			path = images;
 			sourceTree = "<group>";
@@ -764,14 +775,6 @@
 				D1B190C52065A902009309CA /* ZCCCustomAudioSourceTests.m */,
 			);
 			path = audio;
-			sourceTree = "<group>";
-		};
-		D1DC87832322C08100CBB9CF /* streams */ = {
-			isa = PBXGroup;
-			children = (
-				D1DC87842322C09A00CBB9CF /* ZCCImageMessageManagerTests.m */,
-			);
-			path = streams;
 			sourceTree = "<group>";
 		};
 		D1DC87862322C1BA00CBB9CF /* TestUtilities */ = {
@@ -961,6 +964,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D113195F232AB0F90023B488 /* TestAssets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1053,8 +1057,8 @@
 				D1DC87892322C22800CBB9CF /* ImageUtilities.m in Sources */,
 				D1C8ABB8206445AC009A39CF /* ZCCSessionTests.m in Sources */,
 				D16DC0342069756A003F9A6A /* ZCCSocketTests.m in Sources */,
+				D113195D232AB0850023B488 /* ZCCImageMessageManagerTests.m in Sources */,
 				D1E9CC9E2321B63500510CEA /* ZCCImageUtilsTests.m in Sources */,
-				D1DC87852322C09A00CBB9CF /* ZCCImageMessageManagerTests.m in Sources */,
 				D1B190C62065A902009309CA /* ZCCCustomAudioSourceTests.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

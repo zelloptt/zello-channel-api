@@ -9,6 +9,8 @@
 #import "ZCCImageMessage.h"
 #import "ZCCImageUtils.h"
 
+static const NSUInteger maxImageDataLength = 524288;
+
 @interface ZCCImageMessage ()
 @property (nonatomic) ZCCImageType imageType;
 @property (nonatomic) NSUInteger contentLength;
@@ -87,8 +89,7 @@
 - (ZCCImageMessage *)message {
   CGSize maxImageSize = CGSizeMake(1280.0f, 1280.0f);
   UIImage *resized = [ZCCImageUtils resizeImage:self.image maxSize:maxImageSize ignoringScreenScale:YES];
-  // TODO: Enforce max data length
-  NSData *imageData = UIImageJPEGRepresentation(resized, 0.75);
+  NSData *imageData = [ZCCImageUtils JPEGRepresentationForImage:resized maxSize:maxImageDataLength];
 
   CGSize maxThumbnailSize = CGSizeMake(90.0f, 90.0f);
   UIImage *thumbnail = [ZCCImageUtils resizeImage:self.image maxSize:maxThumbnailSize ignoringScreenScale:YES];
