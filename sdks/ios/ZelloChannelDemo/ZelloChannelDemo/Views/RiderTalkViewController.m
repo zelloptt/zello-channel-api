@@ -11,6 +11,8 @@
 #import "RiderTalkViewController.h"
 #import "common.h"
 #import "Zello.h"
+#import "ImagePopupPresentationController.h"
+#import "ImagePopupViewController.h"
 
 @interface RiderTalkViewController () <ZCCSessionDelegate>
 @property (nonatomic, weak) IBOutlet UIButton *buttonCancel;
@@ -71,6 +73,19 @@
 
 - (void)session:(ZCCSession *)session incomingVoiceDidStop:(ZCCIncomingVoiceStream *)stream {
   [self setButtonNormal];
+}
+
+- (void)session:(ZCCSession *)session didReceiveImage:(ZCCImageInfo *)info {
+  if (!info.image) {
+    return;
+  }
+  // Show image in a popup
+  ImagePopupViewController *popup = [self.storyboard instantiateViewControllerWithIdentifier:@"imagePopup"];
+  popup.modalPresentationStyle = UIModalPresentationCustom;
+  popup.image = info.image;
+  ImagePopupPresentationController *presentationController = [[ImagePopupPresentationController alloc] initWithPresentedViewController:popup presentingViewController:self];
+  popup.transitioningDelegate = presentationController;
+  [self presentViewController:popup animated:YES completion:nil];
 }
 
 @end

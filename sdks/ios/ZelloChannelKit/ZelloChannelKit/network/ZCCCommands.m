@@ -7,6 +7,7 @@
 //
 
 #import "ZCCCommands.h"
+#import "ZCCImageMessage.h"
 #import "ZCCProtocol.h"
 #import "ZCCStreamParams.h"
 
@@ -30,6 +31,27 @@
     NSLog(@"[ZCC] Error serializing logon: %@", serializationError);
   }
   return logonCommand;
+}
+
++ (NSString *)sendImage:(ZCCImageMessage *)message sequenceNumber:(NSInteger)sequenceNumber {
+  NSMutableDictionary *command = [@{ZCCCommandKey:ZCCCommandSendImage,
+                                    ZCCSeqKey:@(sequenceNumber),
+                                    ZCCStreamTypeKey:@"jpeg",
+                                    ZCCThumbnailContentLengthKey:@(message.thumbnailLength),
+                                    ZCCImageContentLengthKey:@(message.contentLength),
+                                    ZCCImageWidthKey:@(message.width),
+                                    ZCCImageHeightKey:@(message.height)
+                                    } mutableCopy];
+  if (message.recipient.length > 0) {
+    command[ZCCToUserKey] = message.recipient;
+  }
+
+  NSError *serializationError = nil;
+  NSString *encoded = [[NSString alloc] initWithData:[NSJSONSerialization dataWithJSONObject:command options:0 error:&serializationError] encoding:NSUTF8StringEncoding];
+  if (!encoded) {
+    NSLog(@"[ZCC] Error serializing send_image: %@", serializationError);
+  }
+  return encoded;
 }
 
 + (NSString *)sendText:(NSString *)message sequenceNumber:(NSInteger)sequenceNumber recipient:(NSString *)username {
@@ -91,6 +113,30 @@
   uint32_t packet_id = 0;
   [msg appendBytes:&packet_id length:sizeof(packet_id)];
   [msg appendData:audioData];
+  return msg;
+}
+
++ (NSData *)messageForImageData:(ZCCImageMessage *)imageMessage imageId:(UInt32)imageId {
+  NSMutableData *msg = [NSMutableData data];
+  char type = 0x02; // image
+  [msg appendBytes:&type length:sizeof(type)];
+  uint32_t image_id = htonl(imageId);
+  [msg appendBytes:&image_id length:sizeof(image_id)];
+  uint32_t image_type = htonl(0x01); // image
+  [msg appendBytes:&image_type length:sizeof(image_type)];
+  [msg appendData:imageMessage.imageData];
+  return msg;
+}
+
++ (NSData *)messageForImageThumbnailData:(ZCCImageMessage *)imageMessage imageId:(UInt32)imageId {
+  NSMutableData *msg = [NSMutableData data];
+  char type = 0x02; // image
+  [msg appendBytes:&type length:sizeof(type)];
+  uint32_t image_id = htonl(imageId);
+  [msg appendBytes:&image_id length:sizeof(image_id)];
+  uint32_t image_type = htonl(0x02); // thumbnail
+  [msg appendBytes:&image_type length:sizeof(image_type)];
+  [msg appendData:imageMessage.thumbnailData];
   return msg;
 }
 

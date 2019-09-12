@@ -29,6 +29,7 @@
 @property (atomic, strong) NSTimer *safetyTimer;
 
 @property (nonatomic, weak) IBOutlet UIButton *honkButton;
+@property (nonatomic, weak) IBOutlet UIButton *carButton;
 @end
 
 @implementation DriverTalkViewController
@@ -47,6 +48,9 @@
   self.honkButton.layer.masksToBounds = YES;
   self.honkButton.backgroundColor = kDefaultWhiteBackground;
 
+  self.carButton.layer.cornerRadius = 8.0f;
+  self.carButton.layer.masksToBounds = YES;
+  self.carButton.contentMode = UIViewContentModeScaleAspectFill;
 }
 
 - (void)viewWillDisappear:(BOOL)animated {
@@ -61,6 +65,12 @@
   NSURL *honkURL = [[NSBundle mainBundle] URLForResource:@"honk" withExtension:@"wav"];
   config.source = [[FileAudioSource alloc] initWithURL:honkURL];
   [Zello.session startVoiceMessageWithSource:config];
+}
+
+- (IBAction)sendCarPicture {
+  UITraitCollection *retinaTrait = [UITraitCollection traitCollectionWithDisplayScale:2.0];
+  UIImage *car = [UIImage imageNamed:@"carImage" inBundle:nil compatibleWithTraitCollection:retinaTrait];
+  [Zello.session sendImage:car];
 }
 
 #pragma mark - ZCCSessionDelegate

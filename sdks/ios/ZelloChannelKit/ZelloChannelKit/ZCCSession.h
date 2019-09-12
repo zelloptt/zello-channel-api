@@ -11,6 +11,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+@class ZCCImageInfo;
 @class ZCCIncomingVoiceConfiguration;
 @class ZCCIncomingVoiceStream;
 @class ZCCIncomingVoiceStreamInfo;
@@ -256,7 +257,7 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
 /**
  * Called when an image message is received
  */
-- (void)session:(ZCCSession *)session didReceiveImage:(UIImage *)image from:(NSString *)sender;
+- (void)session:(ZCCSession *)sesson didReceiveImage:(ZCCImageInfo *)image;
 
 /**
  * Called when a text message is received

@@ -517,6 +517,52 @@
             </objects>
             <point key="canvasLocation" x="1964" y="855.9220389805098"/>
         </scene>
+        <!--Image Popup View Controller-->
+        <scene sceneID="0ZN-sm-JYr">
+            <objects>
+                <viewController storyboardIdentifier="imagePopup" id="NEs-em-CIb" customClass="ImagePopupViewController" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="oXJ-EL-KL4">
+                        <rect key="frame" x="0.0" y="0.0" width="300" height="340"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="5Hq-46-zxa">
+                                <rect key="frame" x="0.0" y="0.0" width="300" height="300"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="300" id="8wJ-Pn-RwV"/>
+                                    <constraint firstAttribute="width" constant="300" id="hMR-hH-Ggw"/>
+                                </constraints>
+                            </imageView>
+                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="LUR-Za-TxF">
+                                <rect key="frame" x="0.0" y="308" width="300" height="24"/>
+                                <state key="normal" title="OK"/>
+                                <connections>
+                                    <action selector="closePopup" destination="NEs-em-CIb" eventType="touchUpInside" id="7Kb-wu-W8c"/>
+                                </connections>
+                            </button>
+                        </subviews>
+                        <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                        <constraints>
+                            <constraint firstItem="LUR-Za-TxF" firstAttribute="top" secondItem="5Hq-46-zxa" secondAttribute="bottom" constant="8" id="4bZ-8F-kR5"/>
+                            <constraint firstItem="LUR-Za-TxF" firstAttribute="width" secondItem="oXJ-EL-KL4" secondAttribute="width" id="803-Di-pVc"/>
+                            <constraint firstItem="5Hq-46-zxa" firstAttribute="top" secondItem="l8J-0a-Yfk" secondAttribute="top" id="BHy-rp-jm6"/>
+                            <constraint firstItem="5Hq-46-zxa" firstAttribute="leading" secondItem="l8J-0a-Yfk" secondAttribute="leading" id="Ena-BE-WSq"/>
+                            <constraint firstItem="l8J-0a-Yfk" firstAttribute="bottom" secondItem="LUR-Za-TxF" secondAttribute="bottom" constant="8" id="W0p-OS-eIj"/>
+                            <constraint firstItem="LUR-Za-TxF" firstAttribute="centerX" secondItem="l8J-0a-Yfk" secondAttribute="centerX" id="rPo-Dr-tAd"/>
+                        </constraints>
+                        <viewLayoutGuide key="safeArea" id="l8J-0a-Yfk"/>
+                    </view>
+                    <nil key="simulatedTopBarMetrics"/>
+                    <nil key="simulatedBottomBarMetrics"/>
+                    <freeformSimulatedSizeMetrics key="simulatedDestinationMetrics"/>
+                    <size key="freeformSize" width="300" height="340"/>
+                    <connections>
+                        <outlet property="imageView" destination="5Hq-46-zxa" id="x7e-hy-Wvw"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="38y-DN-rWg" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="2760" y="856.69014084507046"/>
+        </scene>
         <!--Driver View Controller-->
         <scene sceneID="vBP-Vx-eUx">
             <objects>
@@ -730,13 +776,13 @@
                                 <rect key="frame" x="0.0" y="20" width="320" height="548"/>
                             </mapView>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ybY-kV-9aF">
-                                <rect key="frame" x="16" y="472" width="210" height="80"/>
+                                <rect key="frame" x="16" y="472" width="163" height="80"/>
                                 <color key="backgroundColor" red="0.99999600649999998" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                                 <constraints>
                                     <constraint firstAttribute="height" constant="80" id="db4-Sm-cnX"/>
                                 </constraints>
                                 <inset key="titleEdgeInsets" minX="-20" minY="0.0" maxX="0.0" maxY="-20"/>
-                                <inset key="imageEdgeInsets" minX="105" minY="0.0" maxX="0.0" maxY="33"/>
+                                <inset key="imageEdgeInsets" minX="66" minY="0.0" maxX="0.0" maxY="33"/>
                                 <state key="normal" title="Talk to Rider" image="iconMicEnabled">
                                     <color key="titleColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 </state>
@@ -848,8 +894,15 @@
                                     <constraint firstItem="7Rh-Xc-DN2" firstAttribute="centerY" secondItem="Ggc-io-arw" secondAttribute="centerY" id="uU9-bA-Z2Z"/>
                                 </constraints>
                             </view>
+                            <button opaque="NO" contentMode="scaleAspectFit" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="slm-j1-UuA">
+                                <rect key="frame" x="187" y="472" width="54.5" height="80"/>
+                                <state key="normal" image="carImage"/>
+                                <connections>
+                                    <action selector="sendCarPicture" destination="jtw-kG-KZO" eventType="touchUpInside" id="XuY-XV-EUG"/>
+                                </connections>
+                            </button>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="gyB-EJ-W67">
-                                <rect key="frame" x="234" y="472" width="70" height="80"/>
+                                <rect key="frame" x="249.5" y="472" width="54.5" height="80"/>
                                 <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 <state key="normal" title="Honk">
                                     <color key="titleColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
@@ -863,21 +916,25 @@
                         <constraints>
                             <constraint firstItem="gyB-EJ-W67" firstAttribute="width" secondItem="ybY-kV-9aF" secondAttribute="width" multiplier="1:3" id="0rX-pm-WEk"/>
                             <constraint firstItem="ijf-22-Gjo" firstAttribute="bottom" secondItem="gyB-EJ-W67" secondAttribute="bottom" constant="16" id="8U4-55-wbM"/>
+                            <constraint firstItem="slm-j1-UuA" firstAttribute="centerY" secondItem="gyB-EJ-W67" secondAttribute="centerY" id="90x-cz-iFR"/>
                             <constraint firstItem="Ggc-io-arw" firstAttribute="leading" secondItem="ijf-22-Gjo" secondAttribute="leading" constant="16" id="9aj-cd-jVw"/>
                             <constraint firstItem="gyB-EJ-W67" firstAttribute="height" secondItem="ybY-kV-9aF" secondAttribute="height" id="E94-Yo-iDp"/>
+                            <constraint firstItem="slm-j1-UuA" firstAttribute="height" secondItem="gyB-EJ-W67" secondAttribute="height" id="F61-pb-5Rh"/>
+                            <constraint firstItem="slm-j1-UuA" firstAttribute="leading" secondItem="ybY-kV-9aF" secondAttribute="trailing" constant="8" id="HZ8-gT-tRl"/>
                             <constraint firstItem="ijf-22-Gjo" firstAttribute="trailing" secondItem="gyB-EJ-W67" secondAttribute="trailing" constant="16" id="Kje-QP-r9G"/>
                             <constraint firstItem="Ggc-io-arw" firstAttribute="bottom" secondItem="ybY-kV-9aF" secondAttribute="top" constant="-8" id="ReQ-EP-BY6"/>
                             <constraint firstItem="ijf-22-Gjo" firstAttribute="trailing" secondItem="qyf-1t-NKO" secondAttribute="trailing" id="SfQ-RI-69p"/>
                             <constraint firstItem="ijf-22-Gjo" firstAttribute="trailing" secondItem="IU2-rC-6Q5" secondAttribute="trailing" id="Vxz-br-nBX"/>
                             <constraint firstItem="ijf-22-Gjo" firstAttribute="bottom" secondItem="ybY-kV-9aF" secondAttribute="bottom" constant="16" id="Xi6-84-tbJ"/>
+                            <constraint firstItem="gyB-EJ-W67" firstAttribute="leading" secondItem="slm-j1-UuA" secondAttribute="trailing" constant="8" id="YKQ-Tx-UjH"/>
                             <constraint firstItem="qyf-1t-NKO" firstAttribute="top" secondItem="ijf-22-Gjo" secondAttribute="top" id="Zrt-G1-xYo"/>
+                            <constraint firstItem="slm-j1-UuA" firstAttribute="width" secondItem="gyB-EJ-W67" secondAttribute="width" id="ZwE-bC-EHR"/>
                             <constraint firstItem="ybY-kV-9aF" firstAttribute="leading" secondItem="ijf-22-Gjo" secondAttribute="leading" constant="16" id="cJo-tb-Iee"/>
                             <constraint firstItem="IU2-rC-6Q5" firstAttribute="leading" secondItem="ijf-22-Gjo" secondAttribute="leading" id="dDo-Yq-JwN"/>
                             <constraint firstItem="IU2-rC-6Q5" firstAttribute="top" secondItem="ijf-22-Gjo" secondAttribute="top" id="eOM-Et-D9h"/>
                             <constraint firstItem="ijf-22-Gjo" firstAttribute="bottom" secondItem="qyf-1t-NKO" secondAttribute="bottom" id="hBR-jY-qru"/>
                             <constraint firstItem="gyB-EJ-W67" firstAttribute="centerY" secondItem="ybY-kV-9aF" secondAttribute="centerY" id="k2k-PE-5hH"/>
                             <constraint firstItem="qyf-1t-NKO" firstAttribute="leading" secondItem="ijf-22-Gjo" secondAttribute="leading" id="qeS-zX-jAs"/>
-                            <constraint firstItem="gyB-EJ-W67" firstAttribute="leading" secondItem="ybY-kV-9aF" secondAttribute="trailing" constant="8" id="rBO-rg-b5Y"/>
                             <constraint firstItem="ijf-22-Gjo" firstAttribute="trailing" secondItem="Ggc-io-arw" secondAttribute="trailing" constant="16" id="xfx-e2-PRF"/>
                         </constraints>
                         <viewLayoutGuide key="safeArea" id="ijf-22-Gjo"/>
@@ -885,6 +942,7 @@
                     <connections>
                         <outlet property="buttonNavigate" destination="5ei-uH-h6l" id="Gim-V6-aou"/>
                         <outlet property="buttonTalk" destination="ybY-kV-9aF" id="wVQ-ft-JQj"/>
+                        <outlet property="carButton" destination="slm-j1-UuA" id="nUG-dS-IMq"/>
                         <outlet property="honkButton" destination="gyB-EJ-W67" id="S3W-b2-kjV"/>
                         <outlet property="imageViewAvatar" destination="jxF-hA-RYc" id="bKC-Ov-0KT"/>
                         <outlet property="labelDetail" destination="Um7-Mk-UJp" id="D8J-SF-WPN"/>
@@ -923,6 +981,7 @@
         <image name="avatarEugene" width="40" height="40"/>
         <image name="avatarNayeli" width="40" height="40"/>
         <image name="avatarWilliam" width="40" height="40"/>
+        <image name="carImage" width="300" height="300"/>
         <image name="driver" width="64" height="64"/>
         <image name="iconCancel" width="32" height="32"/>
         <image name="iconMicEnabled" width="32" height="32"/>

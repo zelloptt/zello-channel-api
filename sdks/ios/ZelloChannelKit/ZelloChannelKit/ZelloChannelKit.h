@@ -8,6 +8,7 @@
 
 #import <UIKit/UIKit.h>
 #import <ZelloChannelKit/ZCCErrors.h>
+#import <ZelloChannelKit/ZCCImageInfo.h>
 #import <ZelloChannelKit/ZCCIncomingVoiceConfiguration.h>
 #import <ZelloChannelKit/ZCCIncomingVoiceStream.h>
 #import <ZelloChannelKit/ZCCOutgoingVoiceConfiguration.h>

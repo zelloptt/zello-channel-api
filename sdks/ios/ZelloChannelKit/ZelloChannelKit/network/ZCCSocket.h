@@ -10,6 +10,8 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+@class ZCCImageHeader;
+@class ZCCImageMessage;
 @class ZCCSocket;
 @class ZCCStreamParams;
 @class ZCCWebSocketFactory;
@@ -31,6 +33,10 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)socket:(ZCCSocket *)socket didReceiveAudioData:(NSData *)data streamId:(NSUInteger)streamId packetId:(NSUInteger)packetId;
 
 - (void)socket:(ZCCSocket *)socket didReceiveTextMessage:(NSString *)message sender:(NSString *)sender;
+
+- (void)socket:(ZCCSocket *)socket didReceiveImageHeader:(ZCCImageHeader *)header;
+
+- (void)socket:(ZCCSocket *)socket didReceiveImageData:(NSData *)data imageId:(NSUInteger)imageId isThumbnail:(BOOL)isThumbnail;
 
 /**
  * Called if we receive a binary message with an unrecognized type byte. data contains the entire
@@ -54,6 +60,11 @@ NS_ASSUME_NONNULL_BEGIN
  */
 typedef void (^ZCCLogonCallback)(BOOL succeeded, NSString * _Nullable refreshToken, NSString * _Nullable errorMessage);
 typedef void (^ZCCStartStreamCallback)(BOOL succeeded, NSUInteger streamId, NSString * _Nullable errorMessage);
+
+/**
+ * @param imageId the id of the image message. Must be passed as part of the image data messages.
+ */
+typedef void (^ZCCSendImageCallback)(BOOL succeeded, UInt32 imageId, NSString * _Nullable errorMessage);
 
 /**
  * Wraps underlying websocket and translates between our high-level messages and bytes on the
@@ -99,6 +110,10 @@ typedef void (^ZCCStartStreamCallback)(BOOL succeeded, NSUInteger streamId, NSSt
 - (void)sendStopStream:(NSUInteger)streamId;
 
 - (void)sendAudioData:(NSData *)data stream:(NSUInteger)streamId;
+
+- (void)sendImage:(ZCCImageMessage *)message callback:(ZCCSendImageCallback)callback timeoutAfter:(NSTimeInterval)timeout;
+- (void)sendImageData:(ZCCImageMessage *)message imageId:(UInt32)imageId timeoutAfter:(NSTimeInterval)timeout;
+
 
 @end
 

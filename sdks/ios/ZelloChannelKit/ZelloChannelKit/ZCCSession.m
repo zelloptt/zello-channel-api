@@ -11,6 +11,9 @@
 
 #import "ZCCSession.h"
 #import "ZCCErrors.h"
+#import "ZCCImageInfo+Internal.h"
+#import "ZCCImageMessageManager.h"
+#import "ZCCIncomingImageInfo.h"
 #import "ZCCIncomingVoiceConfiguration.h"
 #import "ZCCIncomingVoiceStreamInfo+Internal.h"
 #import "ZCCPermissionsManager.h"
@@ -62,7 +65,7 @@ static void LogWarningForDevelopmentToken(NSString *token) {
 @implementation ZCCLocationInfo
 @end
 
-@interface ZCCSession () <ZCCSocketDelegate, ZCCVoiceStreamsManagerDelegate>
+@interface ZCCSession () <ZCCImageMessageManagerDelegate, ZCCSocketDelegate, ZCCVoiceStreamsManagerDelegate>
 
 @property (nonatomic, strong, nonnull) ZCCPermissionsManager *permissionsManager;
 @property (nonatomic, strong, nonnull) ZCCSocketFactory *socketFactory;
@@ -70,6 +73,7 @@ static void LogWarningForDevelopmentToken(NSString *token) {
 @property (atomic) ZCCSessionState state;
 
 @property (nonatomic, strong, nonnull) ZCCVoiceStreamsManager *streamsManager;
+@property (nonatomic, strong, nonnull) ZCCImageMessageManager *imageManager;
 
 @property (nonatomic, strong) ZCCSocket *webSocket;
 
@@ -111,6 +115,8 @@ static void LogWarningForDevelopmentToken(NSString *token) {
     _streamsManager.requestTimeout = _requestTimeout;
     _state = ZCCSessionStateDisconnected;
     _runner = [[ZCCQueueRunner alloc] initWithName:@"ZCCSession"];
+    _imageManager = [[ZCCImageMessageManager alloc] initWithRunner:_runner];
+    _imageManager.delegate = self;
   }
   return self;
 }
@@ -213,7 +219,11 @@ static void LogWarningForDevelopmentToken(NSString *token) {
 }
 
 - (void)sendImage:(UIImage *)image {
-  // TODO: Implement -sendImage:
+  if (self.state != ZCCSessionStateConnected) {
+    return;
+  }
+
+  [self.imageManager sendImage:image recipient:nil socket:self.webSocket];
 }
 
 - (void)sendImage:(UIImage *)image toUser:(NSString *)username {
@@ -268,6 +278,19 @@ static void LogWarningForDevelopmentToken(NSString *token) {
 - (ZCCOutgoingVoiceStream *)startVoiceMessageToUser:(NSString *)username source:(ZCCOutgoingVoiceConfiguration *)sourceConfiguration {
   // TODO: Implement -startVoiceMessageToUser:source:
   return nil;
+}
+
+#pragma mark - ZCCImageMessageManagerDelegate
+
+- (void)imageMessageManager:(ZCCImageMessageManager *)manager didReceiveImage:(ZCCIncomingImageInfo *)imageInfo {
+  ZCCImageInfo *info = [[ZCCImageInfo alloc] initWithImageInfo:imageInfo];
+  dispatch_async(self.delegateCallbackQueue, ^{
+    [self.delegate session:self didReceiveImage:info];
+  });
+}
+
+- (void)imageMessageManager:(ZCCImageMessageManager *)manager didFailToSendImage:(UIImage *)image reason:(NSString *)failureReason {
+
 }
 
 #pragma mark - ZCCVoiceStreamsManagerDelegate
@@ -454,6 +477,14 @@ static void LogWarningForDevelopmentToken(NSString *token) {
       [delegate session:self didReceiveText:message from:sender];
     });
   }
+}
+
+- (void)socket:(nonnull ZCCSocket *)socket didReceiveImageData:(nonnull NSData *)data imageId:(NSUInteger)imageId isThumbnail:(BOOL)isThumbnail {
+  [self.imageManager handleImageData:data imageId:imageId isThumbnail:isThumbnail];
+}
+
+- (void)socket:(nonnull ZCCSocket *)socket didReceiveImageHeader:(nonnull ZCCImageHeader *)header {
+  [self.imageManager handleImageHeader:header];
 }
 
 - (void)socket:(nonnull ZCCSocket *)socket didReportError:(nonnull NSString *)errorMessage {
