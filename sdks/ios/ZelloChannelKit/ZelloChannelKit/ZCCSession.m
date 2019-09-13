@@ -10,9 +10,13 @@
 @import Foundation;
 
 #import "ZCCSession.h"
+#import "ZCCAddressFormattingService.h"
+#import "ZCCCoreGeocodingService.h"
+#import "ZCCCoreLocationService.h"
 #import "ZCCErrors.h"
 #import "ZCCIncomingVoiceConfiguration.h"
 #import "ZCCIncomingVoiceStreamInfo+Internal.h"
+#import "ZCCLocationInfo+Internal.h"
 #import "ZCCPermissionsManager.h"
 #import "ZCCProtocol.h"
 #import "ZCCSocket.h"
@@ -59,9 +63,6 @@ static void LogWarningForDevelopmentToken(NSString *token) {
   return;
 }
 
-@implementation ZCCLocationInfo
-@end
-
 @interface ZCCSession () <ZCCSocketDelegate, ZCCVoiceStreamsManagerDelegate>
 
 @property (nonatomic, strong, nonnull) ZCCPermissionsManager *permissionsManager;
@@ -70,6 +71,9 @@ static void LogWarningForDevelopmentToken(NSString *token) {
 @property (atomic) ZCCSessionState state;
 
 @property (nonatomic, strong, nonnull) ZCCVoiceStreamsManager *streamsManager;
+@property (nonatomic, strong, nonnull) id<ZCCGeocodingService> geocodingService;
+@property (nonatomic, strong, nonnull) id<ZCCLocationService> locationService;
+@property (nonatomic, strong, nonnull) id<ZCCAddressFormattingService> addressFormattingService;
 
 @property (nonatomic, strong) ZCCSocket *webSocket;
 
@@ -111,6 +115,9 @@ static void LogWarningForDevelopmentToken(NSString *token) {
     _streamsManager.requestTimeout = _requestTimeout;
     _state = ZCCSessionStateDisconnected;
     _runner = [[ZCCQueueRunner alloc] initWithName:@"ZCCSession"];
+    _addressFormattingService = [[ZCCContactsAddressFormattingService alloc] init];
+    _geocodingService = [[ZCCCoreGeocodingService alloc] init];
+    _locationService = [[ZCCCoreLocationService alloc] init];
   }
   return self;
 }
@@ -220,11 +227,50 @@ static void LogWarningForDevelopmentToken(NSString *token) {
   // TODO: Implement -sendImage:toUser:
 }
 
-- (void)sendLocation {
+- (BOOL)sendLocationWithContinuation:(void (^)(ZCCLocationInfo * _Nullable, NSError * _Nullable))continuation {
   // TODO: Implement -sendLocation
+  if (self.state != ZCCSessionStateConnected) {
+    return NO;
+  }
+  CLAuthorizationStatus authorization = [self.locationService authorizationStatus];
+  if (authorization != kCLAuthorizationStatusAuthorizedWhenInUse && authorization != kCLAuthorizationStatusAuthorizedAlways) {
+    return NO;
+  }
+  if (![self.locationService locationServicesEnabled]) {
+    return NO;
+  }
+  
+  [self.locationService requestLocation:^(CLLocation * _Nullable location, NSError * _Nullable error) {
+    if (location) {
+      NSLog(@"[ZCC] Got location: %@", location);
+      [self.geocodingService reverseGeocodeLocation:location completionHandler:^(NSArray<CLPlacemark *> * _Nullable placemarks, NSError * _Nullable gecodingError) {
+        ZCCLocationInfo *locationInfo = [[ZCCLocationInfo alloc] initWithLocation:location];
+        // Fill in reverse geocoded address
+        if (placemarks && placemarks.count > 0) {
+          CLPlacemark *placemark = [placemarks firstObject];
+          NSString *address = [self.addressFormattingService stringFromPlacemark:placemark];
+          [locationInfo setAddress:address];
+        }
+        [self.webSocket sendLocation:locationInfo recipient:nil timeoutAfter:self.requestTimeout];
+        if (continuation) {
+          dispatch_async(self.delegateCallbackQueue, ^{
+            continuation(locationInfo, nil);
+          });
+        }
+      }];
+    } else {
+      NSLog(@"[ZCC] Error getting location: %@", error);
+      if (continuation) {
+        dispatch_async(self.delegateCallbackQueue, ^{
+          continuation(nil, error);
+        });
+      }
+    }
+  }];
+  return YES;
 }
 
-- (void)sendLocationToUser:(NSString *)username {
+- (void)sendLocationToUser:(NSString *)username continuation:(void (^)(ZCCLocationInfo * _Nullable, NSError * _Nullable))continuation {
   // TODO: Implement -sendLocationToUser:
 }
 

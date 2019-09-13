@@ -12,6 +12,7 @@ FOUNDATION_EXPORT NSString * const ZCCCommandKey;
 FOUNDATION_EXPORT NSString * const ZCCCommandLogon;
 FOUNDATION_EXPORT NSString * const ZCCCommandStartStream;
 FOUNDATION_EXPORT NSString * const ZCCCommandStopStream;
+FOUNDATION_EXPORT NSString * const ZCCCommandSendLocationMessage;
 FOUNDATION_EXPORT NSString * const ZCCCommandSendTextMessage;
 
 FOUNDATION_EXPORT NSString * const ZCCSeqKey;
@@ -28,6 +29,11 @@ FOUNDATION_EXPORT NSString * const ZCCStreamPacketDurationKey;
 FOUNDATION_EXPORT NSString * const ZCCStreamIDKey;
 
 FOUNDATION_EXPORT NSString * const ZCCStreamTypeAudio;
+
+FOUNDATION_EXPORT NSString * const ZCCLatitudeKey;
+FOUNDATION_EXPORT NSString * const ZCCLongitudeKey;
+FOUNDATION_EXPORT NSString * const ZCCAccuracyKey;
+FOUNDATION_EXPORT NSString * const ZCCReverseGeocodedKey;
 
 FOUNDATION_EXPORT NSString * const ZCCTextContentKey;
 FOUNDATION_EXPORT NSString * const ZCCToUserKey;

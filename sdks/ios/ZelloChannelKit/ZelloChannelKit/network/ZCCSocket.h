@@ -10,6 +10,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+@class ZCCLocationInfo;
 @class ZCCSocket;
 @class ZCCStreamParams;
 @class ZCCWebSocketFactory;
@@ -85,6 +86,8 @@ typedef void (^ZCCStartStreamCallback)(BOOL succeeded, NSUInteger streamId, NSSt
 - (void)sendLogonWithAuthToken:(nullable NSString *)authToken refreshToken:(nullable NSString *)refreshToken channel:(NSString *)channel username:(NSString *)username password:(NSString *)password callback:(ZCCLogonCallback)callback timeoutAfter:(NSTimeInterval)timeout;
 
 - (void)sendTextMessage:(NSString *)message recipient:(nullable NSString *)username timeoutAfter:(NSTimeInterval)timeout;
+
+- (void)sendLocation:(ZCCLocationInfo *)location recipient:(nullable NSString *)username timeoutAfter:(NSTimeInterval)timeout;
 
 /**
  * Sends a start_stream command to start sending a voice message

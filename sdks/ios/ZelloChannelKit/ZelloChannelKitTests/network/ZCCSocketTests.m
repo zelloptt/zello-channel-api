@@ -12,6 +12,7 @@
 #import "ZCCAudioSource.h"
 #import "ZCCEncoder.h"
 #import "ZCCEncoderOpus.h"
+#import "ZCCLocationInfo.h"
 #import "ZCCSocket.h"
 #import "ZCCStreamParams.h"
 #import "ZCCWebSocketFactory.h"
@@ -23,6 +24,13 @@ static BOOL messageIsEqualToDictionary(NSString *message, NSDictionary *expected
 }
 
 @interface ZCCSocket (Testing) <ZCCSRWebSocketDelegate>
+@end
+
+@interface ZCCLocationInfo (Testing)
+@property (nonatomic) double latitude;
+@property (nonatomic) double longitude;
+@property (nonatomic) double accuracy;
+@property (nonatomic, copy, nullable) NSString *address;
 @end
 
 @interface ZCCSocketTests : XCTestCase
@@ -202,6 +210,71 @@ static BOOL messageIsEqualToDictionary(NSString *message, NSDictionary *expected
   ZCCStreamParams *params = [[ZCCStreamParams alloc] initWithType:@"audio" encoder:encoder];
   [self.socket sendStartStreamWithParams:params recipient:@"bogusUser" callback:^(BOOL succeeded, NSUInteger streamId, NSString * _Nullable errorMessage) {
   } timeoutAfter:30.0];
+
+  OCMVerifyAll(self.webSocket);
+}
+
+#pragma mark Locations
+
+// Verify we send location
+- (void)testSendLocation_sendsCorrectCommand {
+  NSDictionary *expected = @{@"command":@"send_location",
+                             @"seq":@(1),
+                             @"latitude":@(23.0),
+                             @"longitude":@(14.0),
+                             @"accuracy":@(100.0)};
+  OCMExpect([self.webSocket sendString:[OCMArg checkWithBlock:^BOOL(NSString *message) {
+    return messageIsEqualToDictionary(message, expected);
+  }] error:(NSError * __autoreleasing *)[OCMArg anyPointer]]).andReturn(YES);
+
+  ZCCLocationInfo *location = [[ZCCLocationInfo alloc] init];
+  location.latitude = 23.0;
+  location.longitude = 14.0;
+  location.accuracy = 100.0;
+  [self.socket sendLocation:location recipient:nil timeoutAfter:30.0];
+
+  OCMVerifyAll(self.webSocket);
+}
+
+// Verify we send location with "for" parameter when a recipient is specified
+- (void)testSendLocation_recipient_sendsCorrectCommand {
+  NSDictionary *expected = @{@"command":@"send_location",
+                             @"seq":@(1),
+                             @"latitude":@(34.0),
+                             @"longitude":@(0.5),
+                             @"accuracy":@(100.0),
+                             @"for":@"bogusUser"};
+  OCMExpect([self.webSocket sendString:[OCMArg checkWithBlock:^BOOL(NSString *message) {
+    return messageIsEqualToDictionary(message, expected);
+  }] error:(NSError * __autoreleasing *)[OCMArg anyPointer]]).andReturn(YES);
+
+  ZCCLocationInfo *location = [[ZCCLocationInfo alloc] init];
+  location.latitude = 34.0;
+  location.longitude = 0.5;
+  location.accuracy = 100.0;
+  [self.socket sendLocation:location recipient:@"bogusUser" timeoutAfter:30.0];
+
+  OCMVerifyAll(self.webSocket);
+}
+
+// Verify we send formatted address when one is available
+- (void)testSendLocation_withAddress_sendsCorrectCommand {
+  NSDictionary *expected = @{@"command":@"send_location",
+                             @"seq":@(1),
+                             @"latitude":@(23.0),
+                             @"longitude":@(14.0),
+                             @"accuracy":@(100.0),
+                             @"formatted_address":@"My fancy address, Zello Inc."};
+  OCMExpect([self.webSocket sendString:[OCMArg checkWithBlock:^BOOL(NSString *message) {
+    return messageIsEqualToDictionary(message, expected);
+  }] error:(NSError * __autoreleasing *)[OCMArg anyPointer]]).andReturn(YES);
+
+  ZCCLocationInfo *location = [[ZCCLocationInfo alloc] init];
+  location.latitude = 23.0;
+  location.longitude = 14.0;
+  location.accuracy = 100.0;
+  location.address = @"My fancy address, Zello Inc.";
+  [self.socket sendLocation:location recipient:nil timeoutAfter:30.0];
 
   OCMVerifyAll(self.webSocket);
 }

@@ -12,6 +12,7 @@ NSString * const ZCCCommandKey = @"command";
 NSString * const ZCCCommandLogon = @"logon";
 NSString * const ZCCCommandStartStream = @"start_stream";
 NSString * const ZCCCommandStopStream = @"stop_stream";
+NSString * const ZCCCommandSendLocationMessage = @"send_location";
 NSString * const ZCCCommandSendTextMessage = @"send_text_message";
 
 NSString * const ZCCSeqKey = @"seq";
@@ -28,6 +29,11 @@ NSString * const ZCCStreamPacketDurationKey = @"packet_duration";
 NSString * const ZCCStreamIDKey = @"stream_id";
 
 NSString * const ZCCStreamTypeAudio = @"audio";
+
+NSString * const ZCCLatitudeKey = @"latitude";
+NSString * const ZCCLongitudeKey = @"longitude";
+NSString * const ZCCAccuracyKey = @"accuracy";
+NSString * const ZCCReverseGeocodedKey = @"formatted_address";
 
 NSString * const ZCCTextContentKey = @"text";
 NSString * const ZCCToUserKey = @"for";

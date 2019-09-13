@@ -750,7 +750,7 @@
                                 <rect key="frame" x="0.0" y="20" width="320" height="92"/>
                                 <subviews>
                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="6th &amp; Pressler St." textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="YmO-cY-d9U" userLabel="Label Header Title">
-                                        <rect key="frame" x="16" y="22" width="207" height="40"/>
+                                        <rect key="frame" x="16" y="22" width="203" height="40"/>
                                         <constraints>
                                             <constraint firstAttribute="height" constant="40" id="WUd-HM-uS6"/>
                                         </constraints>
@@ -759,7 +759,7 @@
                                         <nil key="highlightedColor"/>
                                     </label>
                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Austin, Tx" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="oVP-LB-K7Q" userLabel="Label Header Detail">
-                                        <rect key="frame" x="16" y="61" width="207" height="20"/>
+                                        <rect key="frame" x="16" y="61" width="203" height="20"/>
                                         <constraints>
                                             <constraint firstAttribute="height" constant="20" id="p9D-LI-3NF"/>
                                         </constraints>
@@ -767,23 +767,26 @@
                                         <color key="textColor" white="0.33333333329999998" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                         <nil key="highlightedColor"/>
                                     </label>
-                                    <button opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="900" horizontalCompressionResistancePriority="759" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="5ei-uH-h6l" userLabel="Button Cancel">
-                                        <rect key="frame" x="232" y="2" width="88" height="88"/>
+                                    <button opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="900" horizontalCompressionResistancePriority="759" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="5ei-uH-h6l" userLabel="Navigate button">
+                                        <rect key="frame" x="211" y="2" width="109" height="88"/>
                                         <constraints>
                                             <constraint firstAttribute="height" constant="88" id="Xoq-Hh-2L6"/>
-                                            <constraint firstAttribute="width" relation="greaterThanOrEqual" constant="88" id="sYL-88-Vt7"/>
                                         </constraints>
                                         <fontDescription key="fontDescription" type="system" pointSize="13"/>
-                                        <inset key="titleEdgeInsets" minX="-29" minY="30" maxX="0.0" maxY="0.0"/>
-                                        <inset key="imageEdgeInsets" minX="26" minY="-30" maxX="0.0" maxY="0.0"/>
-                                        <state key="normal" title="Navigate" image="iconNavigate">
+                                        <inset key="contentEdgeInsets" minX="-10" minY="0.0" maxX="0.0" maxY="0.0"/>
+                                        <inset key="titleEdgeInsets" minX="-20" minY="30" maxX="0.0" maxY="0.0"/>
+                                        <inset key="imageEdgeInsets" minX="48" minY="-30" maxX="0.0" maxY="0.0"/>
+                                        <state key="normal" title="Send Location" image="iconNavigate">
                                             <color key="titleColor" white="0.33333333333333331" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                         </state>
+                                        <connections>
+                                            <action selector="sendLocation" destination="jtw-kG-KZO" eventType="touchUpInside" id="XHl-it-Epg"/>
+                                        </connections>
                                     </button>
                                 </subviews>
                                 <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 <constraints>
-                                    <constraint firstItem="YmO-cY-d9U" firstAttribute="trailing" secondItem="5ei-uH-h6l" secondAttribute="leading" constant="-9" id="1Sl-fl-eSh"/>
+                                    <constraint firstItem="YmO-cY-d9U" firstAttribute="trailing" secondItem="5ei-uH-h6l" secondAttribute="leading" constant="8" symbolic="YES" id="1Sl-fl-eSh"/>
                                     <constraint firstItem="5ei-uH-h6l" firstAttribute="centerY" secondItem="IU2-rC-6Q5" secondAttribute="centerY" id="CEh-av-N3r"/>
                                     <constraint firstItem="YmO-cY-d9U" firstAttribute="top" secondItem="IU2-rC-6Q5" secondAttribute="top" constant="22" id="Fvu-ew-hMg"/>
                                     <constraint firstItem="oVP-LB-K7Q" firstAttribute="trailing" secondItem="YmO-cY-d9U" secondAttribute="trailing" id="PPX-yM-Hmb"/>

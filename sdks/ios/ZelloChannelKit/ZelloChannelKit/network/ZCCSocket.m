@@ -18,6 +18,7 @@
 typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
   ZCCSocketRequestTypeLogon = 1,
   ZCCSocketRequestTypeStartStream,
+  ZCCSocketRequestTypeLocationMessage,
   ZCCSocketRequestTypeTextMessage
 };
 
@@ -116,6 +117,21 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
       callback(NO, nil, failureReason);
     } timeoutBlock:^(ZCCSocketResponseCallback *responseCallback) {
       responseCallback.logonCallback(NO, nil, @"Timed out");
+    }];
+  }];
+}
+
+- (void)sendLocation:(ZCCLocationInfo *)location recipient:(NSString *)username timeoutAfter:(NSTimeInterval)timeout {
+  // TODO: Implement -sendLocation:recipient:
+  [self.workRunner runSync:^{
+    [self sendRequest:^NSString *(NSInteger seqNo) {
+      return [ZCCCommands sendLocation:location sequenceNumber:seqNo recipient:username];
+    } type:ZCCSocketRequestTypeLocationMessage timeout:timeout prepareCallback:^(ZCCSocketResponseCallback *responseCallback) {
+      // TODO: Prepare response callback
+    } failBlock:^(NSString *failureReason) {
+      // TODO: Report failure
+    } timeoutBlock:^(ZCCSocketResponseCallback *responseCallback) {
+      // TODO: Report failure
     }];
   }];
 }

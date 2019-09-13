@@ -14,17 +14,9 @@ NS_ASSUME_NONNULL_BEGIN
 @class ZCCIncomingVoiceConfiguration;
 @class ZCCIncomingVoiceStream;
 @class ZCCIncomingVoiceStreamInfo;
+@class ZCCLocationInfo;
 @class ZCCOutgoingVoiceConfiguration;
 @class ZCCOutgoingVoiceStream;
-
-@interface ZCCLocationInfo: NSObject
-@property (nonatomic, readonly) double latitude;
-@property (nonatomic, readonly) double longitude;
-/// Sender's reported accuracy in meters
-@property (nonatomic, readonly) double accuracy;
-/// Reverse geocoded location from the sender
-@property (nonatomic, readonly) NSString *address;
-@end
 
 /**
  * Describes the features available in the channel that this session is connected to
@@ -180,13 +172,13 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
  * Sends the user's current location to the channel
  */
 // TODO: Document -sendLocation
-- (void)sendLocation;
+- (BOOL)sendLocationWithContinuation:(nullable void (^)(ZCCLocationInfo * _Nullable location, NSError * _Nullable error))continuation NS_SWIFT_NAME(sendLocation(continuation:));
 
 /**
  * Sends the user's current location to a user in the currently connected channel
  */
 // TODO: Document -sendLocationToUser:
-- (void)sendLocationToUser:(NSString *)username NS_SWIFT_NAME(sendLocation(to:));
+- (void)sendLocationToUser:(NSString *)username continuation:(nullable void (^)(ZCCLocationInfo * _Nullable location, NSError * _Nullable error))continuation NS_SWIFT_NAME(sendLocation(to:continuation:));
 
 /**
  * Sends a text message to the channel

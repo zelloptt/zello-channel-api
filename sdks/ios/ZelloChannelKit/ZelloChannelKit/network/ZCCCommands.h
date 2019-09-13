@@ -10,11 +10,14 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+@class ZCCLocationInfo;
 @class ZCCStreamParams;
 
 @interface ZCCCommands : NSObject
 
 + (nullable NSString *)logonWithSequenceNumber:(NSInteger)sequenceNumber authToken:(nullable NSString *)authToken refreshToken:(nullable NSString *)refreshToken channel:(NSString *)channel username:(NSString *)username password:(NSString *)password;
+
++ (nullable NSString *)sendLocation:(ZCCLocationInfo *)location sequenceNumber:(NSInteger)sequenceNumber recipient:(nullable NSString *)username;
 
 + (nullable NSString *)sendText:(NSString *)message sequenceNumber:(NSInteger)sequenceNumber recipient:(nullable NSString *)username;
 
