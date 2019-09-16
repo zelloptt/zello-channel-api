@@ -228,7 +228,14 @@ static void LogWarningForDevelopmentToken(NSString *token) {
 }
 
 - (BOOL)sendLocationWithContinuation:(void (^)(ZCCLocationInfo * _Nullable, NSError * _Nullable))continuation {
-  // TODO: Implement -sendLocation
+  return [self sendLocationInternalToUser:nil continuation:continuation];
+}
+
+- (BOOL)sendLocationToUser:(NSString *)username continuation:(void (^)(ZCCLocationInfo * _Nullable, NSError * _Nullable))continuation {
+  return [self sendLocationInternalToUser:username continuation:continuation];
+}
+
+- (BOOL)sendLocationInternalToUser:(nullable NSString *)username continuation:(void (^)(ZCCLocationInfo * _Nullable, NSError * _Nullable))continuation {
   if (self.state != ZCCSessionStateConnected) {
     return NO;
   }
@@ -239,10 +246,9 @@ static void LogWarningForDevelopmentToken(NSString *token) {
   if (![self.locationService locationServicesEnabled]) {
     return NO;
   }
-  
+
   [self.locationService requestLocation:^(CLLocation * _Nullable location, NSError * _Nullable error) {
     if (location) {
-      NSLog(@"[ZCC] Got location: %@", location);
       [self.geocodingService reverseGeocodeLocation:location completionHandler:^(NSArray<CLPlacemark *> * _Nullable placemarks, NSError * _Nullable gecodingError) {
         ZCCLocationInfo *locationInfo = [[ZCCLocationInfo alloc] initWithLocation:location];
         // Fill in reverse geocoded address
@@ -251,7 +257,7 @@ static void LogWarningForDevelopmentToken(NSString *token) {
           NSString *address = [self.addressFormattingService stringFromPlacemark:placemark];
           [locationInfo setAddress:address];
         }
-        [self.webSocket sendLocation:locationInfo recipient:nil timeoutAfter:self.requestTimeout];
+        [self.webSocket sendLocation:locationInfo recipient:username timeoutAfter:self.requestTimeout];
         if (continuation) {
           dispatch_async(self.delegateCallbackQueue, ^{
             continuation(locationInfo, nil);
@@ -259,7 +265,6 @@ static void LogWarningForDevelopmentToken(NSString *token) {
         }
       }];
     } else {
-      NSLog(@"[ZCC] Error getting location: %@", error);
       if (continuation) {
         dispatch_async(self.delegateCallbackQueue, ^{
           continuation(nil, error);
@@ -268,10 +273,6 @@ static void LogWarningForDevelopmentToken(NSString *token) {
     }
   }];
   return YES;
-}
-
-- (void)sendLocationToUser:(NSString *)username continuation:(void (^)(ZCCLocationInfo * _Nullable, NSError * _Nullable))continuation {
-  // TODO: Implement -sendLocationToUser:
 }
 
 - (void)sendText:(NSString *)text {

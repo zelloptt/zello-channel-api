@@ -448,21 +448,11 @@
   XCTAssertFalse([session sendLocationWithContinuation:nil]);
 }
 
-// TODO: Verify that sendLocation sends the current location when we do have access to location services
+// Verify that sendLocation sends the current location when we do have access to location services
 - (void)testSendLocation_sendsLocation {
-  self.locationService.locationServicesEnabled = YES;
-  self.locationService.authorizationStatus = kCLAuthorizationStatusAuthorizedWhenInUse;
-  CLLocationCoordinate2D coordinate;
-  coordinate.latitude = 45.0;
-  coordinate.longitude = 32.5;
-  CLLocation *bogusLocation = [[CLLocation alloc] initWithCoordinate:coordinate altitude:0.0 horizontalAccuracy:15.0 verticalAccuracy:0.0 timestamp:[NSDate dateWithTimeIntervalSinceReferenceDate:0.0]];
-  self.locationService.mockedRequestLocation = ^(ZCCLocationRequestCallback callback) {
-    callback(bogusLocation, nil);
-  };
-  ZCCLocationInfo *expectedLocationInfo = [[ZCCLocationInfo alloc] init];
-  expectedLocationInfo.latitude = 45.0;
-  expectedLocationInfo.longitude = 32.5;
-  expectedLocationInfo.accuracy = 15.0;
+  [self enableLocationServices];
+  CLLocation *bogusLocation = [self mockedLocation];
+  ZCCLocationInfo *expectedLocationInfo = [self expectedLocationInfo];
   expectedLocationInfo.address = @"Bogus address, Anytown";
   id placemark = OCMClassMock([CLPlacemark class]);
   OCMExpect([self.addressFormattingService stringFromPlacemark:placemark]).andReturn(@"Bogus address, Anytown");
@@ -483,6 +473,52 @@
 
   OCMVerify([self.socket sendLocation:expectedLocationInfo recipient:nil timeoutAfter:30.0]);
   XCTAssertEqual([XCTWaiter waitForExpectations:@[callbackCalled] timeout:3.0], XCTWaiterResultCompleted);
+}
+
+- (void)testSendLocationToUser_sendsSocketMessage {
+  [self enableLocationServices];
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+  [self connectSession:session];
+
+  // Message isn't sent until geocoding service returns value
+  OCMStub([self.geocodingService reverseGeocodeLocation:OCMOCK_ANY completionHandler:OCMOCK_ANY]).andDo(^(NSInvocation *invocation) {
+    __unsafe_unretained void (^handler)(NSArray *, NSError *) = nil;
+    [invocation getArgument:&handler atIndex:3];
+    handler(nil, nil);
+  });
+  XCTAssertTrue([session sendLocationToUser:@"bogusUser" continuation:nil]);
+
+  ZCCLocationInfo *expectedLocationInfo = [self expectedLocationInfo];
+  OCMVerify([self.socket sendLocation:expectedLocationInfo recipient:@"bogusUser" timeoutAfter:30.0]);
+}
+
+- (CLLocation *)mockedLocation {
+  static CLLocation *location = nil;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    CLLocationCoordinate2D coordinate;
+    coordinate.latitude = 45.0;
+    coordinate.longitude = 32.5;
+    location = [[CLLocation alloc] initWithCoordinate:coordinate altitude:0.0 horizontalAccuracy:15.0 verticalAccuracy:0.0 timestamp:[NSDate dateWithTimeIntervalSinceReferenceDate:0.0]];
+  });
+  return location;
+}
+
+- (void)enableLocationServices {
+  self.locationService.locationServicesEnabled = YES;
+  self.locationService.authorizationStatus = kCLAuthorizationStatusAuthorizedWhenInUse;
+  CLLocation *bogusLocation = [self mockedLocation];
+  self.locationService.mockedRequestLocation = ^(ZCCLocationRequestCallback callback) {
+    callback(bogusLocation, nil);
+  };
+}
+
+- (ZCCLocationInfo *)expectedLocationInfo {
+  ZCCLocationInfo *expectedLocationInfo = [[ZCCLocationInfo alloc] init];
+  expectedLocationInfo.latitude = 45.0;
+  expectedLocationInfo.longitude = 32.5;
+  expectedLocationInfo.accuracy = 15.0;
+  return expectedLocationInfo;
 }
 
 #pragma mark ZCCSocketDelegate

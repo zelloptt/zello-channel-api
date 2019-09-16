@@ -178,7 +178,7 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
  * Sends the user's current location to a user in the currently connected channel
  */
 // TODO: Document -sendLocationToUser:
-- (void)sendLocationToUser:(NSString *)username continuation:(nullable void (^)(ZCCLocationInfo * _Nullable location, NSError * _Nullable error))continuation NS_SWIFT_NAME(sendLocation(to:continuation:));
+- (BOOL)sendLocationToUser:(NSString *)username continuation:(nullable void (^)(ZCCLocationInfo * _Nullable location, NSError * _Nullable error))continuation NS_SWIFT_NAME(sendLocation(to:continuation:));
 
 /**
  * Sends a text message to the channel
