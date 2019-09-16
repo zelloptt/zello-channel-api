@@ -333,7 +333,7 @@ Indicates the start of the new incoming stream. This event corresponds to `start
 | `stream_id ` | integer |  The id of the stream that started
 | `channel ` | string | The name of the channel
 | `from ` | string | The username of the sender of the message
-| `for ` | string\|boolean | The username of the recipient of the message if it was sent with `for` parameter, `false` otherwise 
+| `for ` | string | The username of the recipient of the message if it was sent with `for` parameter 
 
 
 #### Example:
@@ -401,7 +401,7 @@ Indicates incoming image from the channel. This event corresponds to `send_image
 | `command` | string | `on_image`
 | `channel` | string | The name of the channel
 | `from ` | string | The username of the sender of the image
-| `for ` | string\|boolean | The username of the recipient of the image if it was sent with `for` parameter, `false` otherwise
+| `for ` | string | The username of the recipient of the image if it was sent with `for` parameter
 | `message_id` | integer |  The id of the image message
 | `type` | string | image content type (`jpeg`)
 | `height` | integer |  Image height (some clients don't provide this value)
@@ -469,7 +469,7 @@ Indicates incoming shared location from the channel.
 | `command` | string | `on_location`
 | `channel` | string | The name of the channel
 | `from ` | string | The username of the sender of the shared location
-| `for ` | string\|boolean | The username of the recipient of the location if it was sent with `for` parameter, `false` otherwise
+| `for ` | string | The username of the recipient of the location if it was sent with `for` parameter
 | `message_id` | integer | The id of the shared location message
 | `latitude` | number | Shared location latitude
 | `longitude` | number | Shared location longitude
@@ -484,7 +484,6 @@ Indicates incoming shared location from the channel.
   "command": "on_location",
   "channel": "test",
   "from": "alex",
-  "for": false,
   "message_id": 16777217,
   "latitude": 30.27386375722625,
   "longitude": -97.76014980128478,
