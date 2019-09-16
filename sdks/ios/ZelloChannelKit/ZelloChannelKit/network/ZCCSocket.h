@@ -57,6 +57,15 @@ typedef void (^ZCCLogonCallback)(BOOL succeeded, NSString * _Nullable refreshTok
 typedef void (^ZCCStartStreamCallback)(BOOL succeeded, NSUInteger streamId, NSString * _Nullable errorMessage);
 
 /**
+ * Callback for simple commands that only return success or failure
+ *
+ * @param succeeded whether the server returned success for the command
+ * @param errorMessage if the server returned failure, the error message from the server. If the
+ *                     request timed out, a timed out message
+ */
+typedef void (^ZCCSimpleCommandCallback)(BOOL succeeded, NSString * _Nullable errorMessage);
+
+/**
  * Wraps underlying websocket and translates between our high-level messages and bytes on the
  * wire.
  */
