@@ -12,6 +12,33 @@
 #import "common.h"
 #import "Zello.h"
 
+@interface DriverLocationAnnotation : NSObject <MKAnnotation>
+@property (nonatomic, readonly, nonnull) NSString *driver;
+@property (nonatomic, readonly, nonnull) ZCCLocationInfo *location;
+- (instancetype)initWithDriver:(NSString *)driverName locationInfo:(ZCCLocationInfo *)location;
+@end
+
+@implementation DriverLocationAnnotation
+
+- (instancetype)initWithDriver:(NSString *)driverName locationInfo:(ZCCLocationInfo *)location {
+  self = [super init];
+  if (self) {
+    _driver = driverName;
+    _location = location;
+  }
+  return self;
+}
+
+- (CLLocationCoordinate2D)coordinate {
+  return CLLocationCoordinate2DMake(self.location.latitude, self.location.longitude);
+}
+
+- (NSString *)title {
+  return self.driver;
+}
+
+@end
+
 @interface RiderTalkViewController () <ZCCSessionDelegate>
 @property (nonatomic, weak) IBOutlet UIButton *buttonCancel;
 @property (nonatomic, weak) IBOutlet UIButton *buttonDetail;
@@ -21,6 +48,8 @@
 @property (nonatomic, weak) IBOutlet UILabel *labelHeaderDetail;
 @property (nonatomic, weak) IBOutlet UIImageView *imageViewAvatar;
 @property (nonatomic, weak) IBOutlet UITextField *feedbackTextField;
+
+@property (nonatomic, strong, nullable) DriverLocationAnnotation *driverAnnotation;
 @end
 
 @implementation RiderTalkViewController
@@ -54,6 +83,18 @@
   }
 }
 
+#pragma mark - MKMapViewDelegate
+
+- (MKAnnotationView *)mapView:(MKMapView *)mapView viewForAnnotation:(id<MKAnnotation>)annotation {
+  if (@available(iOS 11, *)) {
+    MKMarkerAnnotationView *marker = [[MKMarkerAnnotationView alloc] initWithAnnotation:annotation reuseIdentifier:@"Driver"];
+    marker.glyphImage = [UIImage imageNamed:@"driver"];
+    return marker;
+  }
+
+  return [[MKAnnotationView alloc] initWithAnnotation:annotation reuseIdentifier:nil];
+}
+
 #pragma mark - ZCCSessionDelegate
 
 - (void)sessionDidDisconnect:(ZCCSession *)session {
@@ -71,6 +112,19 @@
 
 - (void)session:(ZCCSession *)session incomingVoiceDidStop:(ZCCIncomingVoiceStream *)stream {
   [self setButtonNormal];
+}
+
+- (void)session:(ZCCSession *)session didReceiveLocation:(ZCCLocationInfo *)location from:(NSString *)sender {
+  [self showDriver:sender location:location];
+}
+
+- (void)showDriver:(NSString *)driver location:(ZCCLocationInfo *)location {
+  // When we receive a location on the channel, we'll show an annotation marker and scroll the map
+  // to that location
+  [self.mapView removeAnnotations:self.mapView.annotations];
+  self.driverAnnotation = [[DriverLocationAnnotation alloc] initWithDriver:driver locationInfo:location];
+  [self.mapView addAnnotation:self.driverAnnotation];
+  [self.mapView showAnnotations:@[self.driverAnnotation] animated:YES];
 }
 
 @end

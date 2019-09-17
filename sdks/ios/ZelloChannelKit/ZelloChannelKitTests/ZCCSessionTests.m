@@ -421,7 +421,7 @@
   OCMVerifyAll(self.socket);
 }
 
-#pragma mark -sendLocation
+#pragma mark Location messages
 
 // Verify that -sendLocation returns false if we don't have access to location services
 - (void)testSendLocation_NoLocationAccess_ReturnsFalse {
@@ -519,6 +519,24 @@
   expectedLocationInfo.longitude = 32.5;
   expectedLocationInfo.accuracy = 15.0;
   return expectedLocationInfo;
+}
+
+// Verify that we report a received location
+- (void)testIncomingLocation_reportsToDelegate {
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+  [self connectSession:session];
+
+  ZCCLocationInfo *location = [self expectedLocationInfo];
+  location.address = @"Bogus address, Anytown";
+  XCTestExpectation *calledDelegate = [[XCTestExpectation alloc] initWithDescription:@"Sent location to delegate"];
+  OCMExpect([self.sessionDelegate session:session didReceiveLocation:location from:@"bogusSender"]).andDo(^(NSInvocation *invocation) {
+    [calledDelegate fulfill];
+  });
+
+  [session socket:self.socket didReceiveLocationMessage:location sender:@"bogusSender"];
+
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[calledDelegate] timeout:3.0], XCTWaiterResultCompleted);
+  OCMVerifyAll(self.sessionDelegate);
 }
 
 #pragma mark ZCCSocketDelegate

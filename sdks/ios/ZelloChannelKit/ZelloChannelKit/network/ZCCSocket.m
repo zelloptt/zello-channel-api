@@ -10,6 +10,7 @@
 #import "ZCCSocket.h"
 #import "ZCCCommands.h"
 #import "ZCCErrors.h"
+#import "ZCCLocationInfo+Internal.h"
 #import "ZCCProtocol.h"
 #import "ZCCQueueRunner.h"
 #import "ZCCStreamParams.h"
@@ -349,6 +350,10 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
       [self handleError:json original:string];
       return;
     }
+    if ([command isEqualToString:ZCCEventOnLocation]) {
+      [self handleLocation:json original:string];
+      return;
+    }
     if ([command isEqualToString:ZCCEventOnTextMessage]) {
       [self handleTextMessage:json original:string];
       return;
@@ -590,6 +595,45 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
   }
 
   [self reportError:errorMessage];
+}
+
+- (void)handleLocation:(NSDictionary *)encoded original:(NSString *)original {
+  id latitude = encoded[ZCCLatitudeKey];
+  if (![latitude isKindOfClass:[NSNumber class]]) {
+    [self reportInvalidStringMessage:original];
+    return;
+  }
+  double latitudeValue = [latitude doubleValue];
+  id longitude = encoded[ZCCLongitudeKey];
+  if (![longitude isKindOfClass:[NSNumber class]]) {
+    [self reportInvalidStringMessage:original];
+    return;
+  }
+  double longitudeValue = [longitude doubleValue];
+  id accuracy = encoded[ZCCAccuracyKey];
+  if (![accuracy isKindOfClass:[NSNumber class]]) {
+    [self reportInvalidStringMessage:original];
+    return;
+  }
+  double accuracyValue = [accuracy doubleValue];
+  id sender = encoded[ZCCFromUserKey];
+  if (![sender isKindOfClass:[NSString class]]) {
+    [self reportInvalidStringMessage:original];
+  }
+  id address = encoded[ZCCReverseGeocodedKey];
+  if (![address isKindOfClass:[NSString class]]) {
+    address = nil;
+  }
+
+  ZCCLocationInfo *location = [[ZCCLocationInfo alloc] initWithLatitude:latitudeValue longitude:longitudeValue accuracy:accuracyValue];
+  if (address) {
+    [location setAddress:address];
+  }
+
+  id<ZCCSocketDelegate> delegate = self.delegate;
+  [self.delegateRunner runAsync:^{
+    [delegate socket:self didReceiveLocationMessage:location sender:sender];
+  }];
 }
 
 - (void)handleTextMessage:(NSDictionary *)encoded original:(NSString *)original {

@@ -7,7 +7,7 @@
 //
 
 #import <CoreLocation/CoreLocation.h>
-#import "ZCCLocationInfo.h"
+#import "ZCCLocationInfo+Internal.h"
 
 @interface ZCCLocationInfo ()
 @property (nonatomic) double latitude;
@@ -21,11 +21,15 @@ static double epsilon = 0.00001; // ~1 meter for latitude, less for longitude
 @implementation ZCCLocationInfo
 
 - (instancetype)initWithLocation:(CLLocation *)location {
+  return [self initWithLatitude:location.coordinate.latitude longitude:location.coordinate.longitude accuracy:location.horizontalAccuracy];
+}
+
+- (instancetype)initWithLatitude:(double)latitude longitude:(CLLocationDegrees)longitude accuracy:(double)accuracy {
   self = [super init];
   if (self) {
-    _latitude = location.coordinate.latitude;
-    _longitude = location.coordinate.longitude;
-    _accuracy = location.horizontalAccuracy;
+    _latitude = latitude;
+    _longitude = longitude;
+    _accuracy = accuracy;
   }
   return self;
 }

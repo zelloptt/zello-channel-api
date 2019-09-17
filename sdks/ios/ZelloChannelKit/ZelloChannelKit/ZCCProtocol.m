@@ -43,6 +43,7 @@ NSString * const ZCCEventOnChannelStatus = @"on_channel_status";
 NSString * const ZCCEventOnStreamStart = @"on_stream_start";
 NSString * const ZCCEventOnStreamStop = @"on_stream_stop";
 NSString * const ZCCEventOnError = @"on_error";
+NSString * const ZCCEventOnLocation = @"on_location";
 NSString * const ZCCEventOnTextMessage = @"on_text_message";
 
 NSString * const ZCCChannelStatusStatusKey = @"status";

@@ -60,7 +60,7 @@
 		D1131966232AE2220023B488 /* ZCCLocationService.h in Headers */ = {isa = PBXBuildFile; fileRef = D1131964232AE2220023B488 /* ZCCLocationService.h */; };
 		D113196A232AE2600023B488 /* ZCCCoreLocationService.h in Headers */ = {isa = PBXBuildFile; fileRef = D1131968232AE2600023B488 /* ZCCCoreLocationService.h */; };
 		D113196B232AE2600023B488 /* ZCCCoreLocationService.m in Sources */ = {isa = PBXBuildFile; fileRef = D1131969232AE2600023B488 /* ZCCCoreLocationService.m */; };
-		D1131970232AFFE10023B488 /* ZCCLocationInfo.h in Headers */ = {isa = PBXBuildFile; fileRef = D113196E232AFFE10023B488 /* ZCCLocationInfo.h */; };
+		D1131970232AFFE10023B488 /* ZCCLocationInfo.h in Headers */ = {isa = PBXBuildFile; fileRef = D113196E232AFFE10023B488 /* ZCCLocationInfo.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		D1131971232AFFE10023B488 /* ZCCLocationInfo.m in Sources */ = {isa = PBXBuildFile; fileRef = D113196F232AFFE10023B488 /* ZCCLocationInfo.m */; };
 		D116CDFD2022362F001999F1 /* ZCCCommands.h in Headers */ = {isa = PBXBuildFile; fileRef = D116CDFB2022362F001999F1 /* ZCCCommands.h */; };
 		D116CDFE2022362F001999F1 /* ZCCCommands.m in Sources */ = {isa = PBXBuildFile; fileRef = D116CDFC2022362F001999F1 /* ZCCCommands.m */; };

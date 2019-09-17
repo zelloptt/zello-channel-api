@@ -33,6 +33,8 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)socket:(ZCCSocket *)socket didReceiveTextMessage:(NSString *)message sender:(NSString *)sender;
 
+- (void)socket:(ZCCSocket *)socket didReceiveLocationMessage:(ZCCLocationInfo *)location sender:(NSString *)sender;
+
 /**
  * Called if we receive a binary message with an unrecognized type byte. data contains the entire
  * data message, including the type byte. If we receive a binary message of length zero, this will

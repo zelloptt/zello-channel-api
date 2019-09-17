@@ -13,6 +13,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 @interface ZCCLocationInfo (Internal)
 - (instancetype)initWithLocation:(CLLocation *)location;
+- (instancetype)initWithLatitude:(double)latitude longitude:(double)longitude accuracy:(double)accuracy;
 - (void)setAddress:(nullable NSString *)address;
 @end
 

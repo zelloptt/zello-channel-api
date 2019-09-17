@@ -494,6 +494,15 @@ static void LogWarningForDevelopmentToken(NSString *token) {
   [self.streamsManager onIncomingData:data streamId:streamId packetId:packetId];
 }
 
+- (void)socket:(ZCCSocket *)socket didReceiveLocationMessage:(ZCCLocationInfo *)location sender:(NSString *)sender {
+  id<ZCCSessionDelegate> delegate = self.delegate;
+  if ([delegate respondsToSelector:@selector(session:didReceiveLocation:from:)]) {
+    dispatch_async(self.delegateCallbackQueue, ^{
+      [delegate session:self didReceiveLocation:location from:sender];
+    });
+  }
+}
+
 - (void)socket:(ZCCSocket *)socket didReceiveTextMessage:(NSString *)message sender:(NSString *)sender {
   id<ZCCSessionDelegate> delegate = self.delegate;
   if ([delegate respondsToSelector:@selector(session:didReceiveText:from:)]) {

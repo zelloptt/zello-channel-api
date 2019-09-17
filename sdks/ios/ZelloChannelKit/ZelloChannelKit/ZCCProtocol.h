@@ -43,6 +43,7 @@ FOUNDATION_EXPORT NSString * const ZCCEventOnChannelStatus;
 FOUNDATION_EXPORT NSString * const ZCCEventOnStreamStart;
 FOUNDATION_EXPORT NSString * const ZCCEventOnStreamStop;
 FOUNDATION_EXPORT NSString * const ZCCEventOnError;
+FOUNDATION_EXPORT NSString * const ZCCEventOnLocation;
 FOUNDATION_EXPORT NSString * const ZCCEventOnTextMessage;
 
 FOUNDATION_EXPORT NSString * const ZCCChannelStatusStatusKey;

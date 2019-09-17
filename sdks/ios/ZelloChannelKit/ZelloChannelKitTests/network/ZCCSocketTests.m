@@ -346,6 +346,25 @@ static BOOL messageIsEqualToDictionary(NSString *message, NSDictionary *expected
   XCTAssertEqual([XCTWaiter waitForExpectations:@[timeoutReported] timeout:3.0], XCTWaiterResultCompleted);
 }
 
+// Verify that we report a location event when one comes in
+- (void)testReceivelocation_postsToDelegate {
+  NSString *event = @"{\"command\":\"on_location\",\"channel\":\"test channel\",\"from\":\"bogusSender\",\"message_id\":123,\"latitude\":45.0,\"longitude\":31.5,\"formatted_address\":\"Margaritaville\",\"accuracy\":25.0}";
+  ZCCLocationInfo *location = [[ZCCLocationInfo alloc] init];
+  location.latitude = 45.0;
+  location.longitude = 31.5;
+  location.accuracy = 25.0;
+  location.address = @"Margaritaville";
+  XCTestExpectation *receivedLocation = [[XCTestExpectation alloc] initWithDescription:@"delegate called"];
+  OCMExpect([self.socketDelegate socket:self.socket didReceiveLocationMessage:location sender:@"bogusSender"]).andDo(^(NSInvocation *invocation) {
+    [receivedLocation fulfill];
+  });
+
+  [self.socket webSocket:self.webSocket didReceiveMessageWithString:event];
+
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[receivedLocation] timeout:3.0], XCTWaiterResultCompleted);
+  OCMVerifyAll(self.socketDelegate);
+}
+
 #pragma mark Texting
 
 // Verify that we send the right command for a text to the whole channel
