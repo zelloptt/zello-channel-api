@@ -166,15 +166,42 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
 
 
 /**
- * Sends an image message to the currently connected channel
+ * @abstract Sends an image message to the currently connected channel
+ *
+ * @discussion The Zello channels client will resize images that are larger than 1,280x1,280 to have a
+ *             maximum height or width of 1,280 pixels. A 90x90 thumbnail will also be generated
+ *             and sent before the full-sized image data is sent.
+ *
+ *             If an error is encountered while sending the image, the <code>ZCCSessionDelegate</code>
+ *             method <code>session:didEncounterError:</code> will be called with an error describing
+ *             what went wrong.
+ *
+ * @param image the image to send
+ *
+ * @return YES if the image metadata was sent successfully. NO if an error was encountered before
+ *         the image metadata could be sent.
  */
-// TODO: Document -sendImage:
 - (BOOL)sendImage:(UIImage *)image;
 
 /**
- * Sends an image message to a user in the currently connected channel.
+ * @abstract Sends an image message to the currently connected channel
+ *
+ * @discussion The Zello channels client will resize images that are larger than 1,280x1,280 to have a
+ *             maximum height or width of 1,280 pixels. A 90x90 thumbnail will also be generated
+ *             and sent before the full-sized image data is sent.
+ *
+ *             If an error is encountered while sending the image, the <code>ZCCSessionDelegate</code>
+ *             method <code>session:didEncounterError:</code> will be called with an error describing
+ *             what went wrong.
+ *
+ * @param image the image to send
+ *
+ * @param username The user to send the image message to. Other users on the channel will not receive
+ *                 the image.
+ *
+ * @return YES if the image metadata was sent successfully. NO if an error was encountered before
+ *         the image metadata could be sent.
  */
-// TODO: Document -sendImage:toUser:
 - (BOOL)sendImage:(UIImage *)image toUser:(NSString *)username NS_SWIFT_NAME(sendImage(_:to:));
 
 /**
@@ -255,7 +282,15 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
 
 @optional
 /**
- * Called when an image message is received
+ * @abstract Called when an image message is received
+ *
+ * @discussion This method will probably be called twice for each image message that is received:
+ *             once with only the thumbnail present in the image info object, and once with both
+ *             the thumbnail and the full-sized image present. <code>image.imageId</code> will be
+ *             the same for all messages related to the same image message from a sender.
+ *
+ * @param image a container object with information about the sender, message id, and the image
+ *        itself
  */
 - (void)session:(ZCCSession *)sesson didReceiveImage:(ZCCImageInfo *)image;
 
