@@ -12,7 +12,7 @@
 #import "common.h"
 #import "Zello.h"
 
-@interface TalkViewController () <MKMapViewDelegate, CLLocationManagerDelegate>
+@interface TalkViewController () <CLLocationManagerDelegate>
 @property (nonatomic, strong) CLLocationManager *locationManager;
 @property (nonatomic, weak) ZCCOutgoingVoiceStream *outgoingStream;
 @end

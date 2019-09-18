@@ -10,6 +10,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+@class ZCCLocationInfo;
 @class ZCCSocket;
 @class ZCCStreamParams;
 @class ZCCWebSocketFactory;
@@ -31,6 +32,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)socket:(ZCCSocket *)socket didReceiveAudioData:(NSData *)data streamId:(NSUInteger)streamId packetId:(NSUInteger)packetId;
 
 - (void)socket:(ZCCSocket *)socket didReceiveTextMessage:(NSString *)message sender:(NSString *)sender;
+
+- (void)socket:(ZCCSocket *)socket didReceiveLocationMessage:(ZCCLocationInfo *)location sender:(NSString *)sender;
 
 /**
  * Called if we receive a binary message with an unrecognized type byte. data contains the entire
@@ -54,6 +57,15 @@ NS_ASSUME_NONNULL_BEGIN
  */
 typedef void (^ZCCLogonCallback)(BOOL succeeded, NSString * _Nullable refreshToken, NSString * _Nullable errorMessage);
 typedef void (^ZCCStartStreamCallback)(BOOL succeeded, NSUInteger streamId, NSString * _Nullable errorMessage);
+
+/**
+ * Callback for simple commands that only return success or failure
+ *
+ * @param succeeded whether the server returned success for the command
+ * @param errorMessage if the server returned failure, the error message from the server. If the
+ *                     request timed out, a timed out message
+ */
+typedef void (^ZCCSimpleCommandCallback)(BOOL succeeded, NSString * _Nullable errorMessage);
 
 /**
  * Wraps underlying websocket and translates between our high-level messages and bytes on the
@@ -85,6 +97,8 @@ typedef void (^ZCCStartStreamCallback)(BOOL succeeded, NSUInteger streamId, NSSt
 - (void)sendLogonWithAuthToken:(nullable NSString *)authToken refreshToken:(nullable NSString *)refreshToken channel:(NSString *)channel username:(NSString *)username password:(NSString *)password callback:(ZCCLogonCallback)callback timeoutAfter:(NSTimeInterval)timeout;
 
 - (void)sendTextMessage:(NSString *)message recipient:(nullable NSString *)username timeoutAfter:(NSTimeInterval)timeout;
+
+- (void)sendLocation:(ZCCLocationInfo *)location recipient:(nullable NSString *)username timeoutAfter:(NSTimeInterval)timeout;
 
 /**
  * Sends a start_stream command to start sending a voice message

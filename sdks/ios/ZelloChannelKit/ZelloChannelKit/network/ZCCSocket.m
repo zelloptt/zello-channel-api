@@ -10,6 +10,7 @@
 #import "ZCCSocket.h"
 #import "ZCCCommands.h"
 #import "ZCCErrors.h"
+#import "ZCCLocationInfo+Internal.h"
 #import "ZCCProtocol.h"
 #import "ZCCQueueRunner.h"
 #import "ZCCStreamParams.h"
@@ -18,6 +19,7 @@
 typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
   ZCCSocketRequestTypeLogon = 1,
   ZCCSocketRequestTypeStartStream,
+  ZCCSocketRequestTypeLocationMessage,
   ZCCSocketRequestTypeTextMessage
 };
 
@@ -26,6 +28,11 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
 @property (nonatomic, readonly) ZCCSocketRequestType requestType;
 @property (nonatomic, strong) ZCCLogonCallback logonCallback;
 @property (nonatomic, strong) ZCCStartStreamCallback startStreamCallback;
+/**
+ * @warning simpleCommandCallback is called on an arbitrary thread/queue, so if it needs to perform
+ *          work on a particular queue, it is responsible for dispatching to that queue.
+ */
+@property (nonatomic, strong) ZCCSimpleCommandCallback simpleCommandCallback;
 @property (nonatomic, strong) dispatch_block_t timeoutBlock;
 - (instancetype)init NS_UNAVAILABLE;
 - (instancetype)initWithSequenceNumber:(NSInteger)sequenceNumber type:(ZCCSocketRequestType)type NS_DESIGNATED_INITIALIZER;
@@ -116,6 +123,26 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
       callback(NO, nil, failureReason);
     } timeoutBlock:^(ZCCSocketResponseCallback *responseCallback) {
       responseCallback.logonCallback(NO, nil, @"Timed out");
+    }];
+  }];
+}
+
+- (void)sendLocation:(ZCCLocationInfo *)location recipient:(NSString *)username timeoutAfter:(NSTimeInterval)timeout {
+  ZCCSimpleCommandCallback callback = ^(BOOL success, NSString *errorMessage) {
+    if (!success && errorMessage) {
+      [self reportError:errorMessage];
+    }
+  };
+
+  [self.workRunner runSync:^{
+    [self sendRequest:^NSString *(NSInteger seqNo) {
+      return [ZCCCommands sendLocation:location sequenceNumber:seqNo recipient:username];
+    } type:ZCCSocketRequestTypeLocationMessage timeout:timeout prepareCallback:^(ZCCSocketResponseCallback *responseCallback) {
+      responseCallback.simpleCommandCallback = callback;
+    } failBlock:^(NSString *failureReason) {
+      callback(NO, failureReason);
+    } timeoutBlock:^(ZCCSocketResponseCallback *responseCallback) {
+      responseCallback.simpleCommandCallback(NO, @"Send location timed out");
     }];
   }];
 }
@@ -323,6 +350,10 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
       [self handleError:json original:string];
       return;
     }
+    if ([command isEqualToString:ZCCEventOnLocation]) {
+      [self handleLocation:json original:string];
+      return;
+    }
     if ([command isEqualToString:ZCCEventOnTextMessage]) {
       [self handleTextMessage:json original:string];
       return;
@@ -348,8 +379,8 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
       break;
 
     case ZCCSocketRequestTypeTextMessage:
-      // TODO: Handle potential error. Test by turning off texting in test channel?
-      NSLog(@"Text message response: %@", original);
+    case ZCCSocketRequestTypeLocationMessage:
+      [self handleSimpleCommandResponse:encoded callback:callback original:original];
       break;
   }
   if (callback.timeoutBlock) {
@@ -421,6 +452,26 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
   [self.delegateRunner runAsync:^{
     callback.startStreamCallback(NO, 0, errorMessage);
   }];
+}
+
+- (void)handleSimpleCommandResponse:(NSDictionary *)encoded callback:(ZCCSocketResponseCallback *)callback original:(NSString *)original {
+  if (!callback.simpleCommandCallback) {
+    [self reportInvalidStringMessage:original];
+    return;
+  }
+  ZCCSimpleCommandCallback simpleCallback = callback.simpleCommandCallback;
+
+  id success = encoded[ZCCSuccessKey];
+  if ([success isKindOfClass:[NSNumber class]] && [success boolValue]) {
+    simpleCallback(YES, nil);
+    return;
+  }
+
+  id errorMessage = encoded[ZCCErrorKey];
+  if (![errorMessage isKindOfClass:[NSString class]]) {
+    errorMessage = @"Unknown server error";
+  }
+  simpleCallback(NO, errorMessage);
 }
 
 - (void)handleChannelStatus:(NSDictionary *)encoded original:(NSString *)original {
@@ -496,7 +547,7 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
     [self reportInvalidStringMessage:original];
     return;
   }
-  id from = encoded[ZCCOnStreamStartSenderKey];
+  id from = encoded[ZCCFromUserKey];
   if (![from isKindOfClass:[NSString class]]) {
     [self reportInvalidStringMessage:original];
     return;
@@ -543,12 +594,46 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
     return;
   }
 
-  id<ZCCSocketDelegate> delegate = self.delegate;
-  if ([delegate respondsToSelector:@selector(socket:didReportError:)]) {
-    [self.delegateRunner runAsync:^{
-      [delegate socket:self didReportError:errorMessage];
-    }];
+  [self reportError:errorMessage];
+}
+
+- (void)handleLocation:(NSDictionary *)encoded original:(NSString *)original {
+  id latitude = encoded[ZCCLatitudeKey];
+  if (![latitude isKindOfClass:[NSNumber class]]) {
+    [self reportInvalidStringMessage:original];
+    return;
   }
+  double latitudeValue = [latitude doubleValue];
+  id longitude = encoded[ZCCLongitudeKey];
+  if (![longitude isKindOfClass:[NSNumber class]]) {
+    [self reportInvalidStringMessage:original];
+    return;
+  }
+  double longitudeValue = [longitude doubleValue];
+  id accuracy = encoded[ZCCAccuracyKey];
+  if (![accuracy isKindOfClass:[NSNumber class]]) {
+    [self reportInvalidStringMessage:original];
+    return;
+  }
+  double accuracyValue = [accuracy doubleValue];
+  id sender = encoded[ZCCFromUserKey];
+  if (![sender isKindOfClass:[NSString class]]) {
+    [self reportInvalidStringMessage:original];
+  }
+  id address = encoded[ZCCReverseGeocodedKey];
+  if (![address isKindOfClass:[NSString class]]) {
+    address = nil;
+  }
+
+  ZCCLocationInfo *location = [[ZCCLocationInfo alloc] initWithLatitude:latitudeValue longitude:longitudeValue accuracy:accuracyValue];
+  if (address) {
+    [location setAddress:address];
+  }
+
+  id<ZCCSocketDelegate> delegate = self.delegate;
+  [self.delegateRunner runAsync:^{
+    [delegate socket:self didReceiveLocationMessage:location sender:sender];
+  }];
 }
 
 - (void)handleTextMessage:(NSDictionary *)encoded original:(NSString *)original {
@@ -630,6 +715,15 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
 - (NSInteger)incrementedSequenceNumber {
     self.nextSequenceNumber += 1;
     return self.nextSequenceNumber;
+}
+
+- (void)reportError:(nonnull NSString *)errorMessage {
+  id<ZCCSocketDelegate> delegate = self.delegate;
+  if ([delegate respondsToSelector:@selector(socket:didReportError:)]) {
+    [self.delegateRunner runAsync:^{
+      [delegate socket:self didReportError:errorMessage];
+    }];
+  }
 }
 
 @end
