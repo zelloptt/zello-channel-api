@@ -115,14 +115,10 @@
 }
 
 - (void)session:(ZCCSession *)session didReceiveLocation:(ZCCLocationInfo *)location from:(NSString *)sender {
-  [self showDriver:sender location:location];
-}
-
-- (void)showDriver:(NSString *)driver location:(ZCCLocationInfo *)location {
   // When we receive a location on the channel, we'll show an annotation marker and scroll the map
   // to that location
   [self.mapView removeAnnotations:self.mapView.annotations];
-  self.driverAnnotation = [[DriverLocationAnnotation alloc] initWithDriver:driver locationInfo:location];
+  self.driverAnnotation = [[DriverLocationAnnotation alloc] initWithDriver:sender locationInfo:location];
   [self.mapView addAnnotation:self.driverAnnotation];
   [self.mapView showAnnotations:@[self.driverAnnotation] animated:YES];
 }

@@ -547,7 +547,7 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
     [self reportInvalidStringMessage:original];
     return;
   }
-  id from = encoded[ZCCOnStreamStartSenderKey];
+  id from = encoded[ZCCFromUserKey];
   if (![from isKindOfClass:[NSString class]]) {
     [self reportInvalidStringMessage:original];
     return;
