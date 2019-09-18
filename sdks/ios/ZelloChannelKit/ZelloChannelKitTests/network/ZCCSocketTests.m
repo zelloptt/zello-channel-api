@@ -239,9 +239,9 @@ static BOOL messageIsEqualToDictionary(NSString *message, NSDictionary *expected
 
   XCTestExpectation *callbackCalled = [[XCTestExpectation alloc] initWithDescription:@"callback called"];
   [self.socket sendImage:self.imageMessage callback:^(BOOL succeeded, UInt32 imageId, NSString * _Nullable errorMessage) {
-    [callbackCalled fulfill];
     XCTAssertTrue(succeeded);
     XCTAssertEqual(imageId, expectedImageId);
+    [callbackCalled fulfill];
   } timeoutAfter:30.0];
   XCTAssertEqual([XCTWaiter waitForExpectations:@[commandSent] timeout:3.0], XCTWaiterResultCompleted);
 
@@ -260,15 +260,49 @@ static BOOL messageIsEqualToDictionary(NSString *message, NSDictionary *expected
 
   XCTestExpectation *callbackCalled = [[XCTestExpectation alloc] initWithDescription:@"callback called"];
   [self.socket sendImage:self.imageMessage callback:^(BOOL succeeded, UInt32 imageId, NSString * _Nullable errorMessage) {
-    [callbackCalled fulfill];
     XCTAssertFalse(succeeded);
     XCTAssertEqual(imageId, 0);
     XCTAssertEqualObjects(errorMessage, @"test error message");
+    [callbackCalled fulfill];
   } timeoutAfter:30.0];
   XCTAssertEqual([XCTWaiter waitForExpectations:@[commandSent] timeout:3.0], XCTWaiterResultCompleted);
 
-  // TODO: Send failure response and verify callback
   [self.socket webSocket:self.webSocket didReceiveMessageWithString:@"{\"seq\":1,\"success\":false,\"error\":\"test error message\"}"];
+
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[callbackCalled] timeout:3.0], XCTWaiterResultCompleted);
+  OCMVerifyAll(self.webSocket);
+}
+
+// Verify that we report an error on send_image timeout
+- (void)testSendImage_timesOut_propagatesFailure {
+  XCTestExpectation *commandSent = [[XCTestExpectation alloc] initWithDescription:@"send_image sent"];
+  OCMExpect([self.webSocket sendString:OCMOCK_ANY error:(NSError * __autoreleasing *)[OCMArg anyPointer]]).andDo(^(NSInvocation *invocation) {
+    [commandSent fulfill];
+  }).andReturn(YES);
+
+  XCTestExpectation *callbackCalled = [[XCTestExpectation alloc] initWithDescription:@"callback called"];
+  [self.socket sendImage:self.imageMessage callback:^(BOOL succeeded, UInt32 imageId, NSString * _Nullable errorMessage) {
+    XCTAssertFalse(succeeded);
+    XCTAssertEqual(imageId, 0);
+    XCTAssertEqualObjects(errorMessage, @"Send image timed out");
+    [callbackCalled fulfill];
+  } timeoutAfter:1.0];
+
+  XCTWaiterResult waitResult = [XCTWaiter waitForExpectations:@[commandSent, callbackCalled] timeout:3.0];
+  XCTAssertEqual(waitResult, XCTWaiterResultCompleted);
+  OCMVerifyAll(self.webSocket);
+}
+
+// Verify that we report an error if the websocket returns false
+- (void)testSendImage_synchronousWebsocketError_propagatesFailure {
+  OCMExpect([self.webSocket sendString:OCMOCK_ANY error:(NSError * __autoreleasing *)[OCMArg anyPointer]]).andReturn(NO);
+
+  XCTestExpectation *callbackCalled = [[XCTestExpectation alloc] initWithDescription:@"callback called"];
+  [self.socket sendImage:self.imageMessage callback:^(BOOL succeeded, UInt32 imageId, NSString * _Nullable errorMessage) {
+    XCTAssertFalse(succeeded);
+    XCTAssertEqualObjects(errorMessage, @"Failed to send");
+    [callbackCalled fulfill];
+  } timeoutAfter:30.0];
 
   XCTAssertEqual([XCTWaiter waitForExpectations:@[callbackCalled] timeout:3.0], XCTWaiterResultCompleted);
   OCMVerifyAll(self.webSocket);
@@ -285,7 +319,7 @@ static BOOL messageIsEqualToDictionary(NSString *message, NSDictionary *expected
   uint8_t tmessage[] = { 0x02, 0, 0, 0, 32, 0, 0, 0, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
   NSData *expectedThumbnailDataMessage = [NSData dataWithBytes:tmessage length:sizeof(tmessage)];
 
-  [self.socket sendImageData:self.imageMessage imageId:32 timeoutAfter:30.0];
+  [self.socket sendImageData:self.imageMessage imageId:32];
 
   OCMVerify([self.webSocket sendData:expectedThumbnailDataMessage error:(NSError * __autoreleasing *)[OCMArg anyPointer]]);
   OCMVerify([self.webSocket sendData:expectedImageDataMessage error:(NSError * __autoreleasing *)[OCMArg anyPointer]]);

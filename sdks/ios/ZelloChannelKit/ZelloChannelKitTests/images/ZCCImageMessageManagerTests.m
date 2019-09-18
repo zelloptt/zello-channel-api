@@ -45,7 +45,7 @@
     XCTAssertNotNil(callback);
     callback(YES, 32, nil);
   });
-  OCMExpect([self.socket sendImageData:expected imageId:32 timeoutAfter:30.0]);
+  OCMExpect([self.socket sendImageData:expected imageId:32]);
 
   [self.imageMessageManager sendImage:testImage recipient:nil socket:self.socket];
 
@@ -87,7 +87,7 @@
     XCTAssertNotNil(callback);
     callback(YES, 55, nil);
   });
-  OCMExpect([self.socket sendImageData:[OCMArg checkWithBlock:verifyImageMessage] imageId:55 timeoutAfter:30.0]);
+  OCMExpect([self.socket sendImageData:[OCMArg checkWithBlock:verifyImageMessage] imageId:55]);
 
   [self.imageMessageManager sendImage:largeImage recipient:nil socket:self.socket];
 

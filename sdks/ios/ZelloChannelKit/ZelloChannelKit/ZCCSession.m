@@ -218,20 +218,22 @@ static void LogWarningForDevelopmentToken(NSString *token) {
   }];
 }
 
-- (void)sendImage:(UIImage *)image {
+- (BOOL)sendImage:(UIImage *)image {
   if (self.state != ZCCSessionStateConnected) {
-    return;
+    return NO;
   }
 
   [self.imageManager sendImage:image recipient:nil socket:self.webSocket];
+  return YES;
 }
 
-- (void)sendImage:(UIImage *)image toUser:(NSString *)username {
+- (BOOL)sendImage:(UIImage *)image toUser:(NSString *)username {
   if (self.state != ZCCSessionStateConnected) {
-    return;
+    return NO;
   }
 
   [self.imageManager sendImage:image recipient:username socket:self.webSocket];
+  return YES;
 }
 
 - (void)sendLocation {
@@ -294,7 +296,13 @@ static void LogWarningForDevelopmentToken(NSString *token) {
 }
 
 - (void)imageMessageManager:(ZCCImageMessageManager *)manager didFailToSendImage:(UIImage *)image reason:(NSString *)failureReason {
-
+  id<ZCCSessionDelegate> delegate = self.delegate;
+  if ([delegate respondsToSelector:@selector(session:didEncounterError:)]) {
+    NSError *error = [NSError errorWithDomain:ZCCErrorDomain code:ZCCErrorCodeUnknown userInfo:@{ZCCServerErrorMessageKey:failureReason}];
+    dispatch_async(self.delegateCallbackQueue, ^{
+      [delegate session:self didEncounterError:error];
+    });
+  }
 }
 
 #pragma mark - ZCCVoiceStreamsManagerDelegate

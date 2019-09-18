@@ -371,9 +371,9 @@
     [invocation getArgument:&callback atIndex:3];
     callback(YES, 32, nil);
   });
-  OCMExpect([self.socket sendImageData:expected imageId:32 timeoutAfter:30.0]);
+  OCMExpect([self.socket sendImageData:expected imageId:32]);
 
-  [session sendImage:testImage];
+  XCTAssertTrue([session sendImage:testImage]);
 
   OCMVerifyAll(self.socket);
 }
@@ -392,10 +392,42 @@
     [invocation getArgument:&callback atIndex:3];
     callback(YES, 32, nil);
   });
-  OCMExpect([self.socket sendImageData:expected imageId:32 timeoutAfter:30.0]);
+  OCMExpect([self.socket sendImageData:expected imageId:32]);
 
-  [session sendImage:testImage toUser:@"bogusUser"];
+  XCTAssertTrue([session sendImage:testImage toUser:@"bogusUser"]);
 
+  OCMVerifyAll(self.socket);
+}
+
+// Verify that -sendImage: and -sendImage:toUser: return failure if the session isn't connected
+- (void)testSendImage_notConnected_returnsFalse {
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+  UIImage *image = solidImage(UIColor.redColor, CGSizeMake(100.0f, 100.0f), 1.0);
+  XCTAssertFalse([session sendImage:image]);
+  XCTAssertFalse([session sendImage:image toUser:@"bogusUser"]);
+}
+
+// Verify failure reporting from -sendImage:
+- (void)testSendImage_socketFailure_reportsError {
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+  [self connectSession:session];
+  UIImage *image = solidImage(UIColor.redColor, CGSizeMake(400.0f, 400.0f), 1.0f);
+  ZCCImageMessageBuilder *builder = [ZCCImageMessageBuilder builderWithImage:image];
+  ZCCImageMessage *expected = [builder message];
+  OCMExpect([self.socket sendImage:expected callback:OCMOCK_ANY timeoutAfter:30.0]).andDo(^(NSInvocation *invocation) {
+    __unsafe_unretained ZCCSendImageCallback callback;
+    [invocation getArgument:&callback atIndex:3];
+    callback(NO, 0, @"Failed to send");
+  });
+  XCTestExpectation *errorReported = [[XCTestExpectation alloc] initWithDescription:@"Session reported error to delegate"];
+  NSError *expectedError = [NSError errorWithDomain:ZCCErrorDomain code:ZCCErrorCodeUnknown userInfo:@{ZCCServerErrorMessageKey:@"Failed to send"}];
+  OCMExpect([self.sessionDelegate session:session didEncounterError:expectedError]).andDo(^(NSInvocation *invocation) {
+    [errorReported fulfill];
+  });
+
+  [session sendImage:image];
+
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[errorReported] timeout:3.0], XCTWaiterResultCompleted);
   OCMVerifyAll(self.socket);
 }
 

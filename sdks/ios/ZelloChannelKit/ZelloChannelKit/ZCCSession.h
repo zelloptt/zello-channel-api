@@ -169,13 +169,13 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
  * Sends an image message to the currently connected channel
  */
 // TODO: Document -sendImage:
-- (void)sendImage:(nonnull UIImage *)image;
+- (BOOL)sendImage:(UIImage *)image;
 
 /**
  * Sends an image message to a user in the currently connected channel.
  */
 // TODO: Document -sendImage:toUser:
-- (void)sendImage:(nonnull UIImage *)image toUser:(nonnull NSString *)username NS_SWIFT_NAME(sendImage(_:to:));
+- (BOOL)sendImage:(UIImage *)image toUser:(NSString *)username NS_SWIFT_NAME(sendImage(_:to:));
 
 /**
  * Sends the user's current location to the channel
@@ -455,6 +455,12 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
  * device speaker.
  */
 - (void)session:(ZCCSession *)session incomingVoice:(ZCCIncomingVoiceStream *)stream didUpdateProgress:(NSTimeInterval)position;
+
+@optional
+/**
+ * Called when the session encounters an error. The errors reported with this callback
+ */
+- (void)session:(ZCCSession *)session didEncounterError:(NSError *)error;
 
 @end
 

@@ -112,7 +112,7 @@ typedef void (^ZCCSendImageCallback)(BOOL succeeded, UInt32 imageId, NSString * 
 - (void)sendAudioData:(NSData *)data stream:(NSUInteger)streamId;
 
 - (void)sendImage:(ZCCImageMessage *)message callback:(ZCCSendImageCallback)callback timeoutAfter:(NSTimeInterval)timeout;
-- (void)sendImageData:(ZCCImageMessage *)message imageId:(UInt32)imageId timeoutAfter:(NSTimeInterval)timeout;
+- (void)sendImageData:(ZCCImageMessage *)message imageId:(UInt32)imageId;
 
 
 @end

@@ -49,7 +49,7 @@
       return;
     }
 
-    [socket sendImageData:imageMessage imageId:imageId timeoutAfter:self.requestTimeout];
+    [socket sendImageData:imageMessage imageId:imageId];
   } timeoutAfter:self.requestTimeout];
 }
 

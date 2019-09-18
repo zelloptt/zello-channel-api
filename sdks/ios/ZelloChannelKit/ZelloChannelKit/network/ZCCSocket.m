@@ -113,12 +113,12 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
     } failBlock:^(NSString *failureReason) {
       callback(NO, 0, failureReason);
     } timeoutBlock:^(ZCCSocketResponseCallback *responseCallback) {
-      responseCallback.sendImageCallback(NO, 0, @"Timed out");
+      responseCallback.sendImageCallback(NO, 0, @"Send image timed out");
     }];
   }];
 }
 
-- (void)sendImageData:(ZCCImageMessage *)message imageId:(UInt32)imageId timeoutAfter:(NSTimeInterval)timeout {
+- (void)sendImageData:(ZCCImageMessage *)message imageId:(UInt32)imageId {
   NSData *thumbnailDataMessage = [ZCCCommands messageForImageThumbnailData:message imageId:imageId];
   NSError *error = nil;
   if (![self.webSocket sendData:thumbnailDataMessage error:&error]) {
