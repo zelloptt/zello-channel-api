@@ -11,6 +11,7 @@
 #import <ZelloChannelKit/ZCCImageInfo.h>
 #import <ZelloChannelKit/ZCCIncomingVoiceConfiguration.h>
 #import <ZelloChannelKit/ZCCIncomingVoiceStream.h>
+#import <ZelloChannelKit/ZCCLocationInfo.h>
 #import <ZelloChannelKit/ZCCOutgoingVoiceConfiguration.h>
 #import <ZelloChannelKit/ZCCOutgoingVoiceStream.h>
 #import <ZelloChannelKit/ZCCSession.h>

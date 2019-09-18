@@ -10,7 +10,7 @@
 #import <MapKit/MapKit.h>
 #import "BaseViewController.h"
 
-@interface TalkViewController : BaseViewController
+@interface TalkViewController : BaseViewController <MKMapViewDelegate>
 @property (nonatomic, strong) IBOutlet UIButton *buttonTalk;
 @property (nonatomic, strong) IBOutlet MKMapView *mapView;
 @property (nonatomic, strong) IBOutlet UIView *viewDetails;

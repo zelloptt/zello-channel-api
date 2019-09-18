@@ -14,6 +14,7 @@
 #import "ZCCEncoderOpus.h"
 #import "ZCCImageHeader.h"
 #import "ZCCImageMessage.h"
+#import "ZCCLocationInfo.h"
 #import "ZCCSocket.h"
 #import "ZCCStreamParams.h"
 #import "ZCCWebSocketFactory.h"
@@ -38,6 +39,13 @@ static BOOL messageIsEqualToDictionary(NSString *message, NSDictionary *expected
 @interface ZCCSocket (Testing) <ZCCSRWebSocketDelegate>
 @end
 
+@interface ZCCLocationInfo (Testing)
+@property (nonatomic) double latitude;
+@property (nonatomic) double longitude;
+@property (nonatomic) double accuracy;
+@property (nonatomic, copy, nullable) NSString *address;
+@end
+
 @interface ZCCSocketTests : XCTestCase
 @property (nonatomic, strong) ZCCSocket *socket;
 /// Mocked ZCCSocketDelegate
@@ -49,6 +57,9 @@ static BOOL messageIsEqualToDictionary(NSString *message, NSDictionary *expected
 @property (nonatomic, strong) XCTestExpectation *logonCallbackCalled;
 
 @property (nonatomic, strong) ZCCImageMessage *imageMessage;
+
+@property (nonatomic, readonly) NSDictionary *simpleExpectedLocationCommand;
+@property (nonatomic, readonly) ZCCLocationInfo *simpleLocationInfo;
 @end
 
 @implementation ZCCSocketTests
@@ -82,6 +93,24 @@ static BOOL messageIsEqualToDictionary(NSString *message, NSDictionary *expected
 
   self.logonCallbackCalled = nil;
   [super tearDown];
+}
+
+#pragma mark - Properties
+
+- (NSDictionary *)simpleExpectedLocationCommand {
+  return @{@"command":@"send_location",
+           @"seq":@(1),
+           @"latitude":@(23.0),
+           @"longitude":@(14.0),
+           @"accuracy":@(100.0)};
+}
+
+- (ZCCLocationInfo *)simpleLocationInfo {
+  ZCCLocationInfo *location = [[ZCCLocationInfo alloc] init];
+  location.latitude = 23.0;
+  location.longitude = 14.0;
+  location.accuracy = 100.0;
+  return location;
 }
 
 #pragma mark - Tests
@@ -398,6 +427,136 @@ static BOOL messageIsEqualToDictionary(NSString *message, NSDictionary *expected
   } timeoutAfter:30.0];
 
   OCMVerifyAll(self.webSocket);
+}
+
+#pragma mark Locations
+
+// Verify we send location
+- (void)testSendLocation_sendsCorrectCommand {
+  OCMExpect([self.webSocket sendString:[OCMArg checkWithBlock:^BOOL(NSString *message) {
+    return messageIsEqualToDictionary(message, self.simpleExpectedLocationCommand);
+  }] error:(NSError * __autoreleasing *)[OCMArg anyPointer]]).andReturn(YES);
+
+  [self.socket sendLocation:self.simpleLocationInfo recipient:nil timeoutAfter:30.0];
+
+  OCMVerifyAll(self.webSocket);
+}
+
+// Verify we send location with "for" parameter when a recipient is specified
+- (void)testSendLocation_recipient_sendsCorrectCommand {
+  NSDictionary *expected = @{@"command":@"send_location",
+                             @"seq":@(1),
+                             @"latitude":@(34.0),
+                             @"longitude":@(0.5),
+                             @"accuracy":@(100.0),
+                             @"for":@"bogusUser"};
+  OCMExpect([self.webSocket sendString:[OCMArg checkWithBlock:^BOOL(NSString *message) {
+    return messageIsEqualToDictionary(message, expected);
+  }] error:(NSError * __autoreleasing *)[OCMArg anyPointer]]).andReturn(YES);
+
+  ZCCLocationInfo *location = [[ZCCLocationInfo alloc] init];
+  location.latitude = 34.0;
+  location.longitude = 0.5;
+  location.accuracy = 100.0;
+  [self.socket sendLocation:location recipient:@"bogusUser" timeoutAfter:30.0];
+
+  OCMVerifyAll(self.webSocket);
+}
+
+// Verify we send formatted address when one is available
+- (void)testSendLocation_withAddress_sendsCorrectCommand {
+  NSDictionary *expected = @{@"command":@"send_location",
+                             @"seq":@(1),
+                             @"latitude":@(23.0),
+                             @"longitude":@(14.0),
+                             @"accuracy":@(100.0),
+                             @"formatted_address":@"My fancy address, Zello Inc."};
+  OCMExpect([self.webSocket sendString:[OCMArg checkWithBlock:^BOOL(NSString *message) {
+    return messageIsEqualToDictionary(message, expected);
+  }] error:(NSError * __autoreleasing *)[OCMArg anyPointer]]).andReturn(YES);
+
+  ZCCLocationInfo *location = [[ZCCLocationInfo alloc] init];
+  location.latitude = 23.0;
+  location.longitude = 14.0;
+  location.accuracy = 100.0;
+  location.address = @"My fancy address, Zello Inc.";
+  [self.socket sendLocation:location recipient:nil timeoutAfter:30.0];
+
+  OCMVerifyAll(self.webSocket);
+}
+
+// Verify that we handle failure to send from the underlying web socket
+- (void)testSendLocation_errorSending_reportsError {
+  OCMExpect([self.webSocket sendString:[OCMArg checkWithBlock:^BOOL(NSString *message) {
+    return messageIsEqualToDictionary(message, self.simpleExpectedLocationCommand);
+  }] error:(NSError * __autoreleasing *)[OCMArg anyPointer]]).andReturn(NO);
+  XCTestExpectation *errorReported = [[XCTestExpectation alloc] initWithDescription:@"Error reported to delegate"];
+  OCMExpect([self.socketDelegate socket:self.socket didReportError:@"Failed to send"]).andDo(^(NSInvocation *invocation) {
+    [errorReported fulfill];
+  });
+
+  [self.socket sendLocation:self.simpleLocationInfo recipient:nil timeoutAfter:30.0];
+
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[errorReported] timeout:3.0], XCTWaiterResultCompleted);
+  OCMVerifyAll(self.webSocket);
+  OCMVerifyAll(self.socketDelegate);
+}
+
+// Verify that we handle an error reported from the server
+- (void)testSendLocation_serverError_reportsError {
+  OCMExpect([self.webSocket sendString:[OCMArg checkWithBlock:^BOOL(NSString *message) {
+    return messageIsEqualToDictionary(message, self.simpleExpectedLocationCommand);
+  }] error:(NSError * __autoreleasing *)[OCMArg anyPointer]]).andReturn(YES);
+  __block BOOL tooEarly = YES;
+  XCTestExpectation *errorReported = [[XCTestExpectation alloc] initWithDescription:@"Error reported to delegate"];
+  OCMExpect([self.socketDelegate socket:self.socket didReportError:OCMOCK_ANY]).andDo(^(NSInvocation *invocation) {
+    XCTAssertFalse(tooEarly);
+    __unsafe_unretained NSString *errorMessage;
+    [invocation getArgument:&errorMessage atIndex:3];
+    XCTAssertEqualObjects(errorMessage, @"Fancy error message");
+    [errorReported fulfill];
+  });
+
+  [self.socket sendLocation:self.simpleLocationInfo recipient:nil timeoutAfter:30.0];
+
+  tooEarly = NO;
+  NSString *errorResponse = @"{\"seq\":1,\"success\":false,\"error\":\"Fancy error message\"}";
+  [self.socket webSocket:self.webSocket didReceiveMessageWithString:errorResponse];
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[errorReported] timeout:3.0], XCTWaiterResultCompleted);
+}
+
+// Verify that we handle a timed-out request
+- (void)testSendLocation_timesOut_reportsError {
+  OCMExpect([self.webSocket sendString:[OCMArg checkWithBlock:^BOOL(NSString *message) {
+    return messageIsEqualToDictionary(message, self.simpleExpectedLocationCommand);
+  }] error:(NSError * __autoreleasing *)[OCMArg anyPointer]]).andReturn(YES);
+  XCTestExpectation *timeoutReported = [[XCTestExpectation alloc] initWithDescription:@"Timeout reported to delegate"];
+  OCMExpect([self.socketDelegate socket:self.socket didReportError:@"Send location timed out"]).andDo(^(NSInvocation *invocation) {
+    [timeoutReported fulfill];
+  });
+
+  [self.socket sendLocation:self.simpleLocationInfo recipient:nil timeoutAfter:1.0];
+
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[timeoutReported] timeout:3.0], XCTWaiterResultCompleted);
+}
+
+// Verify that we report a location event when one comes in
+- (void)testReceivelocation_postsToDelegate {
+  NSString *event = @"{\"command\":\"on_location\",\"channel\":\"test channel\",\"from\":\"bogusSender\",\"message_id\":123,\"latitude\":45.0,\"longitude\":31.5,\"formatted_address\":\"Margaritaville\",\"accuracy\":25.0}";
+  ZCCLocationInfo *location = [[ZCCLocationInfo alloc] init];
+  location.latitude = 45.0;
+  location.longitude = 31.5;
+  location.accuracy = 25.0;
+  location.address = @"Margaritaville";
+  XCTestExpectation *receivedLocation = [[XCTestExpectation alloc] initWithDescription:@"delegate called"];
+  OCMExpect([self.socketDelegate socket:self.socket didReceiveLocationMessage:location sender:@"bogusSender"]).andDo(^(NSInvocation *invocation) {
+    [receivedLocation fulfill];
+  });
+
+  [self.socket webSocket:self.webSocket didReceiveMessageWithString:event];
+
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[receivedLocation] timeout:3.0], XCTWaiterResultCompleted);
+  OCMVerifyAll(self.socketDelegate);
 }
 
 #pragma mark Texting

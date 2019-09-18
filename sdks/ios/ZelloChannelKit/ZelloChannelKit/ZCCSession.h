@@ -15,17 +15,19 @@ NS_ASSUME_NONNULL_BEGIN
 @class ZCCIncomingVoiceConfiguration;
 @class ZCCIncomingVoiceStream;
 @class ZCCIncomingVoiceStreamInfo;
+@class ZCCLocationInfo;
 @class ZCCOutgoingVoiceConfiguration;
 @class ZCCOutgoingVoiceStream;
 
-@interface ZCCLocationInfo: NSObject
-@property (nonatomic, readonly) double latitude;
-@property (nonatomic, readonly) double longitude;
-/// Sender's reported accuracy in meters
-@property (nonatomic, readonly) double accuracy;
-/// Reverse geocoded location from the sender
-@property (nonatomic, readonly) NSString *address;
-@end
+/**
+ * Callback for receiving the location that the Zello channels client is sending to the channel
+ *
+ * @param location if non-nil, this location is being sent to the channel. If nil, no location will
+ *                 be sent to the channel and the error parameter contains information about what
+ *                 went wrong
+ * @param error if the user's location could not be found, contains information about what went wrong
+ */
+typedef void (^ZCCSentLocationContinuation)(ZCCLocationInfo * _Nullable location, NSError * _Nullable error);
 
 /**
  * Describes the features available in the channel that this session is connected to
@@ -206,15 +208,32 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
 
 /**
  * Sends the user's current location to the channel
+ *
+ * When the user's location is found, continuation is also called with the location so you can update
+ * your app to reflect the location they are reporting to the channel.
+ *
+ * @param continuation this block is called after the current location is found and reverse geocoding
+ *                     is performed. If the location was found, it reports the location as well as
+ *                     a reverse geocoded description if available. If an error was encountered
+ *                     aquiring the location, it reports the error.
  */
-// TODO: Document -sendLocation
-- (void)sendLocation;
+- (BOOL)sendLocationWithContinuation:(nullable ZCCSentLocationContinuation)continuation NS_SWIFT_NAME(sendLocation(continuation:));
 
 /**
- * Sends the user's current location to a user in the currently connected channel
+ * Sends the user's current location to a user in the channel
+ *
+ * When the user's location is found, continuation is also called with the location so you can update
+ * your app to reflect the location they are reporting to the channel.
+ *
+ * @param username The user to send the location to. Other users in the channel will not receive
+ *                 the location.
+ *
+ * @param continuation This block is called after the current location is found and reverse geocoding
+ *                     is performed. If the location was found, it reports the location as well as
+ *                     a reverse geocoded description if available. If an error was encountered
+ *                     aquiring the location, it reports the error.
  */
-// TODO: Document -sendLocationToUser:
-- (void)sendLocationToUser:(NSString *)username NS_SWIFT_NAME(sendLocation(to:));
+- (BOOL)sendLocationToUser:(NSString *)username continuation:(nullable ZCCSentLocationContinuation)continuation NS_SWIFT_NAME(sendLocation(to:continuation:));
 
 /**
  * Sends a text message to the channel
@@ -279,32 +298,6 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
  * When events occur in the Zello session, they are reported to the delegate.
  */
 @protocol ZCCSessionDelegate <NSObject>
-
-@optional
-/**
- * @abstract Called when an image message is received
- *
- * @discussion This method will probably be called twice for each image message that is received:
- *             once with only the thumbnail present in the image info object, and once with both
- *             the thumbnail and the full-sized image present. <code>image.imageId</code> will be
- *             the same for all messages related to the same image message from a sender.
- *
- * @param image a container object with information about the sender, message id, and the image
- *        itself
- */
-- (void)session:(ZCCSession *)sesson didReceiveImage:(ZCCImageInfo *)image;
-
-/**
- * Called when a text message is received
- */
-@optional
-- (void)session:(ZCCSession *)session didReceiveText:(NSString *)message from:(NSString *)sender;
-
-/**
- * Called when a location message is received
- */
-@optional
-- (void)session:(ZCCSession *)session didReceiveLocation:(ZCCLocationInfo *)location from:(NSString *)sender;
 
 @optional
 /**
@@ -493,9 +486,42 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
 
 @optional
 /**
- * Called when the session encounters an error. The errors reported with this callback
+ * @abstract Called when an image message is received
+ *
+ * @discussion This method will probably be called twice for each image message that is received:
+ *             once with only the thumbnail present in the image info object, and once with both
+ *             the thumbnail and the full-sized image present. <code>image.imageId</code> will be
+ *             the same for all messages related to the same image message from a sender.
+ *
+ * @param image a container object with information about the sender, message id, and the image
+ *        itself
  */
+- (void)session:(ZCCSession *)session didReceiveImage:(ZCCImageInfo *)image;
+
+/**
+ * @abstract Called when a location message is received
+ *
+ * @param location an object describing the sender's location
+ *
+ * @param sender the username of the sender
+ */
+@optional
+- (void)session:(ZCCSession *)session didReceiveLocation:(ZCCLocationInfo *)location from:(NSString *)sender;
+
+/**
+ * Called when a text message is received
+ */
+@optional
+- (void)session:(ZCCSession *)session didReceiveText:(NSString *)message from:(NSString *)sender;
+
+/**
+ * Called when the session encounters an error. The errors reported with this callback are informational
+ * and do not mean that the session is no longer functional.
+ */
+// TODO: Document -session:didEncounterError:
+@optional
 - (void)session:(ZCCSession *)session didEncounterError:(NSError *)error;
+
 
 @end
 

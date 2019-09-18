@@ -8,6 +8,7 @@
 
 #import "ZCCCommands.h"
 #import "ZCCImageMessage.h"
+#import "ZCCLocationInfo.h"
 #import "ZCCProtocol.h"
 #import "ZCCStreamParams.h"
 
@@ -52,6 +53,27 @@
     NSLog(@"[ZCC] Error serializing send_image: %@", serializationError);
   }
   return encoded;
+}
+
++ (NSString *)sendLocation:(ZCCLocationInfo *)location sequenceNumber:(NSInteger)sequenceNumber recipient:(NSString *)username {
+  NSMutableDictionary *msg = [@{ZCCCommandKey:ZCCCommandSendLocationMessage,
+                                ZCCSeqKey:@(sequenceNumber),
+                                ZCCLatitudeKey:@(location.latitude),
+                                ZCCLongitudeKey:@(location.longitude),
+                                ZCCAccuracyKey:@(location.accuracy)} mutableCopy];
+  if (location.address) {
+    msg[ZCCReverseGeocodedKey] = location.address;
+  }
+  if (username) {
+    msg[ZCCToUserKey] = username;
+  }
+
+  NSError *serializationError = nil;
+  NSString *locationCommand = [[NSString alloc] initWithData:[NSJSONSerialization dataWithJSONObject:msg options:0 error:&serializationError] encoding:NSUTF8StringEncoding];
+  if (!locationCommand) {
+    NSLog(@"[ZCC] Error serializing location: %@", serializationError);
+  }
+  return locationCommand;
 }
 
 + (NSString *)sendText:(NSString *)message sequenceNumber:(NSInteger)sequenceNumber recipient:(NSString *)username {

@@ -10,12 +10,16 @@
 @import Foundation;
 
 #import "ZCCSession.h"
+#import "ZCCAddressFormattingService.h"
+#import "ZCCCoreGeocodingService.h"
+#import "ZCCCoreLocationService.h"
 #import "ZCCErrors.h"
 #import "ZCCImageInfo+Internal.h"
 #import "ZCCImageMessageManager.h"
 #import "ZCCIncomingImageInfo.h"
 #import "ZCCIncomingVoiceConfiguration.h"
 #import "ZCCIncomingVoiceStreamInfo+Internal.h"
+#import "ZCCLocationInfo+Internal.h"
 #import "ZCCPermissionsManager.h"
 #import "ZCCProtocol.h"
 #import "ZCCSocket.h"
@@ -62,9 +66,6 @@ static void LogWarningForDevelopmentToken(NSString *token) {
   return;
 }
 
-@implementation ZCCLocationInfo
-@end
-
 @interface ZCCSession () <ZCCImageMessageManagerDelegate, ZCCSocketDelegate, ZCCVoiceStreamsManagerDelegate>
 
 @property (nonatomic, strong, nonnull) ZCCPermissionsManager *permissionsManager;
@@ -74,6 +75,9 @@ static void LogWarningForDevelopmentToken(NSString *token) {
 
 @property (nonatomic, strong, nonnull) ZCCVoiceStreamsManager *streamsManager;
 @property (nonatomic, strong, nonnull) ZCCImageMessageManager *imageManager;
+@property (nonatomic, strong, nonnull) id<ZCCGeocodingService> geocodingService;
+@property (nonatomic, strong, nonnull) id<ZCCLocationService> locationService;
+@property (nonatomic, strong, nonnull) id<ZCCAddressFormattingService> addressFormattingService;
 
 @property (nonatomic, strong) ZCCSocket *webSocket;
 
@@ -117,6 +121,9 @@ static void LogWarningForDevelopmentToken(NSString *token) {
     _runner = [[ZCCQueueRunner alloc] initWithName:@"ZCCSession"];
     _imageManager = [[ZCCImageMessageManager alloc] initWithRunner:_runner];
     _imageManager.delegate = self;
+    _addressFormattingService = [[ZCCContactsAddressFormattingService alloc] init];
+    _geocodingService = [[ZCCCoreGeocodingService alloc] init];
+    _locationService = [[ZCCCoreLocationService alloc] init];
   }
   return self;
 }
@@ -236,12 +243,52 @@ static void LogWarningForDevelopmentToken(NSString *token) {
   return YES;
 }
 
-- (void)sendLocation {
-  // TODO: Implement -sendLocation
+- (BOOL)sendLocationWithContinuation:(void (^)(ZCCLocationInfo * _Nullable, NSError * _Nullable))continuation {
+  return [self sendLocationInternalToUser:nil continuation:continuation];
 }
 
-- (void)sendLocationToUser:(NSString *)username {
-  // TODO: Implement -sendLocationToUser:
+- (BOOL)sendLocationToUser:(NSString *)username continuation:(void (^)(ZCCLocationInfo * _Nullable, NSError * _Nullable))continuation {
+  return [self sendLocationInternalToUser:username continuation:continuation];
+}
+
+- (BOOL)sendLocationInternalToUser:(nullable NSString *)username continuation:(void (^)(ZCCLocationInfo * _Nullable, NSError * _Nullable))continuation {
+  if (self.state != ZCCSessionStateConnected) {
+    return NO;
+  }
+  CLAuthorizationStatus authorization = [self.locationService authorizationStatus];
+  if (authorization != kCLAuthorizationStatusAuthorizedWhenInUse && authorization != kCLAuthorizationStatusAuthorizedAlways) {
+    return NO;
+  }
+  if (![self.locationService locationServicesEnabled]) {
+    return NO;
+  }
+
+  [self.locationService requestLocation:^(CLLocation * _Nullable location, NSError * _Nullable error) {
+    if (location) {
+      [self.geocodingService reverseGeocodeLocation:location completionHandler:^(NSArray<CLPlacemark *> * _Nullable placemarks, NSError * _Nullable gecodingError) {
+        ZCCLocationInfo *locationInfo = [[ZCCLocationInfo alloc] initWithLocation:location];
+        // Fill in reverse geocoded address
+        if (placemarks && placemarks.count > 0) {
+          CLPlacemark *placemark = [placemarks firstObject];
+          NSString *address = [self.addressFormattingService stringFromPlacemark:placemark];
+          [locationInfo setAddress:address];
+        }
+        [self.webSocket sendLocation:locationInfo recipient:username timeoutAfter:self.requestTimeout];
+        if (continuation) {
+          dispatch_async(self.delegateCallbackQueue, ^{
+            continuation(locationInfo, nil);
+          });
+        }
+      }];
+    } else {
+      if (continuation) {
+        dispatch_async(self.delegateCallbackQueue, ^{
+          continuation(nil, error);
+        });
+      }
+    }
+  }];
+  return YES;
 }
 
 - (void)sendText:(NSString *)text {
@@ -480,6 +527,15 @@ static void LogWarningForDevelopmentToken(NSString *token) {
 - (void)socket:(ZCCSocket *)socket didReceiveAudioData:(NSData *)data streamId:(NSUInteger)streamId packetId:(NSUInteger)packetId {
   NSLog(@"[ZCC] Incoming data for stream %ld (packet %ld)", (long)streamId, (long)packetId);
   [self.streamsManager onIncomingData:data streamId:streamId packetId:packetId];
+}
+
+- (void)socket:(ZCCSocket *)socket didReceiveLocationMessage:(ZCCLocationInfo *)location sender:(NSString *)sender {
+  id<ZCCSessionDelegate> delegate = self.delegate;
+  if ([delegate respondsToSelector:@selector(session:didReceiveLocation:from:)]) {
+    dispatch_async(self.delegateCallbackQueue, ^{
+      [delegate session:self didReceiveLocation:location from:sender];
+    });
+  }
 }
 
 - (void)socket:(ZCCSocket *)socket didReceiveTextMessage:(NSString *)message sender:(NSString *)sender {
