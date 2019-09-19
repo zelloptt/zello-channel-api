@@ -396,6 +396,68 @@ static BOOL messageIsEqualToDictionary(NSString *message, NSDictionary *expected
   OCMVerifyAll(self.webSocket);
 }
 
+// Verify that we report an error if the websocket fails to send
+- (void)testSendText_errorSending_reportsError {
+  NSDictionary *expected = @{@"command":@"send_text_message",
+                             @"seq":@(1),
+                             @"text":@"test message"};
+  OCMExpect([self.webSocket sendString:[OCMArg checkWithBlock:^BOOL(NSString *message) {
+    return messageIsEqualToDictionary(message, expected);
+  }] error:(NSError * __autoreleasing *)[OCMArg anyPointer]]).andReturn(NO);
+  XCTestExpectation *calledDelegate = [[XCTestExpectation alloc] initWithDescription:@"called delegate"];
+  OCMExpect([self.socketDelegate socket:self.socket didReportError:@"Failed to send"]).andDo(^(NSInvocation *invocation) {
+    [calledDelegate fulfill];
+  });
+
+  [self.socket sendTextMessage:@"test message" recipient:nil timeoutAfter:30.0];
+
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[calledDelegate] timeout:3.0], XCTWaiterResultCompleted);
+  OCMVerifyAll(self.socketDelegate);
+  OCMVerifyAll(self.webSocket);
+}
+
+// Verify that we report an error if the server responds with a failure
+- (void)testSendText_serverError_reportsError {
+  NSDictionary *expected = @{@"command":@"send_text_message",
+                             @"seq":@(1),
+                             @"text":@"test message"};
+  OCMExpect([self.webSocket sendString:[OCMArg checkWithBlock:^BOOL(NSString *message) {
+    return messageIsEqualToDictionary(message, expected);
+  }] error:(NSError * __autoreleasing *)[OCMArg anyPointer]]).andReturn(YES);
+  XCTestExpectation *calledDelegate = [[XCTestExpectation alloc] initWithDescription:@"called delegate"];
+  OCMExpect([self.socketDelegate socket:self.socket didReportError:@"Server error message"]).andDo(^(NSInvocation *invocation) {
+    [calledDelegate fulfill];
+  });
+
+  [self.socket sendTextMessage:@"test message" recipient:nil timeoutAfter:30.0];
+  NSString *errorResponse = @"{\"seq\":1,\"success\":false,\"error\":\"Server error message\"}";
+  [self.socket webSocket:self.webSocket didReceiveMessageWithString:errorResponse];
+
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[calledDelegate] timeout:3.0], XCTWaiterResultCompleted);
+  OCMVerifyAll(self.socketDelegate);
+  OCMVerifyAll(self.webSocket);
+}
+
+// Verify that we report an error if the server times out
+- (void)testSendText_timeout_reportsError {
+  NSDictionary *expected = @{@"command":@"send_text_message",
+                             @"seq":@(1),
+                             @"text":@"test message"};
+  OCMExpect([self.webSocket sendString:[OCMArg checkWithBlock:^BOOL(NSString *message) {
+    return messageIsEqualToDictionary(message, expected);
+  }] error:(NSError * __autoreleasing *)[OCMArg anyPointer]]).andReturn(YES);
+  XCTestExpectation *calledDelegate = [[XCTestExpectation alloc] initWithDescription:@"called delegate"];
+  OCMExpect([self.socketDelegate socket:self.socket didReportError:@"Send text timed out"]).andDo(^(NSInvocation *invocation) {
+    [calledDelegate fulfill];
+  });
+
+  [self.socket sendTextMessage:@"test message" recipient:nil timeoutAfter:1.0];
+
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[calledDelegate] timeout:3.0], XCTWaiterResultCompleted);
+  OCMVerifyAll(self.socketDelegate);
+  OCMVerifyAll(self.webSocket);
+}
+
 - (void)testReceiveText_postsToDelegate {
   NSString *event = @"{\"command\":\"on_text_message\",\"channel\":\"exampleChannel\",\"from\":\"exampleSender\",\"message_id\":3456,\"text\":\"my test message\"}";
   XCTestExpectation *receivedText = [[XCTestExpectation alloc] initWithDescription:@"delegate called"];
