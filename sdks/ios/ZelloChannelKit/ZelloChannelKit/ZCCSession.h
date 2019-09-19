@@ -6,7 +6,7 @@
 //  Copyright © 2018 Zello. All rights reserved.
 //
 
-#import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
 #import "ZCCStreamState.h"
 
 NS_ASSUME_NONNULL_BEGIN
@@ -68,6 +68,21 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
   ZCCReconnectReasonUnknown
 };
 
+/**
+ * @abstract The online status of the channel
+ *
+ * @discussion Generally this reflects whether the session is connected to the server. In the future,
+ *             it may be possible for the session to connect to the server, but enter a state where
+ *             it is not considered to be connected to the channel.
+ */
+typedef NS_ENUM(NSInteger, ZCCChannelStatus) {
+  ZCCChannelStatusUnknown,
+  /// The session is not connected to the channel
+  ZCCChannelStatusOffline,
+  /// The session is connected to the channel
+  ZCCChannelStatusOnline
+};
+
 @protocol ZCCSessionDelegate;
 @class ZCCVoiceStream;
 
@@ -98,6 +113,12 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
 
 /// The current state of the session object
 @property (atomic, readonly) ZCCSessionState state;
+
+/// The channel's online status
+@property (nonatomic, readonly) ZCCChannelStatus channelStatus;
+
+/// The number of users that are connected to the channel
+@property (nonatomic, readonly) NSInteger channelUsersOnline;
 
 /**
  * Features supported by the currently connected channel. If a message is sent that the server does
@@ -342,6 +363,18 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
  * to reconnect.
  */
 - (BOOL)session:(ZCCSession *)session willReconnectForReason:(ZCCReconnectReason)reason;
+
+@optional
+/**
+ * @abstract called when the client receives a channel status update message from the server
+ *
+ * @discussion This method is called once shortly after the session connects to the channel, and
+ *             again whenever another user connects to or disconnects from the channel. The delegate
+ *             can read channel information from the session's properties.
+ *
+ * @param session the session that has new information about its channel
+ */
+- (void)sessionDidUpdateChannelStatus:(ZCCSession *)session;
 
 @optional
 /**

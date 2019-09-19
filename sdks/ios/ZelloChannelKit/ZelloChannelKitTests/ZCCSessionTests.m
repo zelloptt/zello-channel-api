@@ -11,6 +11,7 @@
 #import <XCTest/XCTest.h>
 #import "ZCCSession.h"
 #import "ZCCAddressFormattingService.h"
+#import "ZCCChannelInfo.h"
 #import "ZCCEncoderOpus.h"
 #import "ZCCErrors.h"
 #import "ZCCGeocodingService.h"
@@ -271,6 +272,113 @@
   OCMVerifyAll(self.socket);
   OCMVerify([self.socket close]);
   OCMVerifyAll(self.sessionDelegate);
+}
+
+#pragma mark Channel status events
+
+// Verify that we report the correct channel features and online status after we get a channel status event
+- (void)testOnChannelStatus_propertiesReflectStatus {
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+  XCTAssertEqual(session.channelStatus, ZCCChannelStatusOffline);
+  [self connectSession:session];
+
+  ZCCChannelInfo channelInfo;
+  channelInfo.status = ZCCChannelStatusOffline;
+  [session socket:self.socket didReportStatus:channelInfo forChannel:@"test" usersOnline:1];
+  XCTAssertEqual(session.channelStatus, ZCCChannelStatusOffline);
+
+  channelInfo.status = ZCCChannelStatusOnline;
+  [session socket:self.socket didReportStatus:channelInfo forChannel:@"test" usersOnline:1];
+  XCTAssertEqual(session.channelStatus, ZCCChannelStatusOnline);
+
+  channelInfo.locationsSupported = YES;
+  [session socket:self.socket didReportStatus:channelInfo forChannel:@"test" usersOnline:1];
+  XCTAssertEqual(session.channelFeatures, ZCCChannelFeaturesLocationMessages);
+
+  channelInfo.textingSupported = YES;
+  [session socket:self.socket didReportStatus:channelInfo forChannel:@"test" usersOnline:1];
+  XCTAssertEqual(session.channelFeatures, (ZCCChannelFeaturesLocationMessages | ZCCChannelFeaturesTextMessages));
+
+  channelInfo.imagesSupported = YES;
+  [session socket:self.socket didReportStatus:channelInfo forChannel:@"test" usersOnline:1];
+  XCTAssertEqual(session.channelFeatures, (ZCCChannelFeaturesImageMessages | ZCCChannelFeaturesLocationMessages | ZCCChannelFeaturesTextMessages));
+
+  channelInfo.locationsSupported = NO;
+  [session socket:self.socket didReportStatus:channelInfo forChannel:@"test" usersOnline:1];
+  XCTAssertEqual(session.channelFeatures, (ZCCChannelFeaturesImageMessages | ZCCChannelFeaturesTextMessages));
+
+  // Verify that the session reflects the number of online users in the channel
+  XCTAssertEqual(session.channelUsersOnline, 1);
+
+  [session socket:self.socket didReportStatus:channelInfo forChannel:@"test" usersOnline:23];
+  XCTAssertEqual(session.channelUsersOnline, 23);
+}
+
+// Verify that we tell our delegate there's new information about the channel when we get a channel status event
+- (void)testOnChannelStatus_callsDelegate {
+  __block BOOL tooEarly = YES;
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+  XCTestExpectation *calledDelegate = [[XCTestExpectation alloc] initWithDescription:@"called delegate"];
+  OCMExpect([self.sessionDelegate sessionDidUpdateChannelStatus:session]).andDo(^(NSInvocation *invocation) {
+    XCTAssertFalse(tooEarly);
+    [calledDelegate fulfill];
+  });
+
+  [self connectSession:session];
+
+  tooEarly = NO;
+  [session socket:self.socket didReportStatus:ZCCChannelInfoZero() forChannel:@"test" usersOnline:1];
+
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[calledDelegate] timeout:3.0], XCTWaiterResultCompleted);
+  OCMVerify(self.sessionDelegate);
+}
+
+// Verify that channel status properties have meaningful values when the session is disconnected
+- (void)testChannelProperties_userDisconnectedSession {
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+  XCTAssertEqual(session.channelStatus, ZCCChannelStatusOffline);
+  XCTAssertEqual(session.channelFeatures, ZCCChannelFeaturesNone);
+  XCTAssertEqual(session.channelUsersOnline, 0);
+
+  [self connectSession:session];
+  ZCCChannelInfo channelInfo;
+  channelInfo.status = ZCCChannelStatusOnline;
+  channelInfo.imagesSupported = YES;
+  channelInfo.textingSupported = YES;
+  [session socket:self.socket didReportStatus:channelInfo forChannel:@"test" usersOnline:14];
+  XCTAssertEqual(session.channelStatus, ZCCChannelStatusOnline);
+  XCTAssertEqual(session.channelFeatures, (ZCCChannelFeaturesImageMessages | ZCCChannelFeaturesTextMessages));
+  XCTAssertEqual(session.channelUsersOnline, 14);
+
+  // Disconnect and verify we've reset channel properties
+  XCTestExpectation *disconnected = [[XCTestExpectation alloc] initWithDescription:@"closed socket"];
+  OCMExpect([self.socket close]).andDo(^(NSInvocation *invocation) {
+    [disconnected fulfill];
+  });
+  [session disconnect];
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[disconnected] timeout:3.0], XCTWaiterResultCompleted);
+
+  XCTAssertEqual(session.channelStatus, ZCCChannelStatusOffline);
+  XCTAssertEqual(session.channelFeatures, ZCCChannelFeaturesNone);
+  XCTAssertEqual(session.channelUsersOnline, 0);
+}
+
+- (void)testChannelProperties_serverDisconnected {
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+
+  [self connectSession:session];
+  ZCCChannelInfo channelInfo = ZCCChannelInfoZero();
+  channelInfo.status = ZCCChannelStatusOnline;
+  channelInfo.imagesSupported = YES;
+  [session socket:self.socket didReportStatus:channelInfo forChannel:@"test" usersOnline:10];
+  XCTAssertEqual(session.channelStatus, ZCCChannelStatusOnline);
+  XCTAssertEqual(session.channelFeatures, ZCCChannelFeaturesImageMessages);
+  XCTAssertEqual(session.channelUsersOnline, 10);
+
+  [session socketDidClose:self.socket withError:nil];
+  XCTAssertEqual(session.channelStatus, ZCCChannelStatusOffline);
+  XCTAssertEqual(session.channelUsersOnline, 0);
+  XCTAssertEqual(session.channelFeatures, ZCCChannelFeaturesNone);
 }
 
 #pragma mark -disconnect
