@@ -19,6 +19,7 @@
 #import "ZCCIncomingVoiceStreamInfo+Internal.h"
 #import "ZCCLocationInfo.h"
 #import "ZCCLocationService.h"
+#import "ZCCOutgoingVoiceConfiguration.h"
 #import "ZCCPermissionsManager.h"
 #import "ZCCSocket.h"
 #import "ZCCSocketFactory.h"
@@ -497,6 +498,25 @@
   XCTAssertEqual([XCTWaiter waitForExpectations:@[streamDidEncounterError] timeout:3.0], XCTWaiterResultCompleted);
   OCMVerifyAll(self.socket);
   OCMVerifyAll(self.sessionDelegate);
+}
+
+// Verify that we pass correct parameters when starting a stream with a recipient and a custom source
+- (void)testVoiceMessageToUser_startsStream {
+  OCMStub([self.permissionsManager recordPermission]).andReturn(AVAudioSessionRecordPermissionGranted);
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+  [self connectSession:session];
+
+  XCTestExpectation *sentCommand = [[XCTestExpectation alloc] initWithDescription:@"start_stream sent"];
+  OCMExpect([self.socket sendStartStreamWithParams:OCMOCK_ANY recipient:@"bogusUser" callback:OCMOCK_ANY timeoutAfter:30.0]).andDo(^(NSInvocation *invocation) {
+    [sentCommand fulfill];
+  });
+
+  ZCCOutgoingVoiceConfiguration *source = [[ZCCOutgoingVoiceConfiguration alloc] init];
+  source.sampleRate = [ZCCOutgoingVoiceConfiguration.supportedSampleRates firstObject].unsignedIntegerValue;
+  XCTAssertNotNil([session startVoiceMessageToUser:@"bogusUser" source:source]);
+
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[sentCommand] timeout:3.0], XCTWaiterResultCompleted);
+  OCMVerifyAll(self.socket);
 }
 
 #pragma mark -sendText:

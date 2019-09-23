@@ -280,9 +280,24 @@ typedef NS_ENUM(NSInteger, ZCCChannelStatus) {
 - (ZCCOutgoingVoiceStream *)startVoiceMessageWithSource:(ZCCOutgoingVoiceConfiguration *)sourceConfiguration;
 
 /**
- * Creates a voice stream to a user in the channel, with a custom voice source
+ * @abstract Sends a message to a specific user in the channel with a custom voice source
+ *
+ * @discussion Creates and starts a voice stream to the server using a custom voice source instead
+ * of the device microphone. The Zello Channels SDK maintains a strong reference to the provided
+ * <code>ZCCVoiceSource</code> object until the outgoing stream closes.
+ *
+ * Only the user specified will receive the message.
+ *
+ * @param username the username for the user to send the message to. Other users in the channel won't
+ *                 receive the message.
+ *
+ * @param sourceConfiguration specifies the voice source object for the message
+ *
+ * @return the stream that will be handling the voice message
+ *
+ * @throw NSInvalidArgumentException if <code>sourceConfiguration</code> specifies an unsupported sample rate. Check
+ * <code>ZCCOutgoingVoiceConfiguration.supportedSampleRates</code> for supported sample rates.
  */
-// TODO: Document -startVoiceMessageToUser:source:
 - (ZCCOutgoingVoiceStream *)startVoiceMessageToUser:(NSString *)username source:(ZCCOutgoingVoiceConfiguration *)sourceConfiguration NS_SWIFT_NAME(startVoiceMessage(to:source:));
 
 @end
