@@ -7,15 +7,21 @@
 //
 
 #import "ZCCChannelInfo.h"
+#import "ZCCProtocol.h"
 
 ZCCChannelInfo ZCCChannelInfoZero() {
-  ZCCChannelInfo info = { .status = ZCCChannelStatusUnknown, .imagesSupported = NO, .locationsSupported = NO, .textingSupported = NO };
+  ZCCChannelInfo info = {
+    .status = ZCCChannelStatusUnknown,
+    .imagesSupported = NO,
+    .locationsSupported = NO,
+    .textingSupported = NO
+  };
   return info;
 }
 
 ZCCChannelStatus ZCCChannelStatusFromString(NSString *string) {
-  NSDictionary *statuses = @{@"online": @(ZCCChannelStatusOnline),
-                             @"offline": @(ZCCChannelStatusOffline)};
+  NSDictionary *statuses = @{ZCCChannelStatusOnlineValue: @(ZCCChannelStatusOnline),
+                             ZCCChannelStatusOfflineValue: @(ZCCChannelStatusOffline)};
   return [statuses[string] integerValue];
 }
 

@@ -11,7 +11,7 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
-typedef struct _ZCCChannelInfo {
+typedef struct {
   ZCCChannelStatus status;
   BOOL imagesSupported;
   BOOL textingSupported;

@@ -341,7 +341,7 @@
   XCTAssertEqual(session.channelUsersOnline, 0);
 
   [self connectSession:session];
-  ZCCChannelInfo channelInfo;
+  ZCCChannelInfo channelInfo = ZCCChannelInfoZero();
   channelInfo.status = ZCCChannelStatusOnline;
   channelInfo.imagesSupported = YES;
   channelInfo.textingSupported = YES;
