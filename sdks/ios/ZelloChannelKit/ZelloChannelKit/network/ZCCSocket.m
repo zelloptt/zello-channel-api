@@ -7,6 +7,7 @@
 //
 
 #import "ZCCSRWebSocket.h"
+#import "ZCCChannelInfo.h"
 #import "ZCCSocket.h"
 #import "ZCCCommands.h"
 #import "ZCCErrors.h"
@@ -490,11 +491,25 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
     [self reportInvalidStringMessage:original];
     return;
   }
+  ZCCChannelInfo channelInfo = ZCCChannelInfoZero();
+  channelInfo.status = ZCCChannelStatusFromString(status);
+  id images = encoded[@"images_supported"];
+  if ([images isKindOfClass:[NSNumber class]]) {
+    channelInfo.imagesSupported = [images boolValue];
+  }
+  id texting = encoded[@"texting_supported"];
+  if ([texting isKindOfClass:[NSNumber class]]) {
+    channelInfo.textingSupported = [texting boolValue];
+  }
+  id locations = encoded[@"locations_supported"];
+  if ([locations isKindOfClass:[NSNumber class]]) {
+    channelInfo.locationsSupported = [locations boolValue];
+  }
 
   id<ZCCSocketDelegate> delegate = self.delegate;
   if ([delegate respondsToSelector:@selector(socket:didReportStatus:forChannel:usersOnline:)]) {
     [self.delegateRunner runAsync:^{
-      [delegate socket:self didReportStatus:status forChannel:channelName usersOnline:[numUsers integerValue]];
+      [delegate socket:self didReportStatus:channelInfo forChannel:channelName usersOnline:[numUsers integerValue]];
     }];
   }
 }

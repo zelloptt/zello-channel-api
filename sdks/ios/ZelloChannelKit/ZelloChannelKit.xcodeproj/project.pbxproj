@@ -129,6 +129,8 @@
 		D1C8ABBE20644AC7009A39CF /* libOCMock.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D1C8ABBD20644AC7009A39CF /* libOCMock.a */; };
 		D1D10EF62057267300DE129A /* ZCCAudioUtils.h in Headers */ = {isa = PBXBuildFile; fileRef = D1D10EF42057267300DE129A /* ZCCAudioUtils.h */; };
 		D1D10EF72057267300DE129A /* ZCCAudioUtils.m in Sources */ = {isa = PBXBuildFile; fileRef = D1D10EF52057267300DE129A /* ZCCAudioUtils.m */; };
+		D1D241782332CD6500675667 /* ZCCChannelInfo.h in Headers */ = {isa = PBXBuildFile; fileRef = D1D241762332CD6500675667 /* ZCCChannelInfo.h */; };
+		D1D241792332CD6500675667 /* ZCCChannelInfo.m in Sources */ = {isa = PBXBuildFile; fileRef = D1D241772332CD6500675667 /* ZCCChannelInfo.m */; };
 		D1D53524204F0C910029021F /* ZCCCustomAudioReceiver.h in Headers */ = {isa = PBXBuildFile; fileRef = D1D53522204F0C910029021F /* ZCCCustomAudioReceiver.h */; };
 		D1D53525204F0C910029021F /* ZCCCustomAudioReceiver.m in Sources */ = {isa = PBXBuildFile; fileRef = D1D53523204F0C910029021F /* ZCCCustomAudioReceiver.m */; };
 		D1D61FE5204DB80200FE5392 /* ZCCIncomingVoiceConfiguration.h in Headers */ = {isa = PBXBuildFile; fileRef = D1D61FE3204DB80200FE5392 /* ZCCIncomingVoiceConfiguration.h */; settings = {ATTRIBUTES = (Public, ); }; };
@@ -311,6 +313,8 @@
 		D1CE42912023D0C700975001 /* SocketRocket.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = SocketRocket.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		D1D10EF42057267300DE129A /* ZCCAudioUtils.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ZCCAudioUtils.h; sourceTree = "<group>"; };
 		D1D10EF52057267300DE129A /* ZCCAudioUtils.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ZCCAudioUtils.m; sourceTree = "<group>"; };
+		D1D241762332CD6500675667 /* ZCCChannelInfo.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ZCCChannelInfo.h; sourceTree = "<group>"; };
+		D1D241772332CD6500675667 /* ZCCChannelInfo.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ZCCChannelInfo.m; sourceTree = "<group>"; };
 		D1D53522204F0C910029021F /* ZCCCustomAudioReceiver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ZCCCustomAudioReceiver.h; sourceTree = "<group>"; };
 		D1D53523204F0C910029021F /* ZCCCustomAudioReceiver.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ZCCCustomAudioReceiver.m; sourceTree = "<group>"; };
 		D1D53526204F0CA60029021F /* ZCCAudioReceiver.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ZCCAudioReceiver.h; sourceTree = "<group>"; };
@@ -567,6 +571,8 @@
 				53AA9E421FD9C13B00C35403 /* utils */,
 				A8043FAE1FD5BE9000BFD1BF /* ZelloChannelKit.h */,
 				A8043FAF1FD5BE9000BFD1BF /* Info.plist */,
+				D1D241762332CD6500675667 /* ZCCChannelInfo.h */,
+				D1D241772332CD6500675667 /* ZCCChannelInfo.m */,
 				D1358B842034A1620082B163 /* ZCCErrors.h */,
 				D1358B852034A1620082B163 /* ZCCErrors.m */,
 				53AA9EA61FDA681B00C35403 /* ZCCProtocol.h */,
@@ -791,6 +797,7 @@
 				D1EFBB37206561C300FF4A2E /* ZCCPermissionsManager.h in Headers */,
 				D16A41F62075689A009783DF /* ZCCSRProxyConnect.h in Headers */,
 				D16A421A2075689A009783DF /* NSURLRequest+ZCCSRWebSocketPrivate.h in Headers */,
+				D1D241782332CD6500675667 /* ZCCChannelInfo.h in Headers */,
 				D16A42072075689A009783DF /* ZCCSRHTTPConnectMessage.h in Headers */,
 				D16A42062075689A009783DF /* ZCCSRError.h in Headers */,
 				53AA9E2A1FD9BC8300C35403 /* ZCCCodec.h in Headers */,
@@ -954,6 +961,7 @@
 				D1C8ABBC2064488E009A39CF /* ZCCSocketFactory.m in Sources */,
 				D1F1CFC6232BFBDB000734E7 /* ZCCCoreGeocodingService.m in Sources */,
 				53AA9E321FD9BC8300C35403 /* ZCCEncoder.m in Sources */,
+				D1D241792332CD6500675667 /* ZCCChannelInfo.m in Sources */,
 				D1D53525204F0C910029021F /* ZCCCustomAudioReceiver.m in Sources */,
 				53AA9E2E1FD9BC8300C35403 /* ZCCDecoder.mm in Sources */,
 				53AA9EA11FDA60A300C35403 /* ZCCIncomingVoiceStream.m in Sources */,
