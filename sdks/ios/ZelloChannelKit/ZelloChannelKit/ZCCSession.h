@@ -230,14 +230,19 @@ typedef NS_ENUM(NSInteger, ZCCChannelStatus) {
 
 /**
  * Sends a text message to the channel
+ *
+ * @param text the message to send
  */
-// TODO: Document -sendText:
 - (void)sendText:(NSString *)text;
 
 /**
  * Sends a text message to a user in the currently connected channel
+ *
+ * @param text the message to send
+ *
+ * @param username the username for the user to send the message to. Other users in the channel
+ *                 won't receive the message.
  */
-// TODO: Document -sendText:toUser:
 - (void)sendText:(NSString *)text toUser:(NSString *)username NS_SWIFT_NAME(sendText(_:to:));
 
 /**
@@ -522,6 +527,12 @@ typedef NS_ENUM(NSInteger, ZCCChannelStatus) {
 
 /**
  * Called when a text message is received
+ *
+ * @param session the session that received a text message
+ *
+ * @param message the message that was received
+ *
+ * @param sender the username of the user that sent the message
  */
 @optional
 - (void)session:(ZCCSession *)session didReceiveText:(NSString *)message from:(NSString *)sender;
