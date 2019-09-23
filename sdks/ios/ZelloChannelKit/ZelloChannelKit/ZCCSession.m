@@ -11,6 +11,7 @@
 
 #import "ZCCSession.h"
 #import "ZCCAddressFormattingService.h"
+#import "ZCCChannelInfo.h"
 #import "ZCCCoreGeocodingService.h"
 #import "ZCCCoreLocationService.h"
 #import "ZCCErrors.h"
@@ -72,6 +73,8 @@ static void LogWarningForDevelopmentToken(NSString *token) {
 @property (nonatomic, strong, nonnull) ZCCSocketFactory *socketFactory;
 
 @property (atomic) ZCCSessionState state;
+@property (nonatomic) ZCCChannelInfo channelInfo;
+@property (nonatomic) NSInteger channelUsersOnline;
 
 @property (nonatomic, strong, nonnull) ZCCVoiceStreamsManager *streamsManager;
 @property (nonatomic, strong, nonnull) ZCCImageMessageManager *imageManager;
@@ -124,6 +127,7 @@ static void LogWarningForDevelopmentToken(NSString *token) {
     _addressFormattingService = [[ZCCContactsAddressFormattingService alloc] init];
     _geocodingService = [[ZCCCoreGeocodingService alloc] init];
     _locationService = [[ZCCCoreLocationService alloc] init];
+    _channelInfo.status = ZCCChannelStatusOffline;
   }
   return self;
 }
@@ -146,9 +150,22 @@ static void LogWarningForDevelopmentToken(NSString *token) {
   return self.streamsManager.activeStreams;
 }
 
+- (ZCCChannelStatus)channelStatus {
+  return self.channelInfo.status;
+}
+
 - (ZCCChannelFeatures)channelFeatures {
-  // TODO: Implement -channelFeatures
-  return ZCCChannelFeaturesNone;
+  ZCCChannelFeatures features = ZCCChannelFeaturesNone;
+  if (self.channelInfo.textingSupported) {
+    features = features | ZCCChannelFeaturesTextMessages;
+  }
+  if (self.channelInfo.locationsSupported) {
+    features = features | ZCCChannelFeaturesLocationMessages;
+  }
+  if (self.channelInfo.imagesSupported) {
+    features = features | ZCCChannelFeaturesImageMessages;
+  }
+  return features;
 }
 
 - (BOOL)readyToSendVoiceMessages {
@@ -182,6 +199,7 @@ static void LogWarningForDevelopmentToken(NSString *token) {
 - (void)disconnect {
   [self.runner runAsync:^{
     self.refreshToken = nil;
+    [self resetChannelInfo];
     if (self.webSocket) {
       [self performDisconnect];
 
@@ -300,37 +318,34 @@ static void LogWarningForDevelopmentToken(NSString *token) {
 }
 
 - (ZCCOutgoingVoiceStream *)startVoiceMessage {
-  if (!self.readyToSendVoiceMessages) {
-    return nil;
-  }
-
-  return [self startStreamWithConfiguration:nil recipient:nil];
+  return [self startVoiceMessageInternalToUser:nil source:nil];
 }
 
 - (ZCCOutgoingVoiceStream *)startVoiceMessageToUser:(NSString *)username {
-  if (!self.readyToSendVoiceMessages) {
-    return nil;
-  }
-
-  return [self startStreamWithConfiguration:nil recipient:username];
+  return [self startVoiceMessageInternalToUser:username source:nil];
 }
 
 - (ZCCOutgoingVoiceStream *)startVoiceMessageWithSource:(ZCCOutgoingVoiceConfiguration *)sourceConfiguration {
-  // Validate configuration
-  if (![ZCCOutgoingVoiceConfiguration.supportedSampleRates containsObject:@(sourceConfiguration.sampleRate)]) {
-    NSException *parameterException = [NSException exceptionWithName:NSInvalidArgumentException reason:@"Unsupported sampleRate. Check ZCCOutgoingVoiceConfiguration.supportedSampleRates." userInfo:nil];
-    @throw parameterException;
+  return [self startVoiceMessageInternalToUser:nil source:sourceConfiguration];
+}
+
+- (ZCCOutgoingVoiceStream *)startVoiceMessageToUser:(NSString *)username source:(ZCCOutgoingVoiceConfiguration *)sourceConfiguration {
+  return [self startVoiceMessageInternalToUser:username source:sourceConfiguration];
+}
+
+- (ZCCOutgoingVoiceStream *)startVoiceMessageInternalToUser:(nullable NSString *)username source:(nullable ZCCOutgoingVoiceConfiguration *)sourceConfiguration {
+  if (sourceConfiguration) {
+    // Validate configuration
+    if (![ZCCOutgoingVoiceConfiguration.supportedSampleRates containsObject:@(sourceConfiguration.sampleRate)]) {
+      NSException *parameterException = [NSException exceptionWithName:NSInvalidArgumentException reason:@"Unsupported sampleRate. Check ZCCOutgoingVoiceConfiguration.supportedSampleRates." userInfo:nil];
+      @throw parameterException;
+    }
   }
   if (!self.readyToSendVoiceMessages) {
     return nil;
   }
 
-  return [self startStreamWithConfiguration:sourceConfiguration recipient:nil];
-}
-
-- (ZCCOutgoingVoiceStream *)startVoiceMessageToUser:(NSString *)username source:(ZCCOutgoingVoiceConfiguration *)sourceConfiguration {
-  // TODO: Implement -startVoiceMessageToUser:source:
-  return nil;
+  return [self startStreamWithConfiguration:sourceConfiguration recipient:username];
 }
 
 #pragma mark - ZCCImageMessageManagerDelegate
@@ -458,6 +473,7 @@ static void LogWarningForDevelopmentToken(NSString *token) {
     oldState = self.state;
     self.state = ZCCSessionStateError;
     haveRefreshToken = self.refreshToken != nil;
+    [self resetChannelInfo];
   }];
   BOOL shouldReconnect = haveRefreshToken;
   if (haveRefreshToken) {
@@ -504,8 +520,16 @@ static void LogWarningForDevelopmentToken(NSString *token) {
   }];
 }
 
-- (void)socket:(ZCCSocket *)socket didReportStatus:(NSString *)status forChannel:(NSString *)channel usersOnline:(NSInteger)users {
-  NSLog(@"[ZCC] statusChange %@", status ?: @"?");
+- (void)socket:(ZCCSocket *)socket didReportStatus:(ZCCChannelInfo)channelInfo forChannel:(NSString *)channel usersOnline:(NSInteger)users {
+  self.channelInfo = channelInfo;
+  self.channelUsersOnline = users;
+  // TODO: Report channel status update to user
+  id<ZCCSessionDelegate> delegate = self.delegate;
+  if ([delegate respondsToSelector:@selector(sessionDidUpdateChannelStatus:)]) {
+    dispatch_async(self.delegateCallbackQueue, ^{
+      [delegate sessionDidUpdateChannelStatus:self];
+    });
+  }
 }
 
 - (void)socket:(ZCCSocket *)socket didStartStreamWithId:(NSUInteger)streamId params:(ZCCStreamParams *)params channel:(NSString *)channel sender:(NSString *)senderName {
@@ -666,6 +690,13 @@ static void LogWarningForDevelopmentToken(NSString *token) {
     self.webSocket.delegate = nil;
     [self.webSocket close];
     self.webSocket = nil;
+}
+
+- (void)resetChannelInfo {
+  ZCCChannelInfo reset = ZCCChannelInfoZero();
+  reset.status = ZCCChannelStatusOffline;
+  self.channelInfo = reset;
+  self.channelUsersOnline = 0;
 }
 
 - (ZCCOutgoingVoiceStream *)startStreamWithConfiguration:(ZCCOutgoingVoiceConfiguration *)configuration recipient:(NSString *)username {

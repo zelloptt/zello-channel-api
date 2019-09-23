@@ -7,6 +7,7 @@
 //
 
 #import "ZCCSRWebSocket.h"
+#import "ZCCChannelInfo.h"
 #import "ZCCSocket.h"
 #import "ZCCCommands.h"
 #import "ZCCErrors.h"
@@ -181,15 +182,21 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
 }
 
 - (void)sendTextMessage:(NSString *)message recipient:(NSString *)username timeoutAfter:(NSTimeInterval)timeout {
+  ZCCSimpleCommandCallback callback = ^(BOOL success, NSString *errorMessage) {
+    if (!success && errorMessage) {
+      [self reportError:errorMessage];
+    }
+  };
+
   [self.workRunner runSync:^{
     [self sendRequest:^NSString *(NSInteger seqNo) {
       return [ZCCCommands sendText:message sequenceNumber:seqNo recipient:username];
     } type:ZCCSocketRequestTypeTextMessage timeout:timeout prepareCallback:^(ZCCSocketResponseCallback *responseCallback) {
-      // TODO: Implement response prep handler
+      responseCallback.simpleCommandCallback = callback;
     } failBlock:^(NSString *failureReason) {
-      // TODO: Implement failure handler
+      callback(NO, failureReason);
     } timeoutBlock:^(ZCCSocketResponseCallback *responseCallback) {
-      // TODO: Implement timeout handler
+      responseCallback.simpleCommandCallback(NO, @"Send text timed out");
     }];
   }];
 }
@@ -568,11 +575,25 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
     [self reportInvalidStringMessage:original];
     return;
   }
+  ZCCChannelInfo channelInfo = ZCCChannelInfoZero();
+  channelInfo.status = ZCCChannelStatusFromString(status);
+  id images = encoded[@"images_supported"];
+  if ([images isKindOfClass:[NSNumber class]]) {
+    channelInfo.imagesSupported = [images boolValue];
+  }
+  id texting = encoded[@"texting_supported"];
+  if ([texting isKindOfClass:[NSNumber class]]) {
+    channelInfo.textingSupported = [texting boolValue];
+  }
+  id locations = encoded[@"locations_supported"];
+  if ([locations isKindOfClass:[NSNumber class]]) {
+    channelInfo.locationsSupported = [locations boolValue];
+  }
 
   id<ZCCSocketDelegate> delegate = self.delegate;
   if ([delegate respondsToSelector:@selector(socket:didReportStatus:forChannel:usersOnline:)]) {
     [self.delegateRunner runAsync:^{
-      [delegate socket:self didReportStatus:status forChannel:channelName usersOnline:[numUsers integerValue]];
+      [delegate socket:self didReportStatus:channelInfo forChannel:channelName usersOnline:[numUsers integerValue]];
     }];
   }
 }

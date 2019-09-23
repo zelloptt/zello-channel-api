@@ -68,4 +68,6 @@ FOUNDATION_EXPORT NSString * const ZCCEventOnImage;
 
 #pragma mark Channel status update events
 FOUNDATION_EXPORT NSString * const ZCCChannelStatusStatusKey;
+FOUNDATION_EXPORT NSString * const ZCCChannelStatusOfflineValue;
+FOUNDATION_EXPORT NSString * const ZCCChannelStatusOnlineValue;
 FOUNDATION_EXPORT NSString * const ZCCChannelStatusNumberOfUsersKey;

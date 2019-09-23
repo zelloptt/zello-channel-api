@@ -8,6 +8,8 @@
 
 @import Foundation;
 
+#import "ZCCChannelInfo.h"
+
 NS_ASSUME_NONNULL_BEGIN
 
 @class ZCCImageHeader;
@@ -23,7 +25,7 @@ NS_ASSUME_NONNULL_BEGIN
 
 - (void)socketDidClose:(ZCCSocket *)socket withError:(nullable NSError *)error;
 
-- (void)socket:(ZCCSocket *)socket didReportStatus:(NSString *)status forChannel:(NSString *)channel usersOnline:(NSInteger)users;
+- (void)socket:(ZCCSocket *)socket didReportStatus:(ZCCChannelInfo)status forChannel:(NSString *)channel usersOnline:(NSInteger)users;
 
 - (void)socket:(ZCCSocket *)socket didStartStreamWithId:(NSUInteger)streamId params:(ZCCStreamParams *)params channel:(NSString *)channel sender:(NSString *)senderName;
 

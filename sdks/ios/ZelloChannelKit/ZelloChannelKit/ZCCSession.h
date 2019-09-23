@@ -6,8 +6,9 @@
 //  Copyright © 2018 Zello. All rights reserved.
 //
 
-#import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
 #import "ZCCStreamState.h"
+#import "ZCCTypes.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
@@ -28,20 +29,6 @@ NS_ASSUME_NONNULL_BEGIN
  * @param error if the user's location could not be found, contains information about what went wrong
  */
 typedef void (^ZCCSentLocationContinuation)(ZCCLocationInfo * _Nullable location, NSError * _Nullable error);
-
-/**
- * Describes the features available in the channel that this session is connected to
- */
-typedef NS_OPTIONS(NSInteger, ZCCChannelFeatures) {
-  /// The channel does not support any features other than voice messages
-  ZCCChannelFeaturesNone = 0,
-  /// If present, the channel supports image messages
-  ZCCChannelFeaturesImageMessages = 1 << 1,
-  /// If present, the channel supports text messages
-  ZCCChannelFeaturesTextMessages = 1 << 2,
-  /// If present, the channel supports location messages
-  ZCCChannelFeaturesLocationMessages = 1 << 3
-};
 
 /**
  * Describes the state of the Zello channels client's connection to the Zello channels server.
@@ -99,6 +86,12 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
 
 /// The current state of the session object
 @property (atomic, readonly) ZCCSessionState state;
+
+/// The channel's online status
+@property (nonatomic, readonly) ZCCChannelStatus channelStatus;
+
+/// The number of users that are connected to the channel
+@property (nonatomic, readonly) NSInteger channelUsersOnline;
 
 /**
  * Features supported by the currently connected channel. If a message is sent that the server does
@@ -237,14 +230,19 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
 
 /**
  * Sends a text message to the channel
+ *
+ * @param text the message to send
  */
-// TODO: Document -sendText:
 - (void)sendText:(NSString *)text;
 
 /**
  * Sends a text message to a user in the currently connected channel
+ *
+ * @param text the message to send
+ *
+ * @param username the username for the user to send the message to. Other users in the channel
+ *                 won't receive the message.
  */
-// TODO: Document -sendText:toUser:
 - (void)sendText:(NSString *)text toUser:(NSString *)username NS_SWIFT_NAME(sendText(_:to:));
 
 /**
@@ -287,9 +285,24 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
 - (ZCCOutgoingVoiceStream *)startVoiceMessageWithSource:(ZCCOutgoingVoiceConfiguration *)sourceConfiguration;
 
 /**
- * Creates a voice stream to a user in the channel, with a custom voice source
+ * @abstract Sends a message to a specific user in the channel with a custom voice source
+ *
+ * @discussion Creates and starts a voice stream to the server using a custom voice source instead
+ * of the device microphone. The Zello Channels SDK maintains a strong reference to the provided
+ * <code>ZCCVoiceSource</code> object until the outgoing stream closes.
+ *
+ * Only the user specified will receive the message.
+ *
+ * @param username the username for the user to send the message to. Other users in the channel won't
+ *                 receive the message.
+ *
+ * @param sourceConfiguration specifies the voice source object for the message
+ *
+ * @return the stream that will be handling the voice message
+ *
+ * @throw NSInvalidArgumentException if <code>sourceConfiguration</code> specifies an unsupported sample rate. Check
+ * <code>ZCCOutgoingVoiceConfiguration.supportedSampleRates</code> for supported sample rates.
  */
-// TODO: Document -startVoiceMessageToUser:source:
 - (ZCCOutgoingVoiceStream *)startVoiceMessageToUser:(NSString *)username source:(ZCCOutgoingVoiceConfiguration *)sourceConfiguration NS_SWIFT_NAME(startVoiceMessage(to:source:));
 
 @end
@@ -370,6 +383,18 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
  * to reconnect.
  */
 - (BOOL)session:(ZCCSession *)session willReconnectForReason:(ZCCReconnectReason)reason;
+
+@optional
+/**
+ * @abstract called when the client receives a channel status update message from the server
+ *
+ * @discussion This method is called once shortly after the session connects to the channel, and
+ *             again whenever another user connects to or disconnects from the channel. The delegate
+ *             can read channel information from the session's properties.
+ *
+ * @param session the session that has new information about its channel
+ */
+- (void)sessionDidUpdateChannelStatus:(ZCCSession *)session;
 
 @optional
 /**
@@ -510,6 +535,12 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
 
 /**
  * Called when a text message is received
+ *
+ * @param session the session that received a text message
+ *
+ * @param message the message that was received
+ *
+ * @param sender the username of the user that sent the message
  */
 @optional
 - (void)session:(ZCCSession *)session didReceiveText:(NSString *)message from:(NSString *)sender;

@@ -68,4 +68,6 @@ NSString * const ZCCEventOnImage = @"on_image";
 
 #pragma mark Channel status update events
 NSString * const ZCCChannelStatusStatusKey = @"status";
+NSString * const ZCCChannelStatusOfflineValue = @"offline";
+NSString * const ZCCChannelStatusOnlineValue = @"online";
 NSString * const ZCCChannelStatusNumberOfUsersKey = @"users_online";
