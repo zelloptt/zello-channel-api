@@ -16,6 +16,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic, strong) ZCCImageHeader *header;
 @property (nonatomic, strong, nullable) UIImage *thumbnail;
 @property (nonatomic, strong, nullable) UIImage *image;
+/// The timestamp that this info object was last modified at
+@property (nonatomic, readonly, nonnull) NSDate *lastTouched;
 
 - (instancetype)init NS_UNAVAILABLE;
 - (instancetype)initWithHeader:(ZCCImageHeader *)header NS_DESIGNATED_INITIALIZER;
