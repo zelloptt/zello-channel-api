@@ -15,6 +15,7 @@ NSString * const ZCCCommandStartStream = @"start_stream";
 NSString * const ZCCCommandStopStream = @"stop_stream";
 NSString * const ZCCCommandSendLocationMessage = @"send_location";
 NSString * const ZCCCommandSendTextMessage = @"send_text_message";
+NSString * const ZCCCommandSendImage = @"send_image";
 
 #pragma mark Common message contents
 NSString * const ZCCSeqKey = @"seq";
@@ -47,6 +48,15 @@ NSString * const ZCCReverseGeocodedKey = @"formatted_address";
 #pragma mark Texting
 NSString * const ZCCTextContentKey = @"text";
 
+NSString * const ZCCMessageIDKey = @"message_id";
+
+NSString * const ZCCImageIDKey = @"image_id";
+NSString * const ZCCImageContentLengthKey = @"content_length";
+NSString * const ZCCThumbnailContentLengthKey = @"thumbnail_content_length";
+NSString * const ZCCImageWidthKey = @"width";
+NSString * const ZCCImageHeightKey = @"height";
+NSString * const ZCCImageSourceKey = @"source";
+
 #pragma mark Events server -> client
 NSString * const ZCCEventOnChannelStatus = @"on_channel_status";
 NSString * const ZCCEventOnStreamStart = @"on_stream_start";
@@ -54,6 +64,7 @@ NSString * const ZCCEventOnStreamStop = @"on_stream_stop";
 NSString * const ZCCEventOnError = @"on_error";
 NSString * const ZCCEventOnLocation = @"on_location";
 NSString * const ZCCEventOnTextMessage = @"on_text_message";
+NSString * const ZCCEventOnImage = @"on_image";
 
 #pragma mark Channel status update events
 NSString * const ZCCChannelStatusStatusKey = @"status";

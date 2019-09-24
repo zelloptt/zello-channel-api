@@ -8,9 +8,11 @@
 
 #import <UIKit/UIKit.h>
 #import "ZCCStreamState.h"
+#import "ZCCTypes.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
+@class ZCCImageInfo;
 @class ZCCIncomingVoiceConfiguration;
 @class ZCCIncomingVoiceStream;
 @class ZCCIncomingVoiceStreamInfo;
@@ -27,20 +29,6 @@ NS_ASSUME_NONNULL_BEGIN
  * @param error if the user's location could not be found, contains information about what went wrong
  */
 typedef void (^ZCCSentLocationContinuation)(ZCCLocationInfo * _Nullable location, NSError * _Nullable error);
-
-/**
- * Describes the features available in the channel that this session is connected to
- */
-typedef NS_OPTIONS(NSInteger, ZCCChannelFeatures) {
-  /// The channel does not support any features other than voice messages
-  ZCCChannelFeaturesNone = 0,
-  /// If present, the channel supports image messages
-  ZCCChannelFeaturesImageMessages = 1 << 1,
-  /// If present, the channel supports text messages
-  ZCCChannelFeaturesTextMessages = 1 << 2,
-  /// If present, the channel supports location messages
-  ZCCChannelFeaturesLocationMessages = 1 << 3
-};
 
 /**
  * Describes the state of the Zello channels client's connection to the Zello channels server.
@@ -66,21 +54,6 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
 
   /// Session was disconnected for another reason
   ZCCReconnectReasonUnknown
-};
-
-/**
- * @abstract The online status of the channel
- *
- * @discussion Generally this reflects whether the session is connected to the server. In the future,
- *             it may be possible for the session to connect to the server, but enter a state where
- *             it is not considered to be connected to the channel.
- */
-typedef NS_ENUM(NSInteger, ZCCChannelStatus) {
-  ZCCChannelStatusUnknown,
-  /// The session is not connected to the channel
-  ZCCChannelStatusOffline,
-  /// The session is connected to the channel
-  ZCCChannelStatusOnline
 };
 
 @protocol ZCCSessionDelegate;
@@ -188,16 +161,43 @@ typedef NS_ENUM(NSInteger, ZCCChannelStatus) {
 
 
 /**
- * Sends an image message to the currently connected channel
+ * @abstract Sends an image message to the currently connected channel
+ *
+ * @discussion The Zello channels client will resize images that are larger than 1,280x1,280 to have a
+ *             maximum height or width of 1,280 pixels. A 90x90 thumbnail will also be generated
+ *             and sent before the full-sized image data is sent.
+ *
+ *             If an error is encountered while sending the image, the <code>ZCCSessionDelegate</code>
+ *             method <code>session:didEncounterError:</code> will be called with an error describing
+ *             what went wrong.
+ *
+ * @param image the image to send
+ *
+ * @return YES if the image metadata was sent successfully. NO if an error was encountered before
+ *         the image metadata could be sent.
  */
-// TODO: Document -sendImage:
-- (void)sendImage:(nonnull UIImage *)image;
+- (BOOL)sendImage:(UIImage *)image;
 
 /**
- * Sends an image message to a user in the currently connected channel.
+ * @abstract Sends an image message to the currently connected channel
+ *
+ * @discussion The Zello channels client will resize images that are larger than 1,280x1,280 to have a
+ *             maximum height or width of 1,280 pixels. A 90x90 thumbnail will also be generated
+ *             and sent before the full-sized image data is sent.
+ *
+ *             If an error is encountered while sending the image, the <code>ZCCSessionDelegate</code>
+ *             method <code>session:didEncounterError:</code> will be called with an error describing
+ *             what went wrong.
+ *
+ * @param image the image to send
+ *
+ * @param username The user to send the image message to. Other users on the channel will not receive
+ *                 the image.
+ *
+ * @return YES if the image metadata was sent successfully. NO if an error was encountered before
+ *         the image metadata could be sent.
  */
-// TODO: Document -sendImage:toUser:
-- (void)sendImage:(nonnull UIImage *)image toUser:(nonnull NSString *)username NS_SWIFT_NAME(sendImage(_:to:));
+- (BOOL)sendImage:(UIImage *)image toUser:(NSString *)username NS_SWIFT_NAME(sendImage(_:to:));
 
 /**
  * Sends the user's current location to the channel
@@ -511,9 +511,17 @@ typedef NS_ENUM(NSInteger, ZCCChannelStatus) {
 
 @optional
 /**
- * Called when an image message is received
+ * @abstract Called when an image message is received
+ *
+ * @discussion This method will probably be called twice for each image message that is received:
+ *             once with only the thumbnail present in the image info object, and once with both
+ *             the thumbnail and the full-sized image present. <code>image.imageId</code> will be
+ *             the same for all messages related to the same image message from a sender.
+ *
+ * @param image a container object with information about the sender, message id, and the image
+ *        itself
  */
-- (void)session:(ZCCSession *)session didReceiveImage:(UIImage *)image from:(NSString *)sender;
+- (void)session:(ZCCSession *)session didReceiveImage:(ZCCImageInfo *)image;
 
 /**
  * @abstract Called when a location message is received
@@ -536,6 +544,15 @@ typedef NS_ENUM(NSInteger, ZCCChannelStatus) {
  */
 @optional
 - (void)session:(ZCCSession *)session didReceiveText:(NSString *)message from:(NSString *)sender;
+
+/**
+ * Called when the session encounters an error. The errors reported with this callback are informational
+ * and do not mean that the session is no longer functional.
+ */
+// TODO: Document -session:didEncounterError:
+@optional
+- (void)session:(ZCCSession *)session didEncounterError:(NSError *)error;
+
 
 @end
 

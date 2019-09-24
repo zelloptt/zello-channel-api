@@ -11,6 +11,8 @@
 #import "RiderTalkViewController.h"
 #import "common.h"
 #import "Zello.h"
+#import "ImagePopupPresentationController.h"
+#import "ImagePopupViewController.h"
 
 @interface DriverLocationAnnotation : NSObject <MKAnnotation>
 @property (nonatomic, readonly, nonnull) NSString *driver;
@@ -112,6 +114,19 @@
 
 - (void)session:(ZCCSession *)session incomingVoiceDidStop:(ZCCIncomingVoiceStream *)stream {
   [self setButtonNormal];
+}
+
+- (void)session:(ZCCSession *)session didReceiveImage:(ZCCImageInfo *)info {
+  if (!info.image) {
+    return;
+  }
+  // Show image in a popup
+  ImagePopupViewController *popup = [self.storyboard instantiateViewControllerWithIdentifier:@"imagePopup"];
+  popup.modalPresentationStyle = UIModalPresentationCustom;
+  popup.image = info.image;
+  ImagePopupPresentationController *presentationController = [[ImagePopupPresentationController alloc] initWithPresentedViewController:popup presentingViewController:self];
+  popup.transitioningDelegate = presentationController;
+  [self presentViewController:popup animated:YES completion:nil];
 }
 
 - (void)session:(ZCCSession *)session didReceiveLocation:(ZCCLocationInfo *)location from:(NSString *)sender {

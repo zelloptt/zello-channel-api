@@ -13,6 +13,7 @@ FOUNDATION_EXPORT NSString * const ZCCCommandKey;
 FOUNDATION_EXPORT NSString * const ZCCCommandLogon;
 FOUNDATION_EXPORT NSString * const ZCCCommandStartStream;
 FOUNDATION_EXPORT NSString * const ZCCCommandStopStream;
+FOUNDATION_EXPORT NSString * const ZCCCommandSendImage;
 FOUNDATION_EXPORT NSString * const ZCCCommandSendLocationMessage;
 FOUNDATION_EXPORT NSString * const ZCCCommandSendTextMessage;
 
@@ -47,6 +48,15 @@ FOUNDATION_EXPORT NSString * const ZCCTextContentKey;
 FOUNDATION_EXPORT NSString * const ZCCToUserKey;
 FOUNDATION_EXPORT NSString * const ZCCFromUserKey;
 
+FOUNDATION_EXPORT NSString * const ZCCMessageIDKey;
+
+FOUNDATION_EXPORT NSString * const ZCCImageIDKey;
+FOUNDATION_EXPORT NSString * const ZCCImageContentLengthKey;
+FOUNDATION_EXPORT NSString * const ZCCThumbnailContentLengthKey;
+FOUNDATION_EXPORT NSString * const ZCCImageWidthKey;
+FOUNDATION_EXPORT NSString * const ZCCImageHeightKey;
+FOUNDATION_EXPORT NSString * const ZCCImageSourceKey;
+
 #pragma mark Events server -> client
 FOUNDATION_EXPORT NSString * const ZCCEventOnChannelStatus;
 FOUNDATION_EXPORT NSString * const ZCCEventOnStreamStart;
@@ -54,6 +64,7 @@ FOUNDATION_EXPORT NSString * const ZCCEventOnStreamStop;
 FOUNDATION_EXPORT NSString * const ZCCEventOnError;
 FOUNDATION_EXPORT NSString * const ZCCEventOnLocation;
 FOUNDATION_EXPORT NSString * const ZCCEventOnTextMessage;
+FOUNDATION_EXPORT NSString * const ZCCEventOnImage;
 
 #pragma mark Channel status update events
 FOUNDATION_EXPORT NSString * const ZCCChannelStatusStatusKey;

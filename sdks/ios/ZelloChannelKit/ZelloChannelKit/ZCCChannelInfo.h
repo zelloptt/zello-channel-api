@@ -7,7 +7,7 @@
 //
 
 #import <Foundation/Foundation.h>
-#import "ZCCSession.h"
+#import "ZCCTypes.h"
 
 NS_ASSUME_NONNULL_BEGIN
 

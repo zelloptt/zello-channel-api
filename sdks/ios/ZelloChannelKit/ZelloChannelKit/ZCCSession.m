@@ -15,6 +15,9 @@
 #import "ZCCCoreGeocodingService.h"
 #import "ZCCCoreLocationService.h"
 #import "ZCCErrors.h"
+#import "ZCCImageInfo+Internal.h"
+#import "ZCCImageMessageManager.h"
+#import "ZCCIncomingImageInfo.h"
 #import "ZCCIncomingVoiceConfiguration.h"
 #import "ZCCIncomingVoiceStreamInfo+Internal.h"
 #import "ZCCLocationInfo+Internal.h"
@@ -64,7 +67,7 @@ static void LogWarningForDevelopmentToken(NSString *token) {
   return;
 }
 
-@interface ZCCSession () <ZCCSocketDelegate, ZCCVoiceStreamsManagerDelegate>
+@interface ZCCSession () <ZCCImageMessageManagerDelegate, ZCCSocketDelegate, ZCCVoiceStreamsManagerDelegate>
 
 @property (nonatomic, strong, nonnull) ZCCPermissionsManager *permissionsManager;
 @property (nonatomic, strong, nonnull) ZCCSocketFactory *socketFactory;
@@ -74,6 +77,7 @@ static void LogWarningForDevelopmentToken(NSString *token) {
 @property (nonatomic) NSInteger channelUsersOnline;
 
 @property (nonatomic, strong, nonnull) ZCCVoiceStreamsManager *streamsManager;
+@property (nonatomic, strong, nonnull) ZCCImageMessageManager *imageManager;
 @property (nonatomic, strong, nonnull) id<ZCCGeocodingService> geocodingService;
 @property (nonatomic, strong, nonnull) id<ZCCLocationService> locationService;
 @property (nonatomic, strong, nonnull) id<ZCCAddressFormattingService> addressFormattingService;
@@ -118,6 +122,8 @@ static void LogWarningForDevelopmentToken(NSString *token) {
     _streamsManager.requestTimeout = _requestTimeout;
     _state = ZCCSessionStateDisconnected;
     _runner = [[ZCCQueueRunner alloc] initWithName:@"ZCCSession"];
+    _imageManager = [[ZCCImageMessageManager alloc] initWithRunner:_runner];
+    _imageManager.delegate = self;
     _addressFormattingService = [[ZCCContactsAddressFormattingService alloc] init];
     _geocodingService = [[ZCCCoreGeocodingService alloc] init];
     _locationService = [[ZCCCoreLocationService alloc] init];
@@ -237,12 +243,22 @@ static void LogWarningForDevelopmentToken(NSString *token) {
   }];
 }
 
-- (void)sendImage:(UIImage *)image {
-  // TODO: Implement -sendImage:
+- (BOOL)sendImage:(UIImage *)image {
+  if (self.state != ZCCSessionStateConnected) {
+    return NO;
+  }
+
+  [self.imageManager sendImage:image recipient:nil socket:self.webSocket];
+  return YES;
 }
 
-- (void)sendImage:(UIImage *)image toUser:(NSString *)username {
-  // TODO: Implement -sendImage:toUser:
+- (BOOL)sendImage:(UIImage *)image toUser:(NSString *)username {
+  if (self.state != ZCCSessionStateConnected) {
+    return NO;
+  }
+
+  [self.imageManager sendImage:image recipient:username socket:self.webSocket];
+  return YES;
 }
 
 - (BOOL)sendLocationWithContinuation:(void (^)(ZCCLocationInfo * _Nullable, NSError * _Nullable))continuation {
@@ -330,6 +346,25 @@ static void LogWarningForDevelopmentToken(NSString *token) {
   }
 
   return [self startStreamWithConfiguration:sourceConfiguration recipient:username];
+}
+
+#pragma mark - ZCCImageMessageManagerDelegate
+
+- (void)imageMessageManager:(ZCCImageMessageManager *)manager didReceiveImage:(ZCCIncomingImageInfo *)imageInfo {
+  ZCCImageInfo *info = [[ZCCImageInfo alloc] initWithImageInfo:imageInfo];
+  dispatch_async(self.delegateCallbackQueue, ^{
+    [self.delegate session:self didReceiveImage:info];
+  });
+}
+
+- (void)imageMessageManager:(ZCCImageMessageManager *)manager didFailToSendImage:(UIImage *)image reason:(NSString *)failureReason {
+  id<ZCCSessionDelegate> delegate = self.delegate;
+  if ([delegate respondsToSelector:@selector(session:didEncounterError:)]) {
+    NSError *error = [NSError errorWithDomain:ZCCErrorDomain code:ZCCErrorCodeUnknown userInfo:@{ZCCServerErrorMessageKey:failureReason}];
+    dispatch_async(self.delegateCallbackQueue, ^{
+      [delegate session:self didEncounterError:error];
+    });
+  }
 }
 
 #pragma mark - ZCCVoiceStreamsManagerDelegate
@@ -534,6 +569,14 @@ static void LogWarningForDevelopmentToken(NSString *token) {
       [delegate session:self didReceiveText:message from:sender];
     });
   }
+}
+
+- (void)socket:(nonnull ZCCSocket *)socket didReceiveImageData:(nonnull NSData *)data imageId:(NSUInteger)imageId isThumbnail:(BOOL)isThumbnail {
+  [self.imageManager handleImageData:data imageId:imageId isThumbnail:isThumbnail];
+}
+
+- (void)socket:(nonnull ZCCSocket *)socket didReceiveImageHeader:(nonnull ZCCImageHeader *)header {
+  [self.imageManager handleImageHeader:header];
 }
 
 - (void)socket:(nonnull ZCCSocket *)socket didReportError:(nonnull NSString *)errorMessage {

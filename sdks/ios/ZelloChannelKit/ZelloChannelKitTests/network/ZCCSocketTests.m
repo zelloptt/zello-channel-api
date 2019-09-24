@@ -12,6 +12,8 @@
 #import "ZCCAudioSource.h"
 #import "ZCCEncoder.h"
 #import "ZCCEncoderOpus.h"
+#import "ZCCImageHeader.h"
+#import "ZCCImageMessage.h"
 #import "ZCCLocationInfo.h"
 #import "ZCCSocket.h"
 #import "ZCCStreamParams.h"
@@ -22,6 +24,17 @@ static BOOL messageIsEqualToDictionary(NSString *message, NSDictionary *expected
   NSDictionary *actual = [NSJSONSerialization JSONObjectWithData:messageData options:0 error:NULL];
   return [expected isEqualToDictionary:actual];
 }
+
+@interface ZCCImageMessage (Testing)
+@property (nonatomic) ZCCImageType imageType;
+@property (nonatomic) NSUInteger contentLength;
+@property (nonatomic) NSUInteger thumbnailLength;
+@property (nonatomic) NSInteger width;
+@property (nonatomic) NSInteger height;
+@property (nonatomic, copy, nullable) NSString *recipient;
+@property (nonatomic, copy) NSData *imageData;
+@property (nonatomic, copy) NSData *thumbnailData;
+@end
 
 @interface ZCCSocket (Testing) <ZCCSRWebSocketDelegate>
 @end
@@ -43,6 +56,8 @@ static BOOL messageIsEqualToDictionary(NSString *message, NSDictionary *expected
 
 @property (nonatomic, strong) XCTestExpectation *logonCallbackCalled;
 
+@property (nonatomic, strong) ZCCImageMessage *imageMessage;
+
 @property (nonatomic, readonly) NSDictionary *simpleExpectedLocationCommand;
 @property (nonatomic, readonly) ZCCLocationInfo *simpleLocationInfo;
 @end
@@ -62,6 +77,13 @@ static BOOL messageIsEqualToDictionary(NSString *message, NSDictionary *expected
   self.socket.delegate = self.socketDelegate;
 
   self.logonCallbackCalled = [[XCTestExpectation alloc] initWithDescription:@"Logon callback called"];
+
+  self.imageMessage = [[ZCCImageMessage alloc] init];
+  self.imageMessage.imageType = ZCCImageTypeJPEG;
+  self.imageMessage.contentLength = 15000;
+  self.imageMessage.thumbnailLength = 300;
+  self.imageMessage.width = 230;
+  self.imageMessage.height = 320;
 }
 
 - (void)tearDown {
@@ -209,6 +231,178 @@ static BOOL messageIsEqualToDictionary(NSString *message, NSDictionary *expected
   [self.socket sendLogonWithAuthToken:@"token" refreshToken:nil channel:@"channel" username:@"user" password:@"pass" callback:logonCallback timeoutAfter:0.0];
   XCTAssertEqual([XCTWaiter waitForExpectations:@[self.logonCallbackCalled] timeout:3.0], XCTWaiterResultCompleted);
   OCMVerifyAll(self.webSocket);
+}
+
+#pragma mark Images
+
+// Verify that we send the right command for an image to the channel
+- (void)testSendImage_sendsCommand {
+  NSDictionary *expected = @{@"command":@"send_image",
+                             @"seq":@(1),
+                             @"type":@"jpeg",
+                             @"thumbnail_content_length":@(300),
+                             @"content_length":@(15000),
+                             @"width":@(230),
+                             @"height":@(320)};
+  XCTestExpectation *commandSent = [[XCTestExpectation alloc] initWithDescription:@"send_image sent"];
+  OCMExpect([self.webSocket sendString:[OCMArg checkWithBlock:^BOOL(NSString *message) {
+    return messageIsEqualToDictionary(message, expected);
+  }] error:(NSError * __autoreleasing *)[OCMArg anyPointer]]).andDo(^(NSInvocation *invocation) {
+    [commandSent fulfill];
+  }).andReturn(YES);
+
+  [self.socket sendImage:self.imageMessage callback:^(BOOL succeeded, UInt32 imageId, NSString * _Nullable errorMessage) {
+  } timeoutAfter:30.0];
+
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[commandSent] timeout:3.0], XCTWaiterResultCompleted);
+  OCMVerifyAll(self.webSocket);
+}
+
+// Verify that we propagate send_image success response
+- (void)testSendImage_successfulResponse_propagatesSuccess {
+  XCTestExpectation *commandSent = [[XCTestExpectation alloc] initWithDescription:@"send_image sent"];
+  OCMExpect([self.webSocket sendString:OCMOCK_ANY error:(NSError * __autoreleasing *)[OCMArg anyPointer]]).andDo(^(NSInvocation *invocation) {
+    [commandSent fulfill];
+  }).andReturn(YES);
+  UInt32 expectedImageId = 4566;
+
+  XCTestExpectation *callbackCalled = [[XCTestExpectation alloc] initWithDescription:@"callback called"];
+  [self.socket sendImage:self.imageMessage callback:^(BOOL succeeded, UInt32 imageId, NSString * _Nullable errorMessage) {
+    XCTAssertTrue(succeeded);
+    XCTAssertEqual(imageId, expectedImageId);
+    [callbackCalled fulfill];
+  } timeoutAfter:30.0];
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[commandSent] timeout:3.0], XCTWaiterResultCompleted);
+
+  [self.socket webSocket:self.webSocket didReceiveMessageWithString:@"{\"seq\":1,\"success\":true,\"image_id\":4566}"];
+
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[callbackCalled] timeout:3.0], XCTWaiterResultCompleted);
+  OCMVerifyAll(self.webSocket);
+}
+
+// Verify that we propagate send_image failure response
+- (void)testSendImage_failureResponse_propagatesFailure {
+  XCTestExpectation *commandSent = [[XCTestExpectation alloc] initWithDescription:@"send_image sent"];
+  OCMExpect([self.webSocket sendString:OCMOCK_ANY error:(NSError * __autoreleasing *)[OCMArg anyPointer]]).andDo(^(NSInvocation *invocation) {
+    [commandSent fulfill];
+  }).andReturn(YES);
+
+  XCTestExpectation *callbackCalled = [[XCTestExpectation alloc] initWithDescription:@"callback called"];
+  [self.socket sendImage:self.imageMessage callback:^(BOOL succeeded, UInt32 imageId, NSString * _Nullable errorMessage) {
+    XCTAssertFalse(succeeded);
+    XCTAssertEqual(imageId, 0);
+    XCTAssertEqualObjects(errorMessage, @"test error message");
+    [callbackCalled fulfill];
+  } timeoutAfter:30.0];
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[commandSent] timeout:3.0], XCTWaiterResultCompleted);
+
+  [self.socket webSocket:self.webSocket didReceiveMessageWithString:@"{\"seq\":1,\"success\":false,\"error\":\"test error message\"}"];
+
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[callbackCalled] timeout:3.0], XCTWaiterResultCompleted);
+  OCMVerifyAll(self.webSocket);
+}
+
+// Verify that we report an error on send_image timeout
+- (void)testSendImage_timesOut_propagatesFailure {
+  XCTestExpectation *commandSent = [[XCTestExpectation alloc] initWithDescription:@"send_image sent"];
+  OCMExpect([self.webSocket sendString:OCMOCK_ANY error:(NSError * __autoreleasing *)[OCMArg anyPointer]]).andDo(^(NSInvocation *invocation) {
+    [commandSent fulfill];
+  }).andReturn(YES);
+
+  XCTestExpectation *callbackCalled = [[XCTestExpectation alloc] initWithDescription:@"callback called"];
+  [self.socket sendImage:self.imageMessage callback:^(BOOL succeeded, UInt32 imageId, NSString * _Nullable errorMessage) {
+    XCTAssertFalse(succeeded);
+    XCTAssertEqual(imageId, 0);
+    XCTAssertEqualObjects(errorMessage, @"Send image timed out");
+    [callbackCalled fulfill];
+  } timeoutAfter:1.0];
+
+  XCTWaiterResult waitResult = [XCTWaiter waitForExpectations:@[commandSent, callbackCalled] timeout:3.0];
+  XCTAssertEqual(waitResult, XCTWaiterResultCompleted);
+  OCMVerifyAll(self.webSocket);
+}
+
+// Verify that we report an error if the websocket returns false
+- (void)testSendImage_synchronousWebsocketError_propagatesFailure {
+  OCMExpect([self.webSocket sendString:OCMOCK_ANY error:(NSError * __autoreleasing *)[OCMArg anyPointer]]).andReturn(NO);
+
+  XCTestExpectation *callbackCalled = [[XCTestExpectation alloc] initWithDescription:@"callback called"];
+  [self.socket sendImage:self.imageMessage callback:^(BOOL succeeded, UInt32 imageId, NSString * _Nullable errorMessage) {
+    XCTAssertFalse(succeeded);
+    XCTAssertEqualObjects(errorMessage, @"Failed to send");
+    [callbackCalled fulfill];
+  } timeoutAfter:30.0];
+
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[callbackCalled] timeout:3.0], XCTWaiterResultCompleted);
+  OCMVerifyAll(self.webSocket);
+}
+
+// Verify that we send image data
+- (void)testSendImageData_sendsDataMessages {
+  uint8_t idata[] = { 1, 2, 3, 4, 5, 6, 7, 8 };
+  self.imageMessage.imageData = [NSData dataWithBytes:idata length:sizeof(idata)];
+  uint8_t imessage[] = { 0x02, 0, 0, 0, 32, 0, 0, 0, 1, 1, 2, 3, 4, 5, 6, 7, 8 };
+  NSData *expectedImageDataMessage = [NSData dataWithBytes:imessage length:sizeof(imessage)];
+  uint8_t tdata[] = { 3, 4, 5, 6, 7, 8, 9, 10 };
+  self.imageMessage.thumbnailData = [NSData dataWithBytes:tdata length:sizeof(tdata)];
+  uint8_t tmessage[] = { 0x02, 0, 0, 0, 32, 0, 0, 0, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+  NSData *expectedThumbnailDataMessage = [NSData dataWithBytes:tmessage length:sizeof(tmessage)];
+
+  [self.socket sendImageData:self.imageMessage imageId:32];
+
+  OCMVerify([self.webSocket sendData:expectedThumbnailDataMessage error:(NSError * __autoreleasing *)[OCMArg anyPointer]]);
+  OCMVerify([self.webSocket sendData:expectedImageDataMessage error:(NSError * __autoreleasing *)[OCMArg anyPointer]]);
+}
+
+// Verify that we propagate received image events
+- (void)testOnImage_sendsHeaderToDelegate {
+  NSString *event = @"{\"command\":\"on_image\",\"channel\":\"testChannel\",\"from\":\"bogusSender\",\"message_id\":3209,\"type\":\"jpeg\",\"height\":640,\"width\":480}";
+  XCTestExpectation *calledDelegate = [[XCTestExpectation alloc] initWithDescription:@"called delegate"];
+  ZCCImageHeader *expected = [[ZCCImageHeader alloc] init];
+  expected.channel = @"testChannel";
+  expected.sender = @"bogusSender";
+  expected.imageId = 3209;
+  expected.imageType = ZCCImageTypeJPEG;
+  expected.height = 640;
+  expected.width = 480;
+  expected.source = nil;
+  OCMExpect([self.socketDelegate socket:self.socket didReceiveImageHeader:expected]).andDo(^(NSInvocation *invocation) {
+    [calledDelegate fulfill];
+  });
+
+  [self.socket webSocket:self.webSocket didReceiveMessageWithString:event];
+
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[calledDelegate] timeout:3.0], XCTWaiterResultCompleted);
+  OCMVerifyAll(self.socketDelegate);
+}
+
+// Verify that we propagate image data events
+- (void)testReceiveImageData_sendsToDelegate {
+  uint8_t tmessage[] = { 0x02, 0, 0, 0, 32, 0, 0, 0, 2, 3, 4, 5, 6, 7, 8, 9, 10 };
+  NSData *tdata = [NSData dataWithBytes:tmessage length:sizeof(tmessage)];
+
+  XCTestExpectation *receivedThumbnail = [[XCTestExpectation alloc] initWithDescription:@"Called delegate for thumbnail"];
+  uint8_t expectedThumbnailBytes[] = { 3, 4, 5, 6, 7, 8, 9, 10 };
+  NSData *expectedThumbnailData = [NSData dataWithBytes:expectedThumbnailBytes length:sizeof(expectedThumbnailBytes)];
+  OCMExpect([self.socketDelegate socket:self.socket didReceiveImageData:expectedThumbnailData imageId:32 isThumbnail:YES]).andDo(^(NSInvocation *invocation) {
+    [receivedThumbnail fulfill];
+  });
+
+  uint8_t imessage[] = { 0x02, 0, 0, 0, 32, 0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 };
+  NSData *idata = [NSData dataWithBytes:imessage length:sizeof(imessage)];
+  uint8_t expectedImageBytes[] = { 2, 3, 4, 5, 6, 7, 8, 9 };
+  NSData *expectedImageData = [NSData dataWithBytes:expectedImageBytes length:sizeof(expectedImageBytes)];
+  XCTestExpectation *receivedImage = [[XCTestExpectation alloc] initWithDescription:@"Called delegate for image"];
+  OCMExpect([self.socketDelegate socket:self.socket didReceiveImageData:expectedImageData imageId:32 isThumbnail:NO]).andDo(^(NSInvocation *invocation) {
+    [receivedImage fulfill];
+  });
+
+  [self.socket webSocket:self.webSocket didReceiveMessageWithData:tdata];
+  [self.socket webSocket:self.webSocket didReceiveMessageWithData:idata];
+
+  XCTWaiterResult waiterResult = [XCTWaiter waitForExpectations:@[receivedThumbnail, receivedImage] timeout:3.0];
+  XCTAssertEqual(waiterResult, XCTWaiterResultCompleted);
+  OCMVerifyAll(self.socketDelegate);
 }
 
 #pragma mark Voice messages

@@ -10,11 +10,17 @@
 #import <OCMock/OCMock.h>
 #import <XCTest/XCTest.h>
 #import "ZCCSession.h"
+#import "ImageUtilities.h"
 #import "ZCCAddressFormattingService.h"
 #import "ZCCChannelInfo.h"
 #import "ZCCEncoderOpus.h"
 #import "ZCCErrors.h"
 #import "ZCCGeocodingService.h"
+#import "ZCCImageHeader.h"
+#import "ZCCImageInfo.h"
+#import "ZCCImageMessage.h"
+#import "ZCCImageMessageManager.h"
+#import "ZCCImageUtils.h"
 #import "ZCCIncomingVoiceConfiguration.h"
 #import "ZCCIncomingVoiceStreamInfo+Internal.h"
 #import "ZCCLocationInfo.h"
@@ -50,6 +56,7 @@
 @property (nonatomic, strong, nonnull) ZCCPermissionsManager *permissionsManager;
 @property (nonatomic, strong, nonnull) ZCCSocketFactory *socketFactory;
 @property (nonatomic, strong, nonnull) ZCCVoiceStreamsManager *streamsManager;
+@property (nonatomic, strong, nonnull) ZCCImageMessageManager *imageManager;
 @property (nonatomic, strong, nonnull) id<ZCCAddressFormattingService> addressFormattingService;
 @property (nonatomic, strong, nonnull) id<ZCCGeocodingService> geocodingService;
 @property (nonatomic, strong, nonnull) id<ZCCLocationService> locationService;
@@ -517,6 +524,158 @@
 
   XCTAssertEqual([XCTWaiter waitForExpectations:@[sentCommand] timeout:3.0], XCTWaiterResultCompleted);
   OCMVerifyAll(self.socket);
+}
+
+#pragma mark -sendImage:
+
+// Verify that -sendImage: sends the image
+- (void)testSendImage_SendsStartImage {
+  UIImage *testImage = solidImage(UIColor.redColor, CGSizeMake(100.0f, 100.0f), 1.0);
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+  [self connectSession:session];
+
+  ZCCImageMessage *expected = [[ZCCImageMessageBuilder builderWithImage:testImage] message];
+  OCMExpect([self.socket sendImage:expected callback:OCMOCK_ANY timeoutAfter:30.0]).andDo(^(NSInvocation *invocation) {
+    __unsafe_unretained ZCCSendImageCallback callback;
+    [invocation getArgument:&callback atIndex:3];
+    callback(YES, 32, nil);
+  });
+  OCMExpect([self.socket sendImageData:expected imageId:32]);
+
+  XCTAssertTrue([session sendImage:testImage]);
+
+  OCMVerifyAll(self.socket);
+}
+
+// Verify that -sendImage:toUser: sends to the recipient
+- (void)testSendImageToUser_sendsToRecipient {
+  UIImage *testImage = solidImage(UIColor.redColor, CGSizeMake(100.0f, 100.0f), 1.0);
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+  [self connectSession:session];
+
+  ZCCImageMessageBuilder *builder = [ZCCImageMessageBuilder builderWithImage:testImage];
+  [builder setRecipient:@"bogusUser"];
+  ZCCImageMessage *expected = [builder message];
+  OCMExpect([self.socket sendImage:expected callback:OCMOCK_ANY timeoutAfter:30.0]).andDo(^(NSInvocation *invocation) {
+    __unsafe_unretained ZCCSendImageCallback callback;
+    [invocation getArgument:&callback atIndex:3];
+    callback(YES, 32, nil);
+  });
+  OCMExpect([self.socket sendImageData:expected imageId:32]);
+
+  XCTAssertTrue([session sendImage:testImage toUser:@"bogusUser"]);
+
+  OCMVerifyAll(self.socket);
+}
+
+// Verify that -sendImage: and -sendImage:toUser: return failure if the session isn't connected
+- (void)testSendImage_notConnected_returnsFalse {
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+  UIImage *image = solidImage(UIColor.redColor, CGSizeMake(100.0f, 100.0f), 1.0);
+  XCTAssertFalse([session sendImage:image]);
+  XCTAssertFalse([session sendImage:image toUser:@"bogusUser"]);
+}
+
+// Verify failure reporting from -sendImage:
+- (void)testSendImage_socketFailure_reportsError {
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+  [self connectSession:session];
+  UIImage *image = solidImage(UIColor.redColor, CGSizeMake(400.0f, 400.0f), 1.0f);
+  ZCCImageMessageBuilder *builder = [ZCCImageMessageBuilder builderWithImage:image];
+  ZCCImageMessage *expected = [builder message];
+  OCMExpect([self.socket sendImage:expected callback:OCMOCK_ANY timeoutAfter:30.0]).andDo(^(NSInvocation *invocation) {
+    __unsafe_unretained ZCCSendImageCallback callback;
+    [invocation getArgument:&callback atIndex:3];
+    callback(NO, 0, @"Failed to send");
+  });
+  XCTestExpectation *errorReported = [[XCTestExpectation alloc] initWithDescription:@"Session reported error to delegate"];
+  NSError *expectedError = [NSError errorWithDomain:ZCCErrorDomain code:ZCCErrorCodeUnknown userInfo:@{ZCCServerErrorMessageKey:@"Failed to send"}];
+  OCMExpect([self.sessionDelegate session:session didEncounterError:expectedError]).andDo(^(NSInvocation *invocation) {
+    [errorReported fulfill];
+  });
+
+  [session sendImage:image];
+
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[errorReported] timeout:3.0], XCTWaiterResultCompleted);
+  OCMVerifyAll(self.socket);
+}
+
+// Verify receiving images
+- (void)testOnImage_SendsImageToDelegate {
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+  [self connectSession:session];
+
+  UIImage *testImage = solidImage(UIColor.redColor, CGSizeMake(400.0, 400.0), 1.0);
+  NSData *testImageData = UIImageJPEGRepresentation(testImage, 0.75);
+  UIImage *thumbnailImage = [ZCCImageUtils resizeImage:testImage maxSize:CGSizeMake(90.0, 90.0) ignoringScreenScale:YES];
+  NSData *thumbnailImageData = UIImageJPEGRepresentation(thumbnailImage, 0.75);
+
+  id uiImage = OCMClassMock([UIImage class]);
+  __block UIImage *receivedImage;
+  __block UIImage *receivedThumbnail;
+
+  OCMStub(ClassMethod([uiImage imageWithData:testImageData])).andDo(^(NSInvocation *invocation) {
+    receivedImage = [[UIImage alloc] initWithData:testImageData];
+    [invocation setReturnValue:&receivedImage];
+  });
+  OCMStub(ClassMethod([uiImage imageWithData:thumbnailImageData])).andDo(^(NSInvocation *invocation) {
+    receivedThumbnail = [[UIImage alloc] initWithData:thumbnailImageData];
+    [invocation setReturnValue:&receivedThumbnail];
+  });
+
+  XCTestExpectation *receivedThumbnailExpectation = [[XCTestExpectation alloc] initWithDescription:@"Received thumbnail callback"];
+  OCMExpect([self.sessionDelegate session:session didReceiveImage:[OCMArg checkWithBlock:^BOOL(ZCCImageInfo *actual) {
+    if (actual.imageId != 345) {
+      return NO;
+    }
+    if (![actual.sender isEqualToString:@"bogusSender"]) {
+      return NO;
+    }
+    if (actual.thumbnail != receivedThumbnail) {
+      return NO;
+    }
+    if (actual.image) {
+      return NO;
+    }
+    return YES;
+  }]]).andDo(^(NSInvocation *invocation) {
+    [receivedThumbnailExpectation fulfill];
+  });
+
+  ZCCImageHeader *header = [[ZCCImageHeader alloc] init];
+  header.imageId = 345;
+  header.sender = @"bogusSender";
+  header.imageType = ZCCImageTypeJPEG;
+  header.height = 400;
+  header.width = 400;
+  [session socket:self.socket didReceiveImageHeader:header];
+  [session socket:self.socket didReceiveImageData:thumbnailImageData imageId:345 isThumbnail:YES];
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[receivedThumbnailExpectation] timeout:3.0], XCTWaiterResultCompleted);
+
+  XCTestExpectation *receivedImageExpectation = [[XCTestExpectation alloc] initWithDescription:@"Received image callback"];
+  OCMExpect([self.sessionDelegate session:session didReceiveImage:[OCMArg checkWithBlock:^BOOL(ZCCImageInfo *actualInfo) {
+    if (actualInfo.imageId != 345) {
+      return NO;
+    }
+    if (![actualInfo.sender isEqualToString:@"bogusSender"]) {
+      return NO;
+    }
+    if (actualInfo.image != receivedImage) {
+      return NO;
+    }
+    if (actualInfo.thumbnail != receivedThumbnail) {
+      return NO;
+    }
+    return YES;
+  }]]).andDo(^(NSInvocation *invocation) {
+    [receivedImageExpectation fulfill];
+  });
+
+  [session socket:self.socket didReceiveImageData:testImageData imageId:345 isThumbnail:NO];
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[receivedImageExpectation] timeout:3.0], XCTWaiterResultCompleted);
+
+  OCMVerifyAll(self.sessionDelegate);
+  [uiImage stopMocking];
 }
 
 #pragma mark -sendText:
