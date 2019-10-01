@@ -9,10 +9,21 @@
 #import <OCMock/OCMock.h>
 #import <XCTest/XCTest.h>
 #import "ImageUtilities.h"
+#import "ZCCImageHeader.h"
 #import "ZCCImageMessage.h"
 #import "ZCCImageMessageManager.h"
 #import "ZCCImageUtils.h"
+#import "ZCCIncomingImageInfo.h"
+#import "ZCCQueueRunner.h"
 #import "ZCCSocket.h"
+
+@interface ZCCImageMessageManager (Testing)
+// Exposing private properties for testing
+@property (nonatomic, readonly, nonnull) ZCCQueueRunner *queueRunner;
+@property (nonatomic, readonly, nonnull) NSMutableDictionary<NSNumber *, ZCCIncomingImageInfo *> *incomingImages;
+@property (nonatomic) NSTimeInterval cleanupOlderThan;
+@property (nonatomic) NSTimeInterval minimumCleanupInterval;
+@end
 
 @interface ZCCImageMessageManagerTests : XCTestCase
 @property (nonatomic, strong) ZCCImageMessageManager *imageMessageManager;
@@ -95,5 +106,56 @@
 }
 
 // TODO: Verify that we properly handle errors
+
+// Verify that we manage cache cleanup
+- (void)testIncomingImageCleanup {
+  self.imageMessageManager.cleanupOlderThan = 0.5;
+  self.imageMessageManager.minimumCleanupInterval = 0.0;
+
+  ZCCImageHeader *header = [[ZCCImageHeader alloc] init];
+  header.imageId = 123;
+  [self.imageMessageManager handleImageHeader:header];
+  usleep(100);
+  XCTAssertEqual(self.imageMessageManager.incomingImages.count, 1);
+
+  // Wait for timeout
+  usleep((useconds_t)(0.6 * (double)USEC_PER_SEC));
+  XCTAssertEqual(self.imageMessageManager.incomingImages.count, 0);
+}
+
+// Verify that we clean up the cache after receiving an image
+- (void)testHandleImageData_fullSizeImage_cleansUpIncomingImages {
+  ZCCImageHeader *header = [[ZCCImageHeader alloc] init];
+  header.imageId = 123;
+  [self.imageMessageManager handleImageHeader:header];
+  usleep(100);
+  XCTAssertEqual(self.imageMessageManager.incomingImages.count, 1);
+
+  UIImage *image = solidImage(UIColor.redColor, CGSizeMake(100.0f, 100.0f), 1.0f);
+  NSData *imageData = UIImageJPEGRepresentation(image, 0.75f);
+  [self.imageMessageManager handleImageData:imageData imageId:123 isThumbnail:NO];
+  usleep(100);
+  XCTAssertEqual(self.imageMessageManager.incomingImages.count, 0);
+}
+
+// Verify that we throw out thumbnails after we receive a low memory warning
+- (void)testLowMemoryImageCleanup {
+  ZCCImageHeader *header = [[ZCCImageHeader alloc] init];
+  header.imageId = 123;
+  [self.imageMessageManager handleImageHeader:header];
+  usleep(100);
+  XCTAssertEqual(self.imageMessageManager.incomingImages.count, 1);
+
+  UIImage *thumbmnail = solidImage(UIColor.redColor, CGSizeMake(90.0f, 90.0f), 1.0f);
+  NSData *thumbnailData = UIImageJPEGRepresentation(thumbmnail, 0.75f);
+  [self.imageMessageManager handleImageData:thumbnailData imageId:123 isThumbnail:YES];
+  usleep(100);
+  XCTAssertNotNil(self.imageMessageManager.incomingImages[@(123)].thumbnail);
+
+  [NSNotificationCenter.defaultCenter postNotificationName:UIApplicationDidReceiveMemoryWarningNotification object:nil];
+  usleep(100);
+  XCTAssertNotNil(self.imageMessageManager.incomingImages[@(123)]);
+  XCTAssertNil(self.imageMessageManager.incomingImages[@(123)].thumbnail);
+}
 
 @end

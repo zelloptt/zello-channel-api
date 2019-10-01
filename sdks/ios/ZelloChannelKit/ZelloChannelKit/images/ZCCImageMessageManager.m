@@ -18,9 +18,28 @@
 /**
  * Maps image ID to incoming image info. Items are removed after both thumbnail and image are received.
  *
- * @warning access to incomingImages should be via queueRunner only.
+ * @warning Access to incomingImages should be via queueRunner only.
  */
 @property (nonatomic, readonly, nonnull) NSMutableDictionary<NSNumber *, ZCCIncomingImageInfo *> *incomingImages;
+
+/// When image metadata is older than this, it will be removed from incomingImages on the next cleanup pass
+@property (nonatomic) NSTimeInterval cleanupOlderThan;
+/// Don't fire incomingImages cleanup passes more frequently than this
+@property (nonatomic) NSTimeInterval minimumCleanupInterval;
+
+/**
+ * Set when we're preparing to run a cleanup on the incomingImages dictionary
+ *
+ * @warning Access to needsCleanup should be via queueRunner only.
+ */
+@property (nonatomic) BOOL needsCleanup;
+/**
+ * Stores the last time we scheduled a cleanup. Don't schedule a new one unless minimumCleanupInterval
+ * has elapsed.
+ *
+ * @warning Access to lastCleanupScheduledAt should be via queueRunner only.
+ */
+@property (nonatomic) NSDate *lastCleanupScheduledAt;
 @end
 
 @implementation ZCCImageMessageManager
@@ -35,8 +54,18 @@
     _queueRunner = runner;
     _incomingImages = [NSMutableDictionary dictionary];
     _requestTimeout = 30.0;
+    // Clean up incomplete messages after 2 minutes
+    _cleanupOlderThan = 120.0;
+    // Don't run clean up more frequently than every 15 seconds
+    _minimumCleanupInterval = 15.0;
+    _lastCleanupScheduledAt = [NSDate date];
+    [NSNotificationCenter.defaultCenter addObserver:self selector:@selector(performLowMemoryCleanup:) name:UIApplicationDidReceiveMemoryWarningNotification object:nil];
   }
   return self;
+}
+
+- (void)dealloc {
+  [NSNotificationCenter.defaultCenter removeObserver:self];
 }
 
 - (void)sendImage:(UIImage *)image recipient:(nullable NSString *)username socket:(ZCCSocket *)socket {
@@ -62,6 +91,8 @@
     }
     ZCCIncomingImageInfo *info = [[ZCCIncomingImageInfo alloc] initWithHeader:header];
     strongSelf.incomingImages[@(header.imageId)] = info;
+
+    [strongSelf setNeedsCleanup];
   }];
 }
 
@@ -84,17 +115,63 @@
     }
     if (isThumbnail) {
       info.thumbnail = image;
+      [self setNeedsCleanup];
     } else {
       info.image = image;
     }
 
     [self.delegate imageMessageManager:self didReceiveImage:info];
 
-    if (info.thumbnail && info.image) {
+    if (info.image) {
       strongSelf.incomingImages[@(imageId)] = nil;
     }
   }];
-
 }
+
+#pragma mark - Private
+
+- (void)performLowMemoryCleanup:(NSNotification *)notification {
+  // Remove thumbnails if we get a low memory warning. The user has already received them, and we're
+  // keeping enough information to send them the images themselves when they arrive.
+  [self.queueRunner runAsync:^{
+    for (ZCCIncomingImageInfo *info in self.incomingImages.allValues) {
+      info.thumbnail = nil;
+    }
+  }];
+}
+
+/// @warning only call this method from queueRunner
+- (void)setNeedsCleanup {
+  NSDate *now = [NSDate date];
+  if ([now timeIntervalSinceDate:self.lastCleanupScheduledAt] > self.minimumCleanupInterval) {
+    self.lastCleanupScheduledAt = now;
+    self.needsCleanup = YES;
+    __weak typeof(self) weakSelf = self;
+    [self.queueRunner run:^{
+      [weakSelf cleanupIncomingImagesIfNeeded];
+    } after:self.cleanupOlderThan];
+  }
+}
+
+/// @warning only call this method from queueRunner
+- (void)cleanupIncomingImagesIfNeeded {
+  if (!self.needsCleanup) {
+    return;
+  }
+
+  NSMutableArray *toRemove = [NSMutableArray array];
+  for (NSNumber *imageId in self.incomingImages) {
+    ZCCIncomingImageInfo *imageInfo = self.incomingImages[imageId];
+    if ([[NSDate date] timeIntervalSinceDate:imageInfo.lastTouched] > self.cleanupOlderThan) {
+      [toRemove addObject:imageId];
+    }
+  }
+  if (toRemove.count > 0) {
+    [self.incomingImages removeObjectsForKeys:toRemove];
+  }
+
+  self.needsCleanup = NO;
+}
+
 
 @end
