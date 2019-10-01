@@ -138,7 +138,7 @@ class Recorder {
 
   init() {
     if (this.state !== "inactive") {
-      return;
+      return global.Promise.reject("Recording is not inactive");
     }
 
     this.initAudioContext();
