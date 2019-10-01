@@ -1205,7 +1205,6 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
 				USER_HEADER_SEARCH_PATHS = "\"$(PROJECT_DIR)/../LibOpus\"";
-				VALID_ARCHS = "arm64 armv7 armv7s x86_64 i386";
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
 			};
@@ -1273,7 +1272,6 @@
 				SDKROOT = iphoneos;
 				USER_HEADER_SEARCH_PATHS = "\"$(PROJECT_DIR)/../LibOpus\"";
 				VALIDATE_PRODUCT = YES;
-				VALID_ARCHS = "arm64 armv7 armv7s x86_64 i386";
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
 			};

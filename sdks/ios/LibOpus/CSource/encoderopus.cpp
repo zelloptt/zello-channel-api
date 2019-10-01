@@ -81,7 +81,7 @@ int CEncoderOpus::Stop(unsigned char* output){
 		if (m_sampleCount || (m_pPacketizer && m_frameCount)){
 			int outputLen = 0;
 			if (m_sampleCount){
-				memset(m_input + m_sampleCount, (m_samplesInFrame - m_sampleCount) * 2, 0);
+				memset(m_input + m_sampleCount, 0, (m_samplesInFrame - m_sampleCount) * 2);
 				if (m_pPacketizer){
 					// Negative result designates an error, result of 1 designates DTX (don't transmit)
 					int packetLen = opus_encode(m_pOpus, m_input, m_samplesInFrame, m_packets[m_frameCount], MAXFRAMEBYTES);

@@ -68,9 +68,8 @@ extern "C"
   void decoder_opus_nativeSetGain(int id, int amplifierGain) {
     CDecoderOpus* p = g_Decoders.Get(id);
     if (p){
-      return p->SetGain(amplifierGain);
+      p->SetGain(amplifierGain);
     }
-    return 0;
   }
   
   void decoder_opus_nativeStop(int id){
