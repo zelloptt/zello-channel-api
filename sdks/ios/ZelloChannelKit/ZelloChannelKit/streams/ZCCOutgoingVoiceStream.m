@@ -22,6 +22,7 @@
 
 @property (nonatomic, readonly) ZCCEncoder *encoder;
 @property (nonatomic, readonly, weak) ZCCSocket *socket; // Owned by ZCCSession
+@property (nonatomic, copy, readonly) NSString *recipient;
 
 /// Number of seconds of audio sent to the server
 @property (nonatomic) NSTimeInterval position;
@@ -32,9 +33,10 @@
   NSTimeInterval _position;
 }
 
-- (instancetype)initWithChannel:(NSString *)channel socket:(ZCCSocket *)socket configuration:(ZCCOutgoingVoiceConfiguration *)configuration {
+- (instancetype)initWithChannel:(NSString *)channel recipient:(NSString *)username socket:(ZCCSocket *)socket configuration:(ZCCOutgoingVoiceConfiguration *)configuration {
   self = [super initWithStreamId:0 channel:channel isIncoming:NO];
   if (self) {
+    _recipient = [username copy];
     _socket = socket;
     _encoder = [[ZCCCodecFactory instance] createEncoderWithConfiguration:configuration stream:self];
     _encoder.delegate = self;
@@ -90,7 +92,7 @@
     [self.encoder prepareAsync:0];
   };
   ZCCStreamParams *params = [[ZCCStreamParams alloc] initWithType:ZCCStreamTypeAudio encoder:self.encoder];
-  [self.socket sendStartStreamWithParams:params callback:callback timeoutAfter:timeout];
+  [self.socket sendStartStreamWithParams:params recipient:self.recipient callback:callback timeoutAfter:timeout];
 }
 
 - (void)stop {

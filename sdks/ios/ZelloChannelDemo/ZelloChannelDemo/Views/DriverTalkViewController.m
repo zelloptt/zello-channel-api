@@ -7,6 +7,7 @@
 //
 
 @import AudioToolbox;
+@import CoreLocation;
 @import ZelloChannelKit;
 
 #import "DriverTalkViewController.h"
@@ -18,7 +19,7 @@
 // https://creativecommons.org/licenses/by/3.0/legalcode
 // Sourced from http://soundbible.com/583-Horn-Honk.html
 
-@interface DriverTalkViewController () <ZCCSessionDelegate>
+@interface DriverTalkViewController () <CLLocationManagerDelegate, ZCCSessionDelegate>
 @property (nonatomic, strong) IBOutlet UIButton *buttonNavigate;
 @property (nonatomic, strong) IBOutlet UIButton *buttonDetail;
 @property (nonatomic, strong) IBOutlet UILabel *labelTitle;
@@ -29,6 +30,11 @@
 @property (atomic, strong) NSTimer *safetyTimer;
 
 @property (nonatomic, weak) IBOutlet UIButton *honkButton;
+@property (nonatomic, weak) IBOutlet UIButton *carButton;
+
+@property (nonatomic, strong) CLLocationManager *locationManager;
+/// Whether the user is waiting on us to send their location when we finish getting authorization
+@property (nonatomic) BOOL pendingSendLocation;
 @end
 
 @implementation DriverTalkViewController
@@ -47,6 +53,9 @@
   self.honkButton.layer.masksToBounds = YES;
   self.honkButton.backgroundColor = kDefaultWhiteBackground;
 
+  self.carButton.layer.cornerRadius = 8.0f;
+  self.carButton.layer.masksToBounds = YES;
+  self.carButton.contentMode = UIViewContentModeScaleAspectFill;
 }
 
 - (void)viewWillDisappear:(BOOL)animated {
@@ -61,6 +70,38 @@
   NSURL *honkURL = [[NSBundle mainBundle] URLForResource:@"honk" withExtension:@"wav"];
   config.source = [[FileAudioSource alloc] initWithURL:honkURL];
   [Zello.session startVoiceMessageWithSource:config];
+}
+
+- (IBAction)sendCarPicture {
+  UITraitCollection *retinaTrait = [UITraitCollection traitCollectionWithDisplayScale:2.0];
+  UIImage *car = [UIImage imageNamed:@"carImage" inBundle:nil compatibleWithTraitCollection:retinaTrait];
+  [Zello.session sendImage:car];
+}
+
+- (IBAction)sendLocation {
+  CLAuthorizationStatus authorization = [CLLocationManager authorizationStatus];
+  if (authorization == kCLAuthorizationStatusNotDetermined) {
+    // Request location permission
+    if (!self.locationManager) {
+      self.locationManager = [[CLLocationManager alloc] init];
+      self.locationManager.delegate = self;
+    }
+    self.pendingSendLocation = YES;
+    [self.locationManager requestWhenInUseAuthorization];
+  } else if (authorization == kCLAuthorizationStatusAuthorizedAlways || authorization == kCLAuthorizationStatusAuthorizedWhenInUse) {
+    [Zello.session sendLocationWithContinuation:nil];
+  }
+}
+
+#pragma mark - CLLocationManagerDelegate
+
+- (void)locationManager:(CLLocationManager *)manager didChangeAuthorizationStatus:(CLAuthorizationStatus)status {
+  if (status == kCLAuthorizationStatusAuthorizedWhenInUse || status == kCLAuthorizationStatusAuthorizedAlways) {
+    if (self.pendingSendLocation) {
+      [Zello.session sendLocationWithContinuation:nil];
+      self.pendingSendLocation = NO;
+    }
+  }
 }
 
 #pragma mark - ZCCSessionDelegate

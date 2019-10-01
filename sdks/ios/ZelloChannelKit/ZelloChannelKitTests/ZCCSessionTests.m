@@ -6,23 +6,60 @@
 //  Copyright © 2018 Zello. All rights reserved.
 //
 
+#import <CoreLocation/CoreLocation.h>
 #import <OCMock/OCMock.h>
 #import <XCTest/XCTest.h>
 #import "ZCCSession.h"
+#import "ImageUtilities.h"
+#import "ZCCAddressFormattingService.h"
+#import "ZCCChannelInfo.h"
 #import "ZCCEncoderOpus.h"
 #import "ZCCErrors.h"
+#import "ZCCGeocodingService.h"
+#import "ZCCImageHeader.h"
+#import "ZCCImageInfo.h"
+#import "ZCCImageMessage.h"
+#import "ZCCImageMessageManager.h"
+#import "ZCCImageUtils.h"
 #import "ZCCIncomingVoiceConfiguration.h"
 #import "ZCCIncomingVoiceStreamInfo+Internal.h"
+#import "ZCCLocationInfo.h"
+#import "ZCCLocationService.h"
+#import "ZCCOutgoingVoiceConfiguration.h"
 #import "ZCCPermissionsManager.h"
 #import "ZCCSocket.h"
 #import "ZCCSocketFactory.h"
 #import "ZCCStreamParams.h"
 #import "ZCCVoiceStreamsManager.h"
 
+@interface ZCCMockLocationService : NSObject <ZCCLocationService>
+@property (nonatomic) CLAuthorizationStatus authorizationStatus;
+@property (nonatomic) BOOL locationServicesEnabled;
+@property (nonatomic, strong, nullable) void (^mockedRequestLocation)(ZCCLocationRequestCallback callback);
+@end
+@implementation ZCCMockLocationService
+- (void)requestLocation:(ZCCLocationRequestCallback)callback {
+  if (self.mockedRequestLocation) {
+    self.mockedRequestLocation(callback);
+  }
+}
+@end
+
+@interface ZCCLocationInfo (Testing)
+@property (nonatomic) double latitude;
+@property (nonatomic) double longitude;
+@property (nonatomic) double accuracy;
+@property (nonatomic, copy) NSString *address;
+@end
+
 @interface ZCCSession (Testing) <ZCCSocketDelegate>
 @property (nonatomic, strong, nonnull) ZCCPermissionsManager *permissionsManager;
 @property (nonatomic, strong, nonnull) ZCCSocketFactory *socketFactory;
 @property (nonatomic, strong, nonnull) ZCCVoiceStreamsManager *streamsManager;
+@property (nonatomic, strong, nonnull) ZCCImageMessageManager *imageManager;
+@property (nonatomic, strong, nonnull) id<ZCCAddressFormattingService> addressFormattingService;
+@property (nonatomic, strong, nonnull) id<ZCCGeocodingService> geocodingService;
+@property (nonatomic, strong, nonnull) id<ZCCLocationService> locationService;
 @end
 
 @interface ZCCSessionTests : XCTestCase
@@ -31,6 +68,12 @@
 
 /// Mocked ZCCPermissionsManager
 @property (nonatomic, strong) id permissionsManager;
+/// Mocked ZCCLocationService
+@property (nonatomic, strong) ZCCMockLocationService *locationService;
+/// Mocked ZCCGeocodingService
+@property (nonatomic, strong) id geocodingService;
+/// Mocked ZCCAddressFormattingService
+@property (nonatomic, strong) id addressFormattingService;
 /// Mocked id<ZCCSessionDelegate>
 @property (nonatomic, strong) id sessionDelegate;
 /// Mocked ZCCSocket
@@ -48,6 +91,10 @@
   self.exampleURL = [NSURL URLWithString:@"wss://example.com/"];
 
   self.permissionsManager = OCMClassMock([ZCCPermissionsManager class]);
+
+  self.addressFormattingService = OCMProtocolMock(@protocol(ZCCAddressFormattingService));
+  self.geocodingService = OCMProtocolMock(@protocol(ZCCGeocodingService));
+  self.locationService = [[ZCCMockLocationService alloc] init];
   self.sessionDelegate = OCMProtocolMock(@protocol(ZCCSessionDelegate));
   self.socket = OCMClassMock([ZCCSocket class]);
 
@@ -75,6 +122,9 @@
   ZCCSession *session = [[ZCCSession alloc] initWithURL:self.exampleURL authToken:authToken username:username password:password channel:@"test" callbackQueue:nil];
   session.delegate = self.sessionDelegate;
   session.permissionsManager = self.permissionsManager;
+  session.addressFormattingService = self.addressFormattingService;
+  session.geocodingService = self.geocodingService;
+  session.locationService = self.locationService;
   session.socketFactory.createSocketWithURL = ^(NSURL *socketURL) {
     XCTAssertEqualObjects(socketURL, self.exampleURL);
     return self.socket;
@@ -232,6 +282,113 @@
   OCMVerifyAll(self.sessionDelegate);
 }
 
+#pragma mark Channel status events
+
+// Verify that we report the correct channel features and online status after we get a channel status event
+- (void)testOnChannelStatus_propertiesReflectStatus {
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+  XCTAssertEqual(session.channelStatus, ZCCChannelStatusOffline);
+  [self connectSession:session];
+
+  ZCCChannelInfo channelInfo;
+  channelInfo.status = ZCCChannelStatusOffline;
+  [session socket:self.socket didReportStatus:channelInfo forChannel:@"test" usersOnline:1];
+  XCTAssertEqual(session.channelStatus, ZCCChannelStatusOffline);
+
+  channelInfo.status = ZCCChannelStatusOnline;
+  [session socket:self.socket didReportStatus:channelInfo forChannel:@"test" usersOnline:1];
+  XCTAssertEqual(session.channelStatus, ZCCChannelStatusOnline);
+
+  channelInfo.locationsSupported = YES;
+  [session socket:self.socket didReportStatus:channelInfo forChannel:@"test" usersOnline:1];
+  XCTAssertEqual(session.channelFeatures, ZCCChannelFeaturesLocationMessages);
+
+  channelInfo.textingSupported = YES;
+  [session socket:self.socket didReportStatus:channelInfo forChannel:@"test" usersOnline:1];
+  XCTAssertEqual(session.channelFeatures, (ZCCChannelFeaturesLocationMessages | ZCCChannelFeaturesTextMessages));
+
+  channelInfo.imagesSupported = YES;
+  [session socket:self.socket didReportStatus:channelInfo forChannel:@"test" usersOnline:1];
+  XCTAssertEqual(session.channelFeatures, (ZCCChannelFeaturesImageMessages | ZCCChannelFeaturesLocationMessages | ZCCChannelFeaturesTextMessages));
+
+  channelInfo.locationsSupported = NO;
+  [session socket:self.socket didReportStatus:channelInfo forChannel:@"test" usersOnline:1];
+  XCTAssertEqual(session.channelFeatures, (ZCCChannelFeaturesImageMessages | ZCCChannelFeaturesTextMessages));
+
+  // Verify that the session reflects the number of online users in the channel
+  XCTAssertEqual(session.channelUsersOnline, 1);
+
+  [session socket:self.socket didReportStatus:channelInfo forChannel:@"test" usersOnline:23];
+  XCTAssertEqual(session.channelUsersOnline, 23);
+}
+
+// Verify that we tell our delegate there's new information about the channel when we get a channel status event
+- (void)testOnChannelStatus_callsDelegate {
+  __block BOOL tooEarly = YES;
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+  XCTestExpectation *calledDelegate = [[XCTestExpectation alloc] initWithDescription:@"called delegate"];
+  OCMExpect([self.sessionDelegate sessionDidUpdateChannelStatus:session]).andDo(^(NSInvocation *invocation) {
+    XCTAssertFalse(tooEarly);
+    [calledDelegate fulfill];
+  });
+
+  [self connectSession:session];
+
+  tooEarly = NO;
+  [session socket:self.socket didReportStatus:ZCCChannelInfoZero() forChannel:@"test" usersOnline:1];
+
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[calledDelegate] timeout:3.0], XCTWaiterResultCompleted);
+  OCMVerify(self.sessionDelegate);
+}
+
+// Verify that channel status properties have meaningful values when the session is disconnected
+- (void)testChannelProperties_userDisconnectedSession {
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+  XCTAssertEqual(session.channelStatus, ZCCChannelStatusOffline);
+  XCTAssertEqual(session.channelFeatures, ZCCChannelFeaturesNone);
+  XCTAssertEqual(session.channelUsersOnline, 0);
+
+  [self connectSession:session];
+  ZCCChannelInfo channelInfo = ZCCChannelInfoZero();
+  channelInfo.status = ZCCChannelStatusOnline;
+  channelInfo.imagesSupported = YES;
+  channelInfo.textingSupported = YES;
+  [session socket:self.socket didReportStatus:channelInfo forChannel:@"test" usersOnline:14];
+  XCTAssertEqual(session.channelStatus, ZCCChannelStatusOnline);
+  XCTAssertEqual(session.channelFeatures, (ZCCChannelFeaturesImageMessages | ZCCChannelFeaturesTextMessages));
+  XCTAssertEqual(session.channelUsersOnline, 14);
+
+  // Disconnect and verify we've reset channel properties
+  XCTestExpectation *disconnected = [[XCTestExpectation alloc] initWithDescription:@"closed socket"];
+  OCMExpect([self.socket close]).andDo(^(NSInvocation *invocation) {
+    [disconnected fulfill];
+  });
+  [session disconnect];
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[disconnected] timeout:3.0], XCTWaiterResultCompleted);
+
+  XCTAssertEqual(session.channelStatus, ZCCChannelStatusOffline);
+  XCTAssertEqual(session.channelFeatures, ZCCChannelFeaturesNone);
+  XCTAssertEqual(session.channelUsersOnline, 0);
+}
+
+- (void)testChannelProperties_serverDisconnected {
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+
+  [self connectSession:session];
+  ZCCChannelInfo channelInfo = ZCCChannelInfoZero();
+  channelInfo.status = ZCCChannelStatusOnline;
+  channelInfo.imagesSupported = YES;
+  [session socket:self.socket didReportStatus:channelInfo forChannel:@"test" usersOnline:10];
+  XCTAssertEqual(session.channelStatus, ZCCChannelStatusOnline);
+  XCTAssertEqual(session.channelFeatures, ZCCChannelFeaturesImageMessages);
+  XCTAssertEqual(session.channelUsersOnline, 10);
+
+  [session socketDidClose:self.socket withError:nil];
+  XCTAssertEqual(session.channelStatus, ZCCChannelStatusOffline);
+  XCTAssertEqual(session.channelUsersOnline, 0);
+  XCTAssertEqual(session.channelFeatures, ZCCChannelFeaturesNone);
+}
+
 #pragma mark -disconnect
 
 // Verify that session disconnects web socket when user calls -disconnect
@@ -284,7 +441,7 @@
   [self connectSession:session];
 
   XCTestExpectation *startStreamSent = [[XCTestExpectation alloc] initWithDescription:@"start_stream sent"];
-  OCMExpect([self.socket sendStartStreamWithParams:OCMOCK_ANY callback:OCMOCK_ANY timeoutAfter:30.0]).andDo(^(NSInvocation *invocation) {
+  OCMExpect([self.socket sendStartStreamWithParams:OCMOCK_ANY recipient:nil callback:OCMOCK_ANY timeoutAfter:30.0]).andDo(^(NSInvocation *invocation) {
     [startStreamSent fulfill];
   });
 
@@ -292,6 +449,23 @@
   XCTAssertNotNil(stream);
   XCTAssertEqual([XCTWaiter waitForExpectations:@[startStreamSent] timeout:3.0], XCTWaiterResultCompleted);
 
+  OCMVerifyAll(self.socket);
+}
+
+// Verify that we start opening a stream to a specific user if we're connected and have microphone permission
+- (void)testStartVoiceMessageToUser_ConnectedMicrophonePermissionGranted_StartsConnecting {
+  OCMStub([self.permissionsManager recordPermission]).andReturn(AVAudioSessionRecordPermissionGranted);
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+  [self connectSession:session];
+
+  XCTestExpectation *startStreamSent = [[XCTestExpectation alloc] initWithDescription:@"start_stream sent"];
+  OCMExpect([self.socket sendStartStreamWithParams:OCMOCK_ANY recipient:@"exampleUser" callback:OCMOCK_ANY timeoutAfter:30.0]).andDo(^(NSInvocation *invocation) {
+    [startStreamSent fulfill];
+  });
+
+  ZCCOutgoingVoiceStream *stream = [session startVoiceMessageToUser:@"exampleUser"];
+  XCTAssertNotNil(stream);
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[startStreamSent] timeout:3.0], XCTWaiterResultCompleted);
   OCMVerifyAll(self.socket);
 }
 
@@ -303,9 +477,9 @@
 
   XCTestExpectation *startStreamSent = [[XCTestExpectation alloc] initWithDescription:@"start_stream sent"];
   __block ZCCStartStreamCallback streamStarted;
-  OCMExpect([self.socket sendStartStreamWithParams:OCMOCK_ANY callback:OCMOCK_ANY timeoutAfter:30.0]).andDo(^(NSInvocation *invocation) {
+  OCMExpect([self.socket sendStartStreamWithParams:OCMOCK_ANY recipient:nil callback:OCMOCK_ANY timeoutAfter:30.0]).andDo(^(NSInvocation *invocation) {
     __unsafe_unretained ZCCStartStreamCallback callback = nil;
-    [invocation getArgument:&callback atIndex:3];
+    [invocation getArgument:&callback atIndex:4];
     streamStarted = callback;
     [startStreamSent fulfill];
   });
@@ -333,6 +507,177 @@
   OCMVerifyAll(self.sessionDelegate);
 }
 
+// Verify that we pass correct parameters when starting a stream with a recipient and a custom source
+- (void)testVoiceMessageToUser_startsStream {
+  OCMStub([self.permissionsManager recordPermission]).andReturn(AVAudioSessionRecordPermissionGranted);
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+  [self connectSession:session];
+
+  XCTestExpectation *sentCommand = [[XCTestExpectation alloc] initWithDescription:@"start_stream sent"];
+  OCMExpect([self.socket sendStartStreamWithParams:OCMOCK_ANY recipient:@"bogusUser" callback:OCMOCK_ANY timeoutAfter:30.0]).andDo(^(NSInvocation *invocation) {
+    [sentCommand fulfill];
+  });
+
+  ZCCOutgoingVoiceConfiguration *source = [[ZCCOutgoingVoiceConfiguration alloc] init];
+  source.sampleRate = [ZCCOutgoingVoiceConfiguration.supportedSampleRates firstObject].unsignedIntegerValue;
+  XCTAssertNotNil([session startVoiceMessageToUser:@"bogusUser" source:source]);
+
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[sentCommand] timeout:3.0], XCTWaiterResultCompleted);
+  OCMVerifyAll(self.socket);
+}
+
+#pragma mark -sendImage:
+
+// Verify that -sendImage: sends the image
+- (void)testSendImage_SendsStartImage {
+  UIImage *testImage = solidImage(UIColor.redColor, CGSizeMake(100.0f, 100.0f), 1.0);
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+  [self connectSession:session];
+
+  ZCCImageMessage *expected = [[ZCCImageMessageBuilder builderWithImage:testImage] message];
+  OCMExpect([self.socket sendImage:expected callback:OCMOCK_ANY timeoutAfter:30.0]).andDo(^(NSInvocation *invocation) {
+    __unsafe_unretained ZCCSendImageCallback callback;
+    [invocation getArgument:&callback atIndex:3];
+    callback(YES, 32, nil);
+  });
+  OCMExpect([self.socket sendImageData:expected imageId:32]);
+
+  XCTAssertTrue([session sendImage:testImage]);
+
+  OCMVerifyAll(self.socket);
+}
+
+// Verify that -sendImage:toUser: sends to the recipient
+- (void)testSendImageToUser_sendsToRecipient {
+  UIImage *testImage = solidImage(UIColor.redColor, CGSizeMake(100.0f, 100.0f), 1.0);
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+  [self connectSession:session];
+
+  ZCCImageMessageBuilder *builder = [ZCCImageMessageBuilder builderWithImage:testImage];
+  [builder setRecipient:@"bogusUser"];
+  ZCCImageMessage *expected = [builder message];
+  OCMExpect([self.socket sendImage:expected callback:OCMOCK_ANY timeoutAfter:30.0]).andDo(^(NSInvocation *invocation) {
+    __unsafe_unretained ZCCSendImageCallback callback;
+    [invocation getArgument:&callback atIndex:3];
+    callback(YES, 32, nil);
+  });
+  OCMExpect([self.socket sendImageData:expected imageId:32]);
+
+  XCTAssertTrue([session sendImage:testImage toUser:@"bogusUser"]);
+
+  OCMVerifyAll(self.socket);
+}
+
+// Verify that -sendImage: and -sendImage:toUser: return failure if the session isn't connected
+- (void)testSendImage_notConnected_returnsFalse {
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+  UIImage *image = solidImage(UIColor.redColor, CGSizeMake(100.0f, 100.0f), 1.0);
+  XCTAssertFalse([session sendImage:image]);
+  XCTAssertFalse([session sendImage:image toUser:@"bogusUser"]);
+}
+
+// Verify failure reporting from -sendImage:
+- (void)testSendImage_socketFailure_reportsError {
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+  [self connectSession:session];
+  UIImage *image = solidImage(UIColor.redColor, CGSizeMake(400.0f, 400.0f), 1.0f);
+  ZCCImageMessageBuilder *builder = [ZCCImageMessageBuilder builderWithImage:image];
+  ZCCImageMessage *expected = [builder message];
+  OCMExpect([self.socket sendImage:expected callback:OCMOCK_ANY timeoutAfter:30.0]).andDo(^(NSInvocation *invocation) {
+    __unsafe_unretained ZCCSendImageCallback callback;
+    [invocation getArgument:&callback atIndex:3];
+    callback(NO, 0, @"Failed to send");
+  });
+  XCTestExpectation *errorReported = [[XCTestExpectation alloc] initWithDescription:@"Session reported error to delegate"];
+  NSError *expectedError = [NSError errorWithDomain:ZCCErrorDomain code:ZCCErrorCodeUnknown userInfo:@{ZCCServerErrorMessageKey:@"Failed to send"}];
+  OCMExpect([self.sessionDelegate session:session didEncounterError:expectedError]).andDo(^(NSInvocation *invocation) {
+    [errorReported fulfill];
+  });
+
+  [session sendImage:image];
+
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[errorReported] timeout:3.0], XCTWaiterResultCompleted);
+  OCMVerifyAll(self.socket);
+}
+
+// Verify receiving images
+- (void)testOnImage_SendsImageToDelegate {
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+  [self connectSession:session];
+
+  UIImage *testImage = solidImage(UIColor.redColor, CGSizeMake(400.0, 400.0), 1.0);
+  NSData *testImageData = UIImageJPEGRepresentation(testImage, 0.75);
+  UIImage *thumbnailImage = [ZCCImageUtils resizeImage:testImage maxSize:CGSizeMake(90.0, 90.0) ignoringScreenScale:YES];
+  NSData *thumbnailImageData = UIImageJPEGRepresentation(thumbnailImage, 0.75);
+
+  id uiImage = OCMClassMock([UIImage class]);
+  __block UIImage *receivedImage;
+  __block UIImage *receivedThumbnail;
+
+  OCMStub(ClassMethod([uiImage imageWithData:testImageData])).andDo(^(NSInvocation *invocation) {
+    receivedImage = [[UIImage alloc] initWithData:testImageData];
+    [invocation setReturnValue:&receivedImage];
+  });
+  OCMStub(ClassMethod([uiImage imageWithData:thumbnailImageData])).andDo(^(NSInvocation *invocation) {
+    receivedThumbnail = [[UIImage alloc] initWithData:thumbnailImageData];
+    [invocation setReturnValue:&receivedThumbnail];
+  });
+
+  XCTestExpectation *receivedThumbnailExpectation = [[XCTestExpectation alloc] initWithDescription:@"Received thumbnail callback"];
+  OCMExpect([self.sessionDelegate session:session didReceiveImage:[OCMArg checkWithBlock:^BOOL(ZCCImageInfo *actual) {
+    if (actual.imageId != 345) {
+      return NO;
+    }
+    if (![actual.sender isEqualToString:@"bogusSender"]) {
+      return NO;
+    }
+    if (actual.thumbnail != receivedThumbnail) {
+      return NO;
+    }
+    if (actual.image) {
+      return NO;
+    }
+    return YES;
+  }]]).andDo(^(NSInvocation *invocation) {
+    [receivedThumbnailExpectation fulfill];
+  });
+
+  ZCCImageHeader *header = [[ZCCImageHeader alloc] init];
+  header.imageId = 345;
+  header.sender = @"bogusSender";
+  header.imageType = ZCCImageTypeJPEG;
+  header.height = 400;
+  header.width = 400;
+  [session socket:self.socket didReceiveImageHeader:header];
+  [session socket:self.socket didReceiveImageData:thumbnailImageData imageId:345 isThumbnail:YES];
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[receivedThumbnailExpectation] timeout:3.0], XCTWaiterResultCompleted);
+
+  XCTestExpectation *receivedImageExpectation = [[XCTestExpectation alloc] initWithDescription:@"Received image callback"];
+  OCMExpect([self.sessionDelegate session:session didReceiveImage:[OCMArg checkWithBlock:^BOOL(ZCCImageInfo *actualInfo) {
+    if (actualInfo.imageId != 345) {
+      return NO;
+    }
+    if (![actualInfo.sender isEqualToString:@"bogusSender"]) {
+      return NO;
+    }
+    if (actualInfo.image != receivedImage) {
+      return NO;
+    }
+    if (actualInfo.thumbnail != receivedThumbnail) {
+      return NO;
+    }
+    return YES;
+  }]]).andDo(^(NSInvocation *invocation) {
+    [receivedImageExpectation fulfill];
+  });
+
+  [session socket:self.socket didReceiveImageData:testImageData imageId:345 isThumbnail:NO];
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[receivedImageExpectation] timeout:3.0], XCTWaiterResultCompleted);
+
+  OCMVerifyAll(self.sessionDelegate);
+  [uiImage stopMocking];
+}
+
 #pragma mark -sendText:
 
 - (void)testSendText_SendsSocketMessage {
@@ -340,7 +685,7 @@
   [self connectSession:session];
 
   XCTestExpectation *textSent = [[XCTestExpectation alloc] initWithDescription:@"send_text_message sent"];
-  OCMExpect([self.socket sendTextMessage:@"test message" toUser:nil timeoutAfter:30.0]).andDo(^(NSInvocation *invocation) {
+  OCMExpect([self.socket sendTextMessage:@"test message" recipient:nil timeoutAfter:30.0]).andDo(^(NSInvocation *invocation) {
     [textSent fulfill];
   });
   [session sendText:@"test message"];
@@ -354,13 +699,131 @@
   [self connectSession:session];
 
   XCTestExpectation *textSent = [[XCTestExpectation alloc] initWithDescription:@"send_text_message sent"];
-  OCMExpect([self.socket sendTextMessage:@"test message" toUser:@"bogusUser" timeoutAfter:30.0]).andDo(^(NSInvocation *invocation) {
+  OCMExpect([self.socket sendTextMessage:@"test message" recipient:@"bogusUser" timeoutAfter:30.0]).andDo(^(NSInvocation *invocation) {
     [textSent fulfill];
   });
   [session sendText:@"test message" toUser:@"bogusUser"];
 
   XCTAssertEqual([XCTWaiter waitForExpectations:@[textSent] timeout:3.0], XCTWaiterResultCompleted);
   OCMVerifyAll(self.socket);
+}
+
+#pragma mark Location messages
+
+// Verify that -sendLocation returns false if we don't have access to location services
+- (void)testSendLocation_NoLocationAccess_ReturnsFalse {
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+
+  // Verify we don't send location if we aren't connected
+  self.locationService.locationServicesEnabled = YES;
+  self.locationService.authorizationStatus = kCLAuthorizationStatusAuthorizedWhenInUse;
+  XCTAssertFalse([session sendLocationWithContinuation:nil]);
+
+  [self connectSession:session];
+  self.locationService.locationServicesEnabled = YES;
+  self.locationService.authorizationStatus = kCLAuthorizationStatusDenied;
+  XCTAssertFalse([session sendLocationWithContinuation:nil]);
+
+  self.locationService.authorizationStatus = kCLAuthorizationStatusRestricted;
+  XCTAssertFalse([session sendLocationWithContinuation:nil]);
+
+  self.locationService.authorizationStatus = kCLAuthorizationStatusNotDetermined;
+  XCTAssertFalse([session sendLocationWithContinuation:nil]);
+
+  self.locationService.authorizationStatus = kCLAuthorizationStatusAuthorizedWhenInUse;
+  self.locationService.locationServicesEnabled = NO;
+  XCTAssertFalse([session sendLocationWithContinuation:nil]);
+}
+
+// Verify that sendLocation sends the current location when we do have access to location services
+- (void)testSendLocation_sendsLocation {
+  [self enableLocationServices];
+  CLLocation *bogusLocation = [self mockedLocation];
+  ZCCLocationInfo *expectedLocationInfo = [self expectedLocationInfo];
+  expectedLocationInfo.address = @"Bogus address, Anytown";
+  id placemark = OCMClassMock([CLPlacemark class]);
+  OCMExpect([self.addressFormattingService stringFromPlacemark:placemark]).andReturn(@"Bogus address, Anytown");
+  OCMStub([self.geocodingService reverseGeocodeLocation:bogusLocation completionHandler:OCMOCK_ANY]).andDo(^(NSInvocation *invocation) {
+    __unsafe_unretained CLGeocodeCompletionHandler completionHandler;
+    [invocation getArgument:&completionHandler atIndex:3];
+    completionHandler(@[placemark], nil);
+  });
+
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+  [self connectSession:session];
+
+  XCTestExpectation *callbackCalled = [[XCTestExpectation alloc] initWithDescription:@"-sendLocation callback called"];
+  XCTAssertTrue([session sendLocationWithContinuation:^(ZCCLocationInfo *locationInfo, NSError *error) {
+    XCTAssertEqualObjects(locationInfo, expectedLocationInfo);
+    [callbackCalled fulfill];
+  }]);
+
+  OCMVerify([self.socket sendLocation:expectedLocationInfo recipient:nil timeoutAfter:30.0]);
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[callbackCalled] timeout:3.0], XCTWaiterResultCompleted);
+}
+
+- (void)testSendLocationToUser_sendsSocketMessage {
+  [self enableLocationServices];
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+  [self connectSession:session];
+
+  // Message isn't sent until geocoding service returns value
+  OCMStub([self.geocodingService reverseGeocodeLocation:OCMOCK_ANY completionHandler:OCMOCK_ANY]).andDo(^(NSInvocation *invocation) {
+    __unsafe_unretained void (^handler)(NSArray *, NSError *) = nil;
+    [invocation getArgument:&handler atIndex:3];
+    handler(nil, nil);
+  });
+  XCTAssertTrue([session sendLocationToUser:@"bogusUser" continuation:nil]);
+
+  ZCCLocationInfo *expectedLocationInfo = [self expectedLocationInfo];
+  OCMVerify([self.socket sendLocation:expectedLocationInfo recipient:@"bogusUser" timeoutAfter:30.0]);
+}
+
+- (CLLocation *)mockedLocation {
+  static CLLocation *location = nil;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    CLLocationCoordinate2D coordinate;
+    coordinate.latitude = 45.0;
+    coordinate.longitude = 32.5;
+    location = [[CLLocation alloc] initWithCoordinate:coordinate altitude:0.0 horizontalAccuracy:15.0 verticalAccuracy:0.0 timestamp:[NSDate dateWithTimeIntervalSinceReferenceDate:0.0]];
+  });
+  return location;
+}
+
+- (void)enableLocationServices {
+  self.locationService.locationServicesEnabled = YES;
+  self.locationService.authorizationStatus = kCLAuthorizationStatusAuthorizedWhenInUse;
+  CLLocation *bogusLocation = [self mockedLocation];
+  self.locationService.mockedRequestLocation = ^(ZCCLocationRequestCallback callback) {
+    callback(bogusLocation, nil);
+  };
+}
+
+- (ZCCLocationInfo *)expectedLocationInfo {
+  ZCCLocationInfo *expectedLocationInfo = [[ZCCLocationInfo alloc] init];
+  expectedLocationInfo.latitude = 45.0;
+  expectedLocationInfo.longitude = 32.5;
+  expectedLocationInfo.accuracy = 15.0;
+  return expectedLocationInfo;
+}
+
+// Verify that we report a received location
+- (void)testIncomingLocation_reportsToDelegate {
+  ZCCSession *session = [self sessionWithUsername:nil password:nil];
+  [self connectSession:session];
+
+  ZCCLocationInfo *location = [self expectedLocationInfo];
+  location.address = @"Bogus address, Anytown";
+  XCTestExpectation *calledDelegate = [[XCTestExpectation alloc] initWithDescription:@"Sent location to delegate"];
+  OCMExpect([self.sessionDelegate session:session didReceiveLocation:location from:@"bogusSender"]).andDo(^(NSInvocation *invocation) {
+    [calledDelegate fulfill];
+  });
+
+  [session socket:self.socket didReceiveLocationMessage:location sender:@"bogusSender"];
+
+  XCTAssertEqual([XCTWaiter waitForExpectations:@[calledDelegate] timeout:3.0], XCTWaiterResultCompleted);
+  OCMVerifyAll(self.sessionDelegate);
 }
 
 #pragma mark ZCCSocketDelegate

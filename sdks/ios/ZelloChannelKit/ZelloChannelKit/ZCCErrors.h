@@ -43,6 +43,13 @@ FOUNDATION_EXPORT NSString * const ZCCOSStatusKey;
  */
 FOUNDATION_EXPORT NSString * const ZCCExceptionKey;
 
+/// Value is the message type that we were trying to parse
+FOUNDATION_EXPORT NSString * const ZCCInvalidJSONMessageKey;
+/// Value is the key in the JSON object that we were trying to parse
+FOUNDATION_EXPORT NSString * const ZCCInvalidJSONKeyKey;
+/// Value is the description of the error encountered while trying to parse the JSON object
+FOUNDATION_EXPORT NSString * const ZCCInvalidJSONProblemKey;
+
 /**
  * Error messages sent by the Zello channels server
  */
@@ -132,6 +139,11 @@ typedef NS_ENUM(NSInteger, ZCCErrorCode) {
   ZCCErrorCodeBadCredentials = 1005,
   /// Stream error
   ZCCErrorCodeBusy = 1006,
+  /**
+   * Invalid JSON message from the server. The error's <code>userInfo</code> dictionary will contain
+   * the message as the value for the <code>ZCCServerInvalidMessageKey</code> key.
+   */
+  ZCCErrorCodeInvalidMessage = 1007,
 
   /// Something went wrong in the audio codec layer
   ZCCErrorCodeDecoderUnknown = 2000,

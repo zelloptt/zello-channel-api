@@ -10,9 +10,17 @@
 @import Foundation;
 
 #import "ZCCSession.h"
+#import "ZCCAddressFormattingService.h"
+#import "ZCCChannelInfo.h"
+#import "ZCCCoreGeocodingService.h"
+#import "ZCCCoreLocationService.h"
 #import "ZCCErrors.h"
+#import "ZCCImageInfo+Internal.h"
+#import "ZCCImageMessageManager.h"
+#import "ZCCIncomingImageInfo.h"
 #import "ZCCIncomingVoiceConfiguration.h"
 #import "ZCCIncomingVoiceStreamInfo+Internal.h"
+#import "ZCCLocationInfo+Internal.h"
 #import "ZCCPermissionsManager.h"
 #import "ZCCProtocol.h"
 #import "ZCCSocket.h"
@@ -59,17 +67,20 @@ static void LogWarningForDevelopmentToken(NSString *token) {
   return;
 }
 
-@implementation ZCCLocationInfo
-@end
-
-@interface ZCCSession () <ZCCSocketDelegate, ZCCVoiceStreamsManagerDelegate>
+@interface ZCCSession () <ZCCImageMessageManagerDelegate, ZCCSocketDelegate, ZCCVoiceStreamsManagerDelegate>
 
 @property (nonatomic, strong, nonnull) ZCCPermissionsManager *permissionsManager;
 @property (nonatomic, strong, nonnull) ZCCSocketFactory *socketFactory;
 
 @property (atomic) ZCCSessionState state;
+@property (nonatomic) ZCCChannelInfo channelInfo;
+@property (nonatomic) NSInteger channelUsersOnline;
 
 @property (nonatomic, strong, nonnull) ZCCVoiceStreamsManager *streamsManager;
+@property (nonatomic, strong, nonnull) ZCCImageMessageManager *imageManager;
+@property (nonatomic, strong, nonnull) id<ZCCGeocodingService> geocodingService;
+@property (nonatomic, strong, nonnull) id<ZCCLocationService> locationService;
+@property (nonatomic, strong, nonnull) id<ZCCAddressFormattingService> addressFormattingService;
 
 @property (nonatomic, strong) ZCCSocket *webSocket;
 
@@ -80,6 +91,9 @@ static void LogWarningForDevelopmentToken(NSString *token) {
 @property (nonatomic, copy, readonly) NSString *authToken;
 @property (nonatomic, copy, nullable) NSString *refreshToken;
 @property (nonatomic) NSTimeInterval nextReconnectDelay;
+
+/// Returns whether the session is connected and has record permission so we can send a voice message
+@property (nonatomic, readonly) BOOL readyToSendVoiceMessages;
 
 @end
 
@@ -108,6 +122,12 @@ static void LogWarningForDevelopmentToken(NSString *token) {
     _streamsManager.requestTimeout = _requestTimeout;
     _state = ZCCSessionStateDisconnected;
     _runner = [[ZCCQueueRunner alloc] initWithName:@"ZCCSession"];
+    _imageManager = [[ZCCImageMessageManager alloc] initWithRunner:_runner];
+    _imageManager.delegate = self;
+    _addressFormattingService = [[ZCCContactsAddressFormattingService alloc] init];
+    _geocodingService = [[ZCCCoreGeocodingService alloc] init];
+    _locationService = [[ZCCCoreLocationService alloc] init];
+    _channelInfo.status = ZCCChannelStatusOffline;
   }
   return self;
 }
@@ -130,9 +150,33 @@ static void LogWarningForDevelopmentToken(NSString *token) {
   return self.streamsManager.activeStreams;
 }
 
+- (ZCCChannelStatus)channelStatus {
+  return self.channelInfo.status;
+}
+
 - (ZCCChannelFeatures)channelFeatures {
-  // TODO: Implement -channelFeatures
-  return ZCCChannelFeaturesNone;
+  ZCCChannelFeatures features = ZCCChannelFeaturesNone;
+  if (self.channelInfo.textingSupported) {
+    features = features | ZCCChannelFeaturesTextMessages;
+  }
+  if (self.channelInfo.locationsSupported) {
+    features = features | ZCCChannelFeaturesLocationMessages;
+  }
+  if (self.channelInfo.imagesSupported) {
+    features = features | ZCCChannelFeaturesImageMessages;
+  }
+  return features;
+}
+
+- (BOOL)readyToSendVoiceMessages {
+  if (self.state != ZCCSessionStateConnected) {
+    return NO;
+  }
+  if ([self.permissionsManager recordPermission] != AVAudioSessionRecordPermissionGranted) {
+    return NO;
+  }
+
+  return YES;
 }
 
 - (NSTimeInterval)requestTimeout {
@@ -155,6 +199,7 @@ static void LogWarningForDevelopmentToken(NSString *token) {
 - (void)disconnect {
   [self.runner runAsync:^{
     self.refreshToken = nil;
+    [self resetChannelInfo];
     if (self.webSocket) {
       [self performDisconnect];
 
@@ -198,59 +243,128 @@ static void LogWarningForDevelopmentToken(NSString *token) {
   }];
 }
 
-- (void)sendImage:(UIImage *)image {
-  // TODO: Implement -sendImage:
+- (BOOL)sendImage:(UIImage *)image {
+  if (self.state != ZCCSessionStateConnected) {
+    return NO;
+  }
+
+  [self.imageManager sendImage:image recipient:nil socket:self.webSocket];
+  return YES;
 }
 
-- (void)sendImage:(UIImage *)image toUser:(NSString *)username {
-  // TODO: Implement -sendImage:toUser:
+- (BOOL)sendImage:(UIImage *)image toUser:(NSString *)username {
+  if (self.state != ZCCSessionStateConnected) {
+    return NO;
+  }
+
+  [self.imageManager sendImage:image recipient:username socket:self.webSocket];
+  return YES;
 }
 
-- (void)sendLocation {
-  // TODO: Implement -sendLocation
+- (BOOL)sendLocationWithContinuation:(void (^)(ZCCLocationInfo * _Nullable, NSError * _Nullable))continuation {
+  return [self sendLocationInternalToUser:nil continuation:continuation];
 }
 
-- (void)sendLocationToUser:(NSString *)username {
-  // TODO: Implement -sendLocationToUser:
+- (BOOL)sendLocationToUser:(NSString *)username continuation:(void (^)(ZCCLocationInfo * _Nullable, NSError * _Nullable))continuation {
+  return [self sendLocationInternalToUser:username continuation:continuation];
+}
+
+- (BOOL)sendLocationInternalToUser:(nullable NSString *)username continuation:(void (^)(ZCCLocationInfo * _Nullable, NSError * _Nullable))continuation {
+  if (self.state != ZCCSessionStateConnected) {
+    return NO;
+  }
+  CLAuthorizationStatus authorization = [self.locationService authorizationStatus];
+  if (authorization != kCLAuthorizationStatusAuthorizedWhenInUse && authorization != kCLAuthorizationStatusAuthorizedAlways) {
+    return NO;
+  }
+  if (![self.locationService locationServicesEnabled]) {
+    return NO;
+  }
+
+  [self.locationService requestLocation:^(CLLocation * _Nullable location, NSError * _Nullable error) {
+    if (location) {
+      [self.geocodingService reverseGeocodeLocation:location completionHandler:^(NSArray<CLPlacemark *> * _Nullable placemarks, NSError * _Nullable gecodingError) {
+        ZCCLocationInfo *locationInfo = [[ZCCLocationInfo alloc] initWithLocation:location];
+        // Fill in reverse geocoded address
+        if (placemarks && placemarks.count > 0) {
+          CLPlacemark *placemark = [placemarks firstObject];
+          NSString *address = [self.addressFormattingService stringFromPlacemark:placemark];
+          [locationInfo setAddress:address];
+        }
+        [self.webSocket sendLocation:locationInfo recipient:username timeoutAfter:self.requestTimeout];
+        if (continuation) {
+          dispatch_async(self.delegateCallbackQueue, ^{
+            continuation(locationInfo, nil);
+          });
+        }
+      }];
+    } else {
+      if (continuation) {
+        dispatch_async(self.delegateCallbackQueue, ^{
+          continuation(nil, error);
+        });
+      }
+    }
+  }];
+  return YES;
 }
 
 - (void)sendText:(NSString *)text {
-  [self.webSocket sendTextMessage:text toUser:nil timeoutAfter:self.requestTimeout];
+  [self.webSocket sendTextMessage:text recipient:nil timeoutAfter:self.requestTimeout];
 }
 
 - (void)sendText:(NSString *)text toUser:(NSString *)username {
-  [self.webSocket sendTextMessage:text toUser:username timeoutAfter:self.requestTimeout];
+  [self.webSocket sendTextMessage:text recipient:username timeoutAfter:self.requestTimeout];
 }
 
 - (ZCCOutgoingVoiceStream *)startVoiceMessage {
-  if (self.state != ZCCSessionStateConnected) {
-    return nil;
-  }
-  if ([self.permissionsManager recordPermission] != AVAudioSessionRecordPermissionGranted) {
-    return nil;
-  }
-
-  return [self startStreamWithConfiguration:nil];
+  return [self startVoiceMessageInternalToUser:nil source:nil];
 }
 
 - (ZCCOutgoingVoiceStream *)startVoiceMessageToUser:(NSString *)username {
-  // TODO: Implement -startVoiceMessageToUser:
-  return nil;
+  return [self startVoiceMessageInternalToUser:username source:nil];
 }
 
 - (ZCCOutgoingVoiceStream *)startVoiceMessageWithSource:(ZCCOutgoingVoiceConfiguration *)sourceConfiguration {
-  // Validate configuration
-  if (![ZCCOutgoingVoiceConfiguration.supportedSampleRates containsObject:@(sourceConfiguration.sampleRate)]) {
-    NSException *parameterException = [NSException exceptionWithName:NSInvalidArgumentException reason:@"Unsupported sampleRate. Check ZCCOutgoingVoiceConfiguration.supportedSampleRates." userInfo:nil];
-    @throw parameterException;
-  }
-
-  return [self startStreamWithConfiguration:sourceConfiguration];
+  return [self startVoiceMessageInternalToUser:nil source:sourceConfiguration];
 }
 
 - (ZCCOutgoingVoiceStream *)startVoiceMessageToUser:(NSString *)username source:(ZCCOutgoingVoiceConfiguration *)sourceConfiguration {
-  // TODO: Implement -startVoiceMessageToUser:source:
-  return nil;
+  return [self startVoiceMessageInternalToUser:username source:sourceConfiguration];
+}
+
+- (ZCCOutgoingVoiceStream *)startVoiceMessageInternalToUser:(nullable NSString *)username source:(nullable ZCCOutgoingVoiceConfiguration *)sourceConfiguration {
+  if (sourceConfiguration) {
+    // Validate configuration
+    if (![ZCCOutgoingVoiceConfiguration.supportedSampleRates containsObject:@(sourceConfiguration.sampleRate)]) {
+      NSException *parameterException = [NSException exceptionWithName:NSInvalidArgumentException reason:@"Unsupported sampleRate. Check ZCCOutgoingVoiceConfiguration.supportedSampleRates." userInfo:nil];
+      @throw parameterException;
+    }
+  }
+  if (!self.readyToSendVoiceMessages) {
+    return nil;
+  }
+
+  return [self startStreamWithConfiguration:sourceConfiguration recipient:username];
+}
+
+#pragma mark - ZCCImageMessageManagerDelegate
+
+- (void)imageMessageManager:(ZCCImageMessageManager *)manager didReceiveImage:(ZCCIncomingImageInfo *)imageInfo {
+  ZCCImageInfo *info = [[ZCCImageInfo alloc] initWithImageInfo:imageInfo];
+  dispatch_async(self.delegateCallbackQueue, ^{
+    [self.delegate session:self didReceiveImage:info];
+  });
+}
+
+- (void)imageMessageManager:(ZCCImageMessageManager *)manager didFailToSendImage:(UIImage *)image reason:(NSString *)failureReason {
+  id<ZCCSessionDelegate> delegate = self.delegate;
+  if ([delegate respondsToSelector:@selector(session:didEncounterError:)]) {
+    NSError *error = [NSError errorWithDomain:ZCCErrorDomain code:ZCCErrorCodeUnknown userInfo:@{ZCCServerErrorMessageKey:failureReason}];
+    dispatch_async(self.delegateCallbackQueue, ^{
+      [delegate session:self didEncounterError:error];
+    });
+  }
 }
 
 #pragma mark - ZCCVoiceStreamsManagerDelegate
@@ -359,6 +473,7 @@ static void LogWarningForDevelopmentToken(NSString *token) {
     oldState = self.state;
     self.state = ZCCSessionStateError;
     haveRefreshToken = self.refreshToken != nil;
+    [self resetChannelInfo];
   }];
   BOOL shouldReconnect = haveRefreshToken;
   if (haveRefreshToken) {
@@ -405,8 +520,16 @@ static void LogWarningForDevelopmentToken(NSString *token) {
   }];
 }
 
-- (void)socket:(ZCCSocket *)socket didReportStatus:(NSString *)status forChannel:(NSString *)channel usersOnline:(NSInteger)users {
-  NSLog(@"[ZCC] statusChange %@", status ?: @"?");
+- (void)socket:(ZCCSocket *)socket didReportStatus:(ZCCChannelInfo)channelInfo forChannel:(NSString *)channel usersOnline:(NSInteger)users {
+  self.channelInfo = channelInfo;
+  self.channelUsersOnline = users;
+  // TODO: Report channel status update to user
+  id<ZCCSessionDelegate> delegate = self.delegate;
+  if ([delegate respondsToSelector:@selector(sessionDidUpdateChannelStatus:)]) {
+    dispatch_async(self.delegateCallbackQueue, ^{
+      [delegate sessionDidUpdateChannelStatus:self];
+    });
+  }
 }
 
 - (void)socket:(ZCCSocket *)socket didStartStreamWithId:(NSUInteger)streamId params:(ZCCStreamParams *)params channel:(NSString *)channel sender:(NSString *)senderName {
@@ -430,6 +553,15 @@ static void LogWarningForDevelopmentToken(NSString *token) {
   [self.streamsManager onIncomingData:data streamId:streamId packetId:packetId];
 }
 
+- (void)socket:(ZCCSocket *)socket didReceiveLocationMessage:(ZCCLocationInfo *)location sender:(NSString *)sender {
+  id<ZCCSessionDelegate> delegate = self.delegate;
+  if ([delegate respondsToSelector:@selector(session:didReceiveLocation:from:)]) {
+    dispatch_async(self.delegateCallbackQueue, ^{
+      [delegate session:self didReceiveLocation:location from:sender];
+    });
+  }
+}
+
 - (void)socket:(ZCCSocket *)socket didReceiveTextMessage:(NSString *)message sender:(NSString *)sender {
   id<ZCCSessionDelegate> delegate = self.delegate;
   if ([delegate respondsToSelector:@selector(session:didReceiveText:from:)]) {
@@ -437,6 +569,14 @@ static void LogWarningForDevelopmentToken(NSString *token) {
       [delegate session:self didReceiveText:message from:sender];
     });
   }
+}
+
+- (void)socket:(nonnull ZCCSocket *)socket didReceiveImageData:(nonnull NSData *)data imageId:(NSUInteger)imageId isThumbnail:(BOOL)isThumbnail {
+  [self.imageManager handleImageData:data imageId:imageId isThumbnail:isThumbnail];
+}
+
+- (void)socket:(nonnull ZCCSocket *)socket didReceiveImageHeader:(nonnull ZCCImageHeader *)header {
+  [self.imageManager handleImageHeader:header];
 }
 
 - (void)socket:(nonnull ZCCSocket *)socket didReportError:(nonnull NSString *)errorMessage {
@@ -448,28 +588,28 @@ static void LogWarningForDevelopmentToken(NSString *token) {
   }
 }
 
-- (void)socket:(ZCCSocket *)socket didReceiveUnrecognizedMessage:(NSString *)message {
-  NSLog(@"[ZCC] WARNING: Received unexpected message from server: %@", message);
-
-  // If we're in the middle of connecting, bail and report connect failure to delegate
+- (void)socket:(ZCCSocket *)socket didEncounterErrorParsingMessage:(NSError *)error {
   [self.runner runSync:^{
+    id<ZCCSessionDelegate> delegate = self.delegate;
+    // If we're already connected, just report error to our delegate
     if (self.state != ZCCSessionStateConnecting) {
+      if ([delegate respondsToSelector:@selector(session:didEncounterError:)]) {
+        [delegate session:self didEncounterError:error];
+      }
       return;
     }
 
+    // If we're in the middle of connecting, bail and report connect failure to delegate
     self.state = ZCCSessionStateError;
     [self.webSocket close];
-    id<ZCCSessionDelegate> delegate = self.delegate;
     if ([delegate respondsToSelector:@selector(session:didFailToConnectWithError:)]) {
-      NSDictionary *info = @{NSLocalizedDescriptionKey:@"Received invalid message from server",
-                             ZCCServerInvalidMessageKey:message};
-      NSError *error = [NSError errorWithDomain:ZCCErrorDomain code:ZCCErrorCodeBadResponse userInfo:info];
       dispatch_async(self.delegateCallbackQueue, ^{
         [delegate session:self didFailToConnectWithError:error];
       });
     }
   }];
 }
+
 
 #pragma mark - Private
 
@@ -552,10 +692,17 @@ static void LogWarningForDevelopmentToken(NSString *token) {
     self.webSocket = nil;
 }
 
-- (ZCCOutgoingVoiceStream *)startStreamWithConfiguration:(ZCCOutgoingVoiceConfiguration *)configuration {
+- (void)resetChannelInfo {
+  ZCCChannelInfo reset = ZCCChannelInfoZero();
+  reset.status = ZCCChannelStatusOffline;
+  self.channelInfo = reset;
+  self.channelUsersOnline = 0;
+}
+
+- (ZCCOutgoingVoiceStream *)startStreamWithConfiguration:(ZCCOutgoingVoiceConfiguration *)configuration recipient:(NSString *)username {
   __block ZCCOutgoingVoiceStream *stream;
   [self.runner runSync:^{
-    stream = [self.streamsManager startStream:self.channel socket:self.webSocket voiceConfiguration:configuration];
+    stream = [self.streamsManager startStream:self.channel recipient:username socket:self.webSocket voiceConfiguration:configuration];
   }];
   return stream;
 }

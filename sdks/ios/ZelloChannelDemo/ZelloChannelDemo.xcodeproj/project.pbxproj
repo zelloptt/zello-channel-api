@@ -30,6 +30,8 @@
 		D1C6EA9E203754400017797A /* ZelloChannelKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D1C6EA9F203754400017797A /* ZelloChannelKit.framework */; };
 		D1C6EAA0203754550017797A /* ZelloChannelKit.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = D1C6EA9F203754400017797A /* ZelloChannelKit.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		D1C8899D204090A200814E5A /* Zello.m in Sources */ = {isa = PBXBuildFile; fileRef = D1C8899C204090A200814E5A /* Zello.m */; };
+		D1DC878C2322FCD700CBB9CF /* ImagePopupViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = D1DC878B2322FCD700CBB9CF /* ImagePopupViewController.m */; };
+		D1DC878F232306B500CBB9CF /* ImagePopupPresentationController.m in Sources */ = {isa = PBXBuildFile; fileRef = D1DC878E232306B500CBB9CF /* ImagePopupPresentationController.m */; };
 		D1F6F54B2049B9890045A100 /* honk.wav in Resources */ = {isa = PBXBuildFile; fileRef = D1F6F54A2049B9890045A100 /* honk.wav */; };
 /* End PBXBuildFile section */
 
@@ -107,6 +109,10 @@
 		D1C6EA9F203754400017797A /* ZelloChannelKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = ZelloChannelKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		D1C8899B204090A200814E5A /* Zello.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Zello.h; sourceTree = "<group>"; };
 		D1C8899C204090A200814E5A /* Zello.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Zello.m; sourceTree = "<group>"; };
+		D1DC878A2322FCD700CBB9CF /* ImagePopupViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ImagePopupViewController.h; sourceTree = "<group>"; };
+		D1DC878B2322FCD700CBB9CF /* ImagePopupViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ImagePopupViewController.m; sourceTree = "<group>"; };
+		D1DC878D232306B500CBB9CF /* ImagePopupPresentationController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ImagePopupPresentationController.h; sourceTree = "<group>"; };
+		D1DC878E232306B500CBB9CF /* ImagePopupPresentationController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = ImagePopupPresentationController.m; sourceTree = "<group>"; };
 		D1F6F54A2049B9890045A100 /* honk.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; path = honk.wav; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -239,6 +245,10 @@
 				A8C65F421FD9B3D100E62BE5 /* DriverTalkViewController.m */,
 				A87394E01FD877A60007C37B /* DriverViewController.h */,
 				A87394E11FD877A60007C37B /* DriverViewController.m */,
+				D1DC878D232306B500CBB9CF /* ImagePopupPresentationController.h */,
+				D1DC878E232306B500CBB9CF /* ImagePopupPresentationController.m */,
+				D1DC878A2322FCD700CBB9CF /* ImagePopupViewController.h */,
+				D1DC878B2322FCD700CBB9CF /* ImagePopupViewController.m */,
 				A80440671FD5C00F00BFD1BF /* RiderDriverViewController.h */,
 				A80440681FD5C00F00BFD1BF /* RiderDriverViewController.m */,
 				A81802651FD7848500F5897F /* RiderTalkViewController.h */,
@@ -427,7 +437,9 @@
 				D18A3B592051A527003EDE38 /* FileAudioSource.m in Sources */,
 				A84FC6081FDADF750057ED6F /* TalkViewController.m in Sources */,
 				A87394DB1FD875470007C37B /* DriverNext.m in Sources */,
+				D1DC878F232306B500CBB9CF /* ImagePopupPresentationController.m in Sources */,
 				A8C65F461FD9D37900E62BE5 /* BaseViewController.m in Sources */,
+				D1DC878C2322FCD700CBB9CF /* ImagePopupViewController.m in Sources */,
 				D14E612E204F3C4D00393FCA /* QAViewController.m in Sources */,
 				A81802671FD7848500F5897F /* RiderTalkViewController.m in Sources */,
 				A87394D71FD86F490007C37B /* DriverNextCollectionViewCell.m in Sources */,

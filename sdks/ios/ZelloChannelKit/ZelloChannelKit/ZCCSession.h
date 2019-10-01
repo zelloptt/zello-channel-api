@@ -6,39 +6,29 @@
 //  Copyright © 2018 Zello. All rights reserved.
 //
 
-#import <Foundation/Foundation.h>
+#import <UIKit/UIKit.h>
 #import "ZCCStreamState.h"
+#import "ZCCTypes.h"
 
 NS_ASSUME_NONNULL_BEGIN
 
+@class ZCCImageInfo;
 @class ZCCIncomingVoiceConfiguration;
 @class ZCCIncomingVoiceStream;
 @class ZCCIncomingVoiceStreamInfo;
+@class ZCCLocationInfo;
 @class ZCCOutgoingVoiceConfiguration;
 @class ZCCOutgoingVoiceStream;
 
-@interface ZCCLocationInfo: NSObject
-@property (nonatomic, readonly) double latitude;
-@property (nonatomic, readonly) double longitude;
-/// Sender's reported accuracy in meters
-@property (nonatomic, readonly) double accuracy;
-/// Reverse geocoded location from the sender
-@property (nonatomic, readonly) NSString *address;
-@end
-
 /**
- * Describes the features available in the channel that this session is connected to
+ * Callback for receiving the location that the Zello channels client is sending to the channel
+ *
+ * @param location if non-nil, this location is being sent to the channel. If nil, no location will
+ *                 be sent to the channel and the error parameter contains information about what
+ *                 went wrong
+ * @param error if the user's location could not be found, contains information about what went wrong
  */
-typedef NS_OPTIONS(NSInteger, ZCCChannelFeatures) {
-  /// The channel does not support any features other than voice messages
-  ZCCChannelFeaturesNone = 0,
-  /// If present, the channel supports image messages
-  ZCCChannelFeaturesImageMessages = 1 << 1,
-  /// If present, the channel supports text messages
-  ZCCChannelFeaturesTextMessages = 1 << 2,
-  /// If present, the channel supports location messages
-  ZCCChannelFeaturesLocationMessages = 1 << 3
-};
+typedef void (^ZCCSentLocationContinuation)(ZCCLocationInfo * _Nullable location, NSError * _Nullable error);
 
 /**
  * Describes the state of the Zello channels client's connection to the Zello channels server.
@@ -96,6 +86,12 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
 
 /// The current state of the session object
 @property (atomic, readonly) ZCCSessionState state;
+
+/// The channel's online status
+@property (nonatomic, readonly) ZCCChannelStatus channelStatus;
+
+/// The number of users that are connected to the channel
+@property (nonatomic, readonly) NSInteger channelUsersOnline;
 
 /**
  * Features supported by the currently connected channel. If a message is sent that the server does
@@ -165,39 +161,88 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
 
 
 /**
- * Sends an image message to the currently connected channel
+ * @abstract Sends an image message to the currently connected channel
+ *
+ * @discussion The Zello channels client will resize images that are larger than 1,280x1,280 to have a
+ *             maximum height or width of 1,280 pixels. A 90x90 thumbnail will also be generated
+ *             and sent before the full-sized image data is sent.
+ *
+ *             If an error is encountered while sending the image, the <code>ZCCSessionDelegate</code>
+ *             method <code>session:didEncounterError:</code> will be called with an error describing
+ *             what went wrong.
+ *
+ * @param image the image to send
+ *
+ * @return YES if the image metadata was sent successfully. NO if an error was encountered before
+ *         the image metadata could be sent.
  */
-// TODO: Document -sendImage:
-- (void)sendImage:(nonnull UIImage *)image;
+- (BOOL)sendImage:(UIImage *)image;
 
 /**
- * Sends an image message to a user in the currently connected channel.
+ * @abstract Sends an image message to the currently connected channel
+ *
+ * @discussion The Zello channels client will resize images that are larger than 1,280x1,280 to have a
+ *             maximum height or width of 1,280 pixels. A 90x90 thumbnail will also be generated
+ *             and sent before the full-sized image data is sent.
+ *
+ *             If an error is encountered while sending the image, the <code>ZCCSessionDelegate</code>
+ *             method <code>session:didEncounterError:</code> will be called with an error describing
+ *             what went wrong.
+ *
+ * @param image the image to send
+ *
+ * @param username The user to send the image message to. Other users on the channel will not receive
+ *                 the image.
+ *
+ * @return YES if the image metadata was sent successfully. NO if an error was encountered before
+ *         the image metadata could be sent.
  */
-// TODO: Document -sendImage:toUser:
-- (void)sendImage:(nonnull UIImage *)image toUser:(nonnull NSString *)username NS_SWIFT_NAME(sendImage(_:to:));
+- (BOOL)sendImage:(UIImage *)image toUser:(NSString *)username NS_SWIFT_NAME(sendImage(_:to:));
 
 /**
  * Sends the user's current location to the channel
+ *
+ * When the user's location is found, continuation is also called with the location so you can update
+ * your app to reflect the location they are reporting to the channel.
+ *
+ * @param continuation this block is called after the current location is found and reverse geocoding
+ *                     is performed. If the location was found, it reports the location as well as
+ *                     a reverse geocoded description if available. If an error was encountered
+ *                     aquiring the location, it reports the error.
  */
-// TODO: Document -sendLocation
-- (void)sendLocation;
+- (BOOL)sendLocationWithContinuation:(nullable ZCCSentLocationContinuation)continuation NS_SWIFT_NAME(sendLocation(continuation:));
 
 /**
- * Sends the user's current location to a user in the currently connected channel
+ * Sends the user's current location to a user in the channel
+ *
+ * When the user's location is found, continuation is also called with the location so you can update
+ * your app to reflect the location they are reporting to the channel.
+ *
+ * @param username The user to send the location to. Other users in the channel will not receive
+ *                 the location.
+ *
+ * @param continuation This block is called after the current location is found and reverse geocoding
+ *                     is performed. If the location was found, it reports the location as well as
+ *                     a reverse geocoded description if available. If an error was encountered
+ *                     aquiring the location, it reports the error.
  */
-// TODO: Document -sendLocationToUser:
-- (void)sendLocationToUser:(NSString *)username NS_SWIFT_NAME(sendLocation(to:));
+- (BOOL)sendLocationToUser:(NSString *)username continuation:(nullable ZCCSentLocationContinuation)continuation NS_SWIFT_NAME(sendLocation(to:continuation:));
 
 /**
  * Sends a text message to the channel
+ *
+ * @param text the message to send
  */
-// TODO: Document -sendText:
 - (void)sendText:(NSString *)text;
 
 /**
  * Sends a text message to a user in the currently connected channel
+ *
+ * @param text the message to send
+ *
+ * @param username the username for the user to send the message to. Other users in the channel
+ *                 won't receive the message.
  */
-// TODO: Document -sendText:toUser:
 - (void)sendText:(NSString *)text toUser:(NSString *)username NS_SWIFT_NAME(sendText(_:to:));
 
 /**
@@ -240,9 +285,24 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
 - (ZCCOutgoingVoiceStream *)startVoiceMessageWithSource:(ZCCOutgoingVoiceConfiguration *)sourceConfiguration;
 
 /**
- * Creates a voice stream to a user in the channel, with a custom voice source
+ * @abstract Sends a message to a specific user in the channel with a custom voice source
+ *
+ * @discussion Creates and starts a voice stream to the server using a custom voice source instead
+ * of the device microphone. The Zello Channels SDK maintains a strong reference to the provided
+ * <code>ZCCVoiceSource</code> object until the outgoing stream closes.
+ *
+ * Only the user specified will receive the message.
+ *
+ * @param username the username for the user to send the message to. Other users in the channel won't
+ *                 receive the message.
+ *
+ * @param sourceConfiguration specifies the voice source object for the message
+ *
+ * @return the stream that will be handling the voice message
+ *
+ * @throw NSInvalidArgumentException if <code>sourceConfiguration</code> specifies an unsupported sample rate. Check
+ * <code>ZCCOutgoingVoiceConfiguration.supportedSampleRates</code> for supported sample rates.
  */
-// TODO: Document -startVoiceMessageToUser:source:
 - (ZCCOutgoingVoiceStream *)startVoiceMessageToUser:(NSString *)username source:(ZCCOutgoingVoiceConfiguration *)sourceConfiguration NS_SWIFT_NAME(startVoiceMessage(to:source:));
 
 @end
@@ -251,24 +311,6 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
  * When events occur in the Zello session, they are reported to the delegate.
  */
 @protocol ZCCSessionDelegate <NSObject>
-
-@optional
-/**
- * Called when an image message is received
- */
-- (void)session:(ZCCSession *)session didReceiveImage:(UIImage *)image from:(NSString *)sender;
-
-/**
- * Called when a text message is received
- */
-@optional
-- (void)session:(ZCCSession *)session didReceiveText:(NSString *)message from:(NSString *)sender;
-
-/**
- * Called when a location message is received
- */
-@optional
-- (void)session:(ZCCSession *)session didReceiveLocation:(ZCCLocationInfo *)location from:(NSString *)sender;
 
 @optional
 /**
@@ -341,6 +383,18 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
  * to reconnect.
  */
 - (BOOL)session:(ZCCSession *)session willReconnectForReason:(ZCCReconnectReason)reason;
+
+@optional
+/**
+ * @abstract called when the client receives a channel status update message from the server
+ *
+ * @discussion This method is called once shortly after the session connects to the channel, and
+ *             again whenever another user connects to or disconnects from the channel. The delegate
+ *             can read channel information from the session's properties.
+ *
+ * @param session the session that has new information about its channel
+ */
+- (void)sessionDidUpdateChannelStatus:(ZCCSession *)session;
 
 @optional
 /**
@@ -454,6 +508,51 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
  * device speaker.
  */
 - (void)session:(ZCCSession *)session incomingVoice:(ZCCIncomingVoiceStream *)stream didUpdateProgress:(NSTimeInterval)position;
+
+@optional
+/**
+ * @abstract Called when an image message is received
+ *
+ * @discussion This method will probably be called twice for each image message that is received:
+ *             once with only the thumbnail present in the image info object, and once with both
+ *             the thumbnail and the full-sized image present. <code>image.imageId</code> will be
+ *             the same for all messages related to the same image message from a sender.
+ *
+ * @param image a container object with information about the sender, message id, and the image
+ *        itself
+ */
+- (void)session:(ZCCSession *)session didReceiveImage:(ZCCImageInfo *)image;
+
+/**
+ * @abstract Called when a location message is received
+ *
+ * @param location an object describing the sender's location
+ *
+ * @param sender the username of the sender
+ */
+@optional
+- (void)session:(ZCCSession *)session didReceiveLocation:(ZCCLocationInfo *)location from:(NSString *)sender;
+
+/**
+ * Called when a text message is received
+ *
+ * @param session the session that received a text message
+ *
+ * @param message the message that was received
+ *
+ * @param sender the username of the user that sent the message
+ */
+@optional
+- (void)session:(ZCCSession *)session didReceiveText:(NSString *)message from:(NSString *)sender;
+
+/**
+ * Called when the session encounters an error. The errors reported with this callback are informational
+ * and do not mean that the session is no longer functional.
+ */
+// TODO: Document -session:didEncounterError:
+@optional
+- (void)session:(ZCCSession *)session didEncounterError:(NSError *)error;
+
 
 @end
 
