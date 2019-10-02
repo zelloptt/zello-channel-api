@@ -113,22 +113,22 @@ static void AQPropertyChangedHandler(void *inUserData, AudioQueueRef inAQ, Audio
 
 - (void)dealloc {
   [_runner runSync:^{
-    if (_started && !_stopped) {
-      AudioQueueRemovePropertyListener(_queue, kAudioQueueProperty_IsRunning, AQPropertyChangedHandler, (__bridge void *)_selfRef);
-      [_delegate receiverDidEndPlayback:self];
-      _stopped = YES;
+    if (self->_started && !self->_stopped) {
+      AudioQueueRemovePropertyListener(self->_queue, kAudioQueueProperty_IsRunning, AQPropertyChangedHandler, (__bridge void *)self->_selfRef);
+      [self->_delegate receiverDidEndPlayback:self];
+      self->_stopped = YES;
     }
-    if (_queue) {
-      AudioQueueDispose(_queue, true);
-      _queue = NULL;
+    if (self->_queue) {
+      AudioQueueDispose(self->_queue, true);
+      self->_queue = NULL;
     }
-    if (_tailBuffer != NULL) {
-      free(_tailBuffer);
-      _tailBuffer = NULL;
+    if (self->_tailBuffer != NULL) {
+      free(self->_tailBuffer);
+      self->_tailBuffer = NULL;
     }
-    if (_levels != NULL) {
-      free(_levels);
-      _levels = NULL;
+    if (self->_levels != NULL) {
+      free(self->_levels);
+      self->_levels = NULL;
     }
   }];
 }
@@ -147,16 +147,16 @@ static void AQPropertyChangedHandler(void *inUserData, AudioQueueRef inAQ, Audio
     
     UInt32 writePos = 0;
     // Use any tail first
-    if (_tailSize > 0) {
-      NSUInteger actual = MIN(_tailSize, self.queueBufferSize);
-      memcpy((unsigned char *)inCompleteAQBuffer->mAudioData, _tailBuffer, (size_t)actual);
+    if (self->_tailSize > 0) {
+      NSUInteger actual = MIN(self->_tailSize, self.queueBufferSize);
+      memcpy((unsigned char *)inCompleteAQBuffer->mAudioData, self->_tailBuffer, (size_t)actual);
       writePos += actual;
-      if (actual < _tailSize) {
-        _tailSize -= actual;
+      if (actual < self->_tailSize) {
+        self->_tailSize -= actual;
         // Keep the rest of the tail
-        memmove(_tailBuffer, _tailBuffer + actual, (size_t)_tailSize);
+        memmove(self->_tailBuffer, self->_tailBuffer + actual, (size_t)self->_tailSize);
       } else {
-        _tailSize = 0;
+        self->_tailSize = 0;
       }
     }
     int retries = 0;
@@ -202,8 +202,8 @@ static void AQPropertyChangedHandler(void *inUserData, AudioQueueRef inAQ, Audio
       
       // Save the tail
       if (actual < [data length]) {
-        _tailSize = [data length] - actual;
-        memcpy(_tailBuffer, (unsigned char *)[data bytes] + actual, (size_t)_tailSize);
+        self->_tailSize = [data length] - actual;
+        memcpy(self->_tailBuffer, (unsigned char *)[data bytes] + actual, (size_t)self->_tailSize);
       }
 
       memcpy((unsigned char *)inCompleteAQBuffer->mAudioData + writePos, [data bytes], actual);
@@ -294,14 +294,14 @@ static void AQPropertyChangedHandler(void *inUserData, AudioQueueRef inAQ, Audio
       return;
     }
     self.packetDuration = (double)duration/1000.0;
-    _streamDescription = [ZCCAudioUtils audioStreamBasicDescriptionWithChannels:channels sampleRate:sampleRate];
+    self->_streamDescription = [ZCCAudioUtils audioStreamBasicDescriptionWithChannels:channels sampleRate:sampleRate];
 
     self.nChannels = channels;
-    _levels = (AudioQueueLevelMeterState *)malloc((NSUInteger)channels * sizeof(AudioQueueLevelMeterState));
+    self->_levels = (AudioQueueLevelMeterState *)malloc((NSUInteger)channels * sizeof(AudioQueueLevelMeterState));
 
     NSRunLoop *rl = [ZCCAudioHelper instance].audioRunLoop;
-    OSStatus error  = AudioQueueNewOutput(&_streamDescription, AQBufferCallback, (__bridge void *)self.selfRef,
-                                          rl.getCFRunLoop, kCFRunLoopCommonModes, 0, &_queue);
+    OSStatus error  = AudioQueueNewOutput(&self->_streamDescription, AQBufferCallback, (__bridge void *)self.selfRef,
+                                          rl.getCFRunLoop, kCFRunLoopCommonModes, 0, &self->_queue);
     id<ZCCAudioReceiverDelegate> delegate = self.delegate;
     if (error) {
       NSDictionary *info = @{ZCCOSStatusKey:@(error)};
@@ -311,14 +311,14 @@ static void AQPropertyChangedHandler(void *inUserData, AudioQueueRef inAQ, Audio
     }
 
     UInt32 set = 1;
-    AudioQueueSetProperty(_queue, kAudioQueueProperty_EnableLevelMetering, &set, sizeof(set));
+    AudioQueueSetProperty(self->_queue, kAudioQueueProperty_EnableLevelMetering, &set, sizeof(set));
 
-    AudioQueueAddPropertyListener(_queue, kAudioQueueProperty_IsRunning, AQPropertyChangedHandler, (__bridge void *)self.selfRef);
+    AudioQueueAddPropertyListener(self->_queue, kAudioQueueProperty_IsRunning, AQPropertyChangedHandler, (__bridge void *)self.selfRef);
 
     self.samplesPerPacket = (NSUInteger)(sampleRate * self.packetDuration);
-    self.bufferSize = 2 * self.samplesPerPacket * _streamDescription.mBytesPerFrame;
-    _tailBuffer = (unsigned char *)malloc((size_t)self.bufferSize);
-    _tailSize = 0;
+    self.bufferSize = 2 * self.samplesPerPacket * self->_streamDescription.mBytesPerFrame;
+    self->_tailBuffer = (unsigned char *)malloc((size_t)self.bufferSize);
+    self->_tailSize = 0;
     self.totalPlayed = 0;
     self.missedBuffers = 0;
     self.totalBuffers = 0;
@@ -327,15 +327,15 @@ static void AQPropertyChangedHandler(void *inUserData, AudioQueueRef inAQ, Audio
     //kAudioQueueProperty_DecodeBufferSizeFrames
     UInt32 decodeBufferInFrames = 0;
     UInt32 outSize = sizeof(decodeBufferInFrames);
-    AudioQueueGetProperty(_queue, kAudioQueueProperty_DecodeBufferSizeFrames, &decodeBufferInFrames, &outSize);
+    AudioQueueGetProperty(self->_queue, kAudioQueueProperty_DecodeBufferSizeFrames, &decodeBufferInFrames, &outSize);
 
     NSInteger bufferDuration = MIN(MAX_BUFFER_DURATION, duration / 2);
     bufferDuration = MAX(MIN_BUFFER_DURATION, bufferDuration);
     
-    self.queueBufferSize = (NSUInteger)(sampleRate * (NSInteger)_streamDescription.mBytesPerFrame * bufferDuration / 1000);
+    self.queueBufferSize = (NSUInteger)(sampleRate * (NSInteger)self->_streamDescription.mBytesPerFrame * bufferDuration / 1000);
 
     for (NSInteger i = 0; i < kNumberBuffers; ++i) {
-      error = AudioQueueAllocateBuffer(_queue, (UInt32)self.queueBufferSize, &_buffers[i]);
+      error = AudioQueueAllocateBuffer(self->_queue, (UInt32)self.queueBufferSize, &self->_buffers[i]);
       if (error) {
         NSDictionary *info = @{ZCCOSStatusKey:@(error)};
         NSError *playerError = [NSError errorWithDomain:ZCCErrorDomain code:ZCCErrorCodeAudioQueueServices userInfo:info];
@@ -347,7 +347,7 @@ static void AQPropertyChangedHandler(void *inUserData, AudioQueueRef inAQ, Audio
     self.prepared = YES;
     // This may block
     for (NSInteger i = 0; i < kNumberBuffers; ++i) {
-      [self handleBufferCompleteForQueue:_queue buffer:_buffers[i]];
+      [self handleBufferCompleteForQueue:self->_queue buffer:self->_buffers[i]];
     }
     [delegate receiverDidBecomeReady:self];
   }];
@@ -367,10 +367,10 @@ static void AQPropertyChangedHandler(void *inUserData, AudioQueueRef inAQ, Audio
     }
     self.stopped = NO;
 
-    OSStatus error = AudioQueueStart(_queue, NULL);
+    OSStatus error = AudioQueueStart(self->_queue, NULL);
     if (error) {
       if ([[ZCCAudioHelper instance] activateAudio:YES]) {
-        error = AudioQueueStart(_queue, NULL);
+        error = AudioQueueStart(self->_queue, NULL);
       }
       if (error) {
         self.stopped = YES;
@@ -384,24 +384,24 @@ static void AQPropertyChangedHandler(void *inUserData, AudioQueueRef inAQ, Audio
 
 - (void)stop {
   [self.runner runAsync:^{
-    if (!self.prepared || _queue == NULL) {
+    if (!self.prepared || self->_queue == NULL) {
       return;
     }
     if (self.stopping) {
       return;
     }
     self.stopping = YES;
-    AudioQueueStop(_queue, false);
+    AudioQueueStop(self->_queue, false);
   }];
 }
 
 - (void)pause {
   [self.runner runAsync:^{
-    if (!self.prepared || _queue == NULL) {
+    if (!self.prepared || self->_queue == NULL) {
       return;
     }
-    _paused = YES;
-    AudioQueuePause(_queue);
+    self->_paused = YES;
+    AudioQueuePause(self->_queue);
 
     if ([ZCCAudioHelper instance].smartAudioSession) {
       [[ZCCAudioHelper instance] activateAudio:NO];
@@ -411,7 +411,7 @@ static void AQPropertyChangedHandler(void *inUserData, AudioQueueRef inAQ, Audio
 
 - (void)resume {
   [self.runner runAsync:^{
-    if (!self.prepared || _queue == NULL) {
+    if (!self.prepared || self->_queue == NULL) {
       return;
     }
 
@@ -419,11 +419,11 @@ static void AQPropertyChangedHandler(void *inUserData, AudioQueueRef inAQ, Audio
       [[ZCCAudioHelper instance] activateAudio:YES];
     }
     self.stopped = NO;
-    OSStatus error = AudioQueueStart(_queue, NULL);
+    OSStatus error = AudioQueueStart(self->_queue, NULL);
     if (error) {
 
       if ([[ZCCAudioHelper instance] activateAudio:YES]) {
-        error = AudioQueueStart(_queue, NULL);
+        error = AudioQueueStart(self->_queue, NULL);
       }
       if (error) {
         self.stopped = YES;
@@ -437,22 +437,22 @@ static void AQPropertyChangedHandler(void *inUserData, AudioQueueRef inAQ, Audio
 
 - (void)setVolume:(NSInteger)vol {
   [self.runner runAsync:^{
-    _volume = vol;
-    if (!self.prepared || _queue == NULL) {
+    self->_volume = vol;
+    if (!self.prepared || self->_queue == NULL) {
       return;
     }
-    AudioQueueSetParameter(_queue, kAudioQueueParam_Volume, (float)_volume / 100.0f);
+    AudioQueueSetParameter(self->_queue, kAudioQueueParam_Volume, (float)self->_volume / 100.0f);
   }];
 }
 
 - (NSInteger)volume {
   [self.runner runSync:^{
-    if (_queue == NULL) {
+    if (self->_queue == NULL) {
       return;
     }
     AudioQueueParameterValue res = 0;
-    AudioQueueGetParameter(_queue, kAudioQueueParam_Volume, &res);
-    _volume = (NSInteger)roundf(100 * res);
+    AudioQueueGetParameter(self->_queue, kAudioQueueParam_Volume, &res);
+    self->_volume = (NSInteger)roundf(100 * res);
   }];
   return _volume;
 }
@@ -462,15 +462,15 @@ static void AQPropertyChangedHandler(void *inUserData, AudioQueueRef inAQ, Audio
 - (NSTimeInterval)currentTime {
   __block double res = 0;
   [self.runner runSync:^{
-    if (_queue == NULL || self.stopped) {
+    if (self->_queue == NULL || self.stopped) {
       return;
     }
     AudioTimeStamp ts;
-    OSStatus error = AudioQueueGetCurrentTime(_queue, NULL, &ts, NULL);
-    if (error || _streamDescription.mSampleRate == 0) {
+    OSStatus error = AudioQueueGetCurrentTime(self->_queue, NULL, &ts, NULL);
+    if (error || self->_streamDescription.mSampleRate == 0) {
       return;
     }
-    res = ts.mSampleTime / _streamDescription.mSampleRate;
+    res = ts.mSampleTime / self->_streamDescription.mSampleRate;
   }];
   return res;
 }

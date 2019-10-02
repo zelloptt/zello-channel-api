@@ -80,8 +80,8 @@
 		D13D1FE52074264F004D7EAD /* libicucore.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = D13D1FE42074264F004D7EAD /* libicucore.tbd */; };
 		D1444841203CC0620091A061 /* ZCCStreamState.h in Headers */ = {isa = PBXBuildFile; fileRef = 53AA9EAF1FDB69B700C35403 /* ZCCStreamState.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		D16A41F32075689A009783DF /* NSURLRequest+ZCCSRWebSocket.h in Headers */ = {isa = PBXBuildFile; fileRef = D16A41C42075689A009783DF /* NSURLRequest+ZCCSRWebSocket.h */; };
-		D16A41F42075689A009783DF /* ZCCSRWebSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = D16A41C52075689A009783DF /* ZCCSRWebSocket.m */; };
-		D16A41F52075689A009783DF /* ZCCSRProxyConnect.m in Sources */ = {isa = PBXBuildFile; fileRef = D16A41C72075689A009783DF /* ZCCSRProxyConnect.m */; };
+		D16A41F42075689A009783DF /* ZCCSRWebSocket.m in Sources */ = {isa = PBXBuildFile; fileRef = D16A41C52075689A009783DF /* ZCCSRWebSocket.m */; settings = {COMPILER_FLAGS = "-Wno-implicit-retain-self -Wno-sign-conversion"; }; };
+		D16A41F52075689A009783DF /* ZCCSRProxyConnect.m in Sources */ = {isa = PBXBuildFile; fileRef = D16A41C72075689A009783DF /* ZCCSRProxyConnect.m */; settings = {COMPILER_FLAGS = "-Wno-sign-conversion"; }; };
 		D16A41F62075689A009783DF /* ZCCSRProxyConnect.h in Headers */ = {isa = PBXBuildFile; fileRef = D16A41C82075689A009783DF /* ZCCSRProxyConnect.h */; };
 		D16A41F72075689A009783DF /* ZCCSRRunLoopThread.h in Headers */ = {isa = PBXBuildFile; fileRef = D16A41CA2075689A009783DF /* ZCCSRRunLoopThread.h */; };
 		D16A41F82075689A009783DF /* ZCCSRRunLoopThread.m in Sources */ = {isa = PBXBuildFile; fileRef = D16A41CB2075689A009783DF /* ZCCSRRunLoopThread.m */; };
@@ -89,7 +89,7 @@
 		D16A41FB2075689A009783DF /* ZCCSRPinningSecurityPolicy.h in Headers */ = {isa = PBXBuildFile; fileRef = D16A41CF2075689A009783DF /* ZCCSRPinningSecurityPolicy.h */; };
 		D16A41FC2075689A009783DF /* NSRunLoop+ZCCSRWebSocketPrivate.h in Headers */ = {isa = PBXBuildFile; fileRef = D16A41D02075689A009783DF /* NSRunLoop+ZCCSRWebSocketPrivate.h */; };
 		D16A41FD2075689A009783DF /* ZCCSRDelegateController.h in Headers */ = {isa = PBXBuildFile; fileRef = D16A41D22075689A009783DF /* ZCCSRDelegateController.h */; };
-		D16A41FE2075689A009783DF /* ZCCSRDelegateController.m in Sources */ = {isa = PBXBuildFile; fileRef = D16A41D32075689A009783DF /* ZCCSRDelegateController.m */; };
+		D16A41FE2075689A009783DF /* ZCCSRDelegateController.m in Sources */ = {isa = PBXBuildFile; fileRef = D16A41D32075689A009783DF /* ZCCSRDelegateController.m */; settings = {COMPILER_FLAGS = "-Wno-implicit-retain-self"; }; };
 		D16A41FF2075689A009783DF /* ZCCSRSecurityPolicy.h in Headers */ = {isa = PBXBuildFile; fileRef = D16A41D42075689A009783DF /* ZCCSRSecurityPolicy.h */; };
 		D16A42002075689A009783DF /* NSRunLoop+ZCCSRWebSocket.h in Headers */ = {isa = PBXBuildFile; fileRef = D16A41D52075689A009783DF /* NSRunLoop+ZCCSRWebSocket.h */; };
 		D16A42012075689A009783DF /* ZCCSRHash.m in Sources */ = {isa = PBXBuildFile; fileRef = D16A41D72075689A009783DF /* ZCCSRHash.m */; };
@@ -102,7 +102,7 @@
 		D16A42082075689A009783DF /* ZCCSRRandom.m in Sources */ = {isa = PBXBuildFile; fileRef = D16A41DE2075689A009783DF /* ZCCSRRandom.m */; };
 		D16A42092075689A009783DF /* ZCCSRURLUtilities.m in Sources */ = {isa = PBXBuildFile; fileRef = D16A41DF2075689A009783DF /* ZCCSRURLUtilities.m */; };
 		D16A420A2075689A009783DF /* ZCCSRLog.m in Sources */ = {isa = PBXBuildFile; fileRef = D16A41E02075689A009783DF /* ZCCSRLog.m */; };
-		D16A420B2075689A009783DF /* ZCCSRConstants.m in Sources */ = {isa = PBXBuildFile; fileRef = D16A41E12075689A009783DF /* ZCCSRConstants.m */; };
+		D16A420B2075689A009783DF /* ZCCSRConstants.m in Sources */ = {isa = PBXBuildFile; fileRef = D16A41E12075689A009783DF /* ZCCSRConstants.m */; settings = {COMPILER_FLAGS = "-Wno-sign-conversion"; }; };
 		D16A420C2075689A009783DF /* ZCCSRHash.h in Headers */ = {isa = PBXBuildFile; fileRef = D16A41E22075689A009783DF /* ZCCSRHash.h */; };
 		D16A420D2075689A009783DF /* ZCCSRMutex.h in Headers */ = {isa = PBXBuildFile; fileRef = D16A41E32075689A009783DF /* ZCCSRMutex.h */; };
 		D16A420E2075689A009783DF /* ZCCSRSIMDHelpers.m in Sources */ = {isa = PBXBuildFile; fileRef = D16A41E42075689A009783DF /* ZCCSRSIMDHelpers.m */; };
@@ -967,7 +967,7 @@
 			isa = PBXProject;
 			attributes = {
 				CLASSPREFIX = ZCC;
-				LastUpgradeCheck = 0910;
+				LastUpgradeCheck = 1030;
 				ORGANIZATIONNAME = Zello;
 				TargetAttributes = {
 					A8043FAA1FD5BE9000BFD1BF = {
@@ -990,6 +990,7 @@
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
+				Base,
 			);
 			mainGroup = A8043FA11FD5BE9000BFD1BF;
 			productRefGroup = A8043FAC1FD5BE9000BFD1BF /* Products */;
@@ -1154,6 +1155,7 @@
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_COMMA = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
@@ -1162,6 +1164,7 @@
 				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_INT_CONVERSION = YES;
 				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_REPEATED_USE_OF_WEAK = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
@@ -1202,7 +1205,6 @@
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
 				USER_HEADER_SEARCH_PATHS = "\"$(PROJECT_DIR)/../LibOpus\"";
-				VALID_ARCHS = "arm64 armv7 armv7s x86_64 i386";
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
 			};
@@ -1226,6 +1228,7 @@
 				CLANG_WARN_BOOL_CONVERSION = YES;
 				CLANG_WARN_COMMA = YES;
 				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
@@ -1234,6 +1237,7 @@
 				CLANG_WARN_INFINITE_RECURSION = YES;
 				CLANG_WARN_INT_CONVERSION = YES;
 				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_REPEATED_USE_OF_WEAK = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
@@ -1268,7 +1272,6 @@
 				SDKROOT = iphoneos;
 				USER_HEADER_SEARCH_PATHS = "\"$(PROJECT_DIR)/../LibOpus\"";
 				VALIDATE_PRODUCT = YES;
-				VALID_ARCHS = "arm64 armv7 armv7s x86_64 i386";
 				VERSIONING_SYSTEM = "apple-generic";
 				VERSION_INFO_PREFIX = "";
 			};

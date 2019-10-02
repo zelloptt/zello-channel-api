@@ -55,7 +55,7 @@
     if (self.passThroughPlayer) {
       currentTime = self.passThroughPlayer.currentTime;
     } else {
-      currentTime = _currentTime;
+      currentTime = self->_currentTime;
     }
   }];
   return currentTime;
@@ -67,7 +67,7 @@
     if (self.passThroughPlayer) {
       level = self.passThroughPlayer.level;
     } else {
-      level = _level;
+      level = self->_level;
     }
   }];
   return level;
@@ -79,7 +79,7 @@
     if (self.passThroughPlayer) {
       overloaded = self.passThroughPlayer.overloaded;
     } else {
-      overloaded = _overloaded;
+      overloaded = self->_overloaded;
     }
   }];
   return overloaded;
@@ -91,7 +91,7 @@
     if (self.passThroughPlayer) {
       paused = self.passThroughPlayer.paused;
     } else {
-      paused = _paused;
+      paused = self->_paused;
     }
   }];
   return paused;
@@ -99,7 +99,7 @@
 
 - (void)setPaused:(BOOL)paused {
   [self.runner runSync:^{
-    _paused = paused;
+    self->_paused = paused;
   }];
 }
 
@@ -109,7 +109,7 @@
     if (self.passThroughPlayer) {
       volume = self.passThroughPlayer.volume;
     } else {
-      volume = _volume;
+      volume = self->_volume;
     }
   }];
   return volume;
@@ -120,7 +120,7 @@
     if (self.passThroughPlayer) {
       self.passThroughPlayer.volume = volume;
     } else {
-      _volume = volume;
+      self->_volume = volume;
     }
   }];
 }

@@ -124,6 +124,7 @@
 }
 
 // Verify that we clean up the cache after receiving an image
+// FIXME: This test flickers a little, probably because the sleep isn't actually causing the ImageMessageManager's queue to run
 - (void)testHandleImageData_fullSizeImage_cleansUpIncomingImages {
   ZCCImageHeader *header = [[ZCCImageHeader alloc] init];
   header.imageId = 123;
