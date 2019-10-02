@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 
-	<title>ZCCOutgoingVoiceConfiguration Class Reference</title>
+	<title>ZCCImageInfo Class Reference</title>
 
 	<link rel="stylesheet" href="../css/style.css">
 	<meta name="viewport" content="initial-scale=1, maximum-scale=1.4">
@@ -56,17 +56,25 @@
 	
 	<optgroup label="Properties">
 		
-		<option value="//api/name/sampleRate">sampleRate</option>
+		<option value="//api/name/image">image</option>
 		
-		<option value="//api/name/source">source</option>
+		<option value="//api/name/imageId">imageId</option>
 		
-		<option value="//api/name/supportedSampleRates">supportedSampleRates</option>
+		<option value="//api/name/sender">sender</option>
+		
+		<option value="//api/name/thumbnail">thumbnail</option>
 		
 	</optgroup>
 	
 
 	
 
+	
+	<optgroup label="Instance Methods">
+		
+		<option value="//api/name/init">- init</option>
+		
+	</optgroup>
 	
 	
 </select>
@@ -81,7 +89,7 @@
 		<div id="overview_contents" class="container">
 			<div id="content">
 				<main role="main">
-					<h1 class="title">ZCCOutgoingVoiceConfiguration Class Reference</h1>
+					<h1 class="title">ZCCImageInfo Class Reference</h1>
 
 					
 					<div class="section section-specification"><table cellspacing="0"><tbody>
@@ -90,7 +98,7 @@
 	<td>NSObject</td>
 </tr><tr>
 	<th>Declared in</th>
-	<td>ZCCOutgoingVoiceConfiguration.h</td>
+	<td>ZCCImageInfo.h</td>
 </tr>
 						</tbody></table></div>
 					
@@ -100,14 +108,7 @@
 					<div class="section section-overview">
 						<a title="Overview" name="overview"></a>
 						<h2 class="subtitle subtitle-overview">Overview</h2>
-						<p>Use a <code>ZCCOutgoingVoiceConfiguration</code> object to specify the voice source when you want to send
-audio to the Zello channels server from a source other than the device microphone.</p>
-
-<p>You will need to provide an object conforming to the <code>ZCCVoiceSource</code> protocol. When the stream
-has been opened to the channels server, your voice source object will receive a callback message
-telling it that the system is ready for your audio stream to begin. The outgoing voice stream
-will remain active until you close it by calling <code>stop</code> on either the <code>ZCCOutgoingVoiceStream</code>
-or the <code>ZCCVoiceSink</code> provided to your voice source object.</p>
+						<p>Encapsulates information about a received image</p>
 					</div>
 					
 					
@@ -123,8 +124,8 @@ or the <code>ZCCVoiceSink</code> provided to your voice source object.</p>
 
 						<div class="task-list">
 							<div class="section-method">
-	<a name="//api/name/supportedSampleRates" title="supportedSampleRates"></a>
-	<h3 class="method-title"><code><a href="#//api/name/supportedSampleRates">&nbsp;&nbsp;supportedSampleRates</a></code>
+	<a name="//api/name/imageId" title="imageId"></a>
+	<h3 class="method-title"><code><a href="#//api/name/imageId">&nbsp;&nbsp;imageId</a></code>
 </h3>
 
 	<div class="method-info">
@@ -134,12 +135,13 @@ or the <code>ZCCVoiceSink</code> provided to your voice source object.</p>
 			
 			
 			<div class="method-subsection brief-description">
-				<p>The sample rates supported by outgoing streams</p>
+				<p>The server-assigned id for this message. Use the <code>imageId</code> to associate a
+thumbnail and a full-sized image, when they arrive separately.</p>
 			</div>
 			
 		    
 
-			<div class="method-subsection method-declaration"><code>@property (nonatomic, readonly, class) NSArray&lt;NSNumber*&gt; *supportedSampleRates</code></div>
+			<div class="method-subsection method-declaration"><code>@property (nonatomic, readonly) NSUInteger imageId</code></div>
 
 		    
 			
@@ -157,15 +159,15 @@ or the <code>ZCCVoiceSink</code> provided to your voice source object.</p>
 			
 			<div class="method-subsection declared-in-section">
 				<h4 class="method-subtitle">Declared In</h4>
-				<p><code class="declared-in-ref">ZCCOutgoingVoiceConfiguration.h</code></p>
+				<p><code class="declared-in-ref">ZCCImageInfo.h</code></p>
 			</div>
 			
 			
 		</div>
 	</div>
 </div><div class="section-method">
-	<a name="//api/name/sampleRate" title="sampleRate"></a>
-	<h3 class="method-title"><code><a href="#//api/name/sampleRate">&nbsp;&nbsp;sampleRate</a></code>
+	<a name="//api/name/sender" title="sender"></a>
+	<h3 class="method-title"><code><a href="#//api/name/sender">&nbsp;&nbsp;sender</a></code>
 </h3>
 
 	<div class="method-info">
@@ -175,12 +177,53 @@ or the <code>ZCCVoiceSink</code> provided to your voice source object.</p>
 			
 			
 			<div class="method-subsection brief-description">
-				<p>Sample rate, in Hz</p>
+				<p>The username of the user who sent the image message</p>
 			</div>
 			
 		    
 
-			<div class="method-subsection method-declaration"><code>@property (nonatomic) NSUInteger sampleRate</code></div>
+			<div class="method-subsection method-declaration"><code>@property (nonatomic, readonly) NSString *sender</code></div>
+
+		    
+			
+
+			
+
+			
+
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCImageInfo.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div><div class="section-method">
+	<a name="//api/name/thumbnail" title="thumbnail"></a>
+	<h3 class="method-title"><code><a href="#//api/name/thumbnail">&nbsp;&nbsp;thumbnail</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>Thumbnail image</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>@property (nonatomic, readonly, nullable) UIImage *thumbnail</code></div>
 
 		    
 			
@@ -192,8 +235,8 @@ or the <code>ZCCVoiceSink</code> provided to your voice source object.</p>
 			
 			<div class="method-subsection discussion-section">
 				<h4 class="method-subtitle">Discussion</h4>
-				<p>Only values in <code>supportedSampleRates</code> are allowed. If not specified, defaults
-to 16KHz.</p>
+				<p>If the image is larger than 90x90, a thumbnail image will usually be provided to
+increase responsiveness while the larger image is being transferred.</p>
 			</div>
 			
 
@@ -204,15 +247,15 @@ to 16KHz.</p>
 			
 			<div class="method-subsection declared-in-section">
 				<h4 class="method-subtitle">Declared In</h4>
-				<p><code class="declared-in-ref">ZCCOutgoingVoiceConfiguration.h</code></p>
+				<p><code class="declared-in-ref">ZCCImageInfo.h</code></p>
 			</div>
 			
 			
 		</div>
 	</div>
 </div><div class="section-method">
-	<a name="//api/name/source" title="source"></a>
-	<h3 class="method-title"><code><a href="#//api/name/source">&nbsp;&nbsp;source</a></code>
+	<a name="//api/name/image" title="image"></a>
+	<h3 class="method-title"><code><a href="#//api/name/image">&nbsp;&nbsp;image</a></code>
 </h3>
 
 	<div class="method-info">
@@ -222,12 +265,12 @@ to 16KHz.</p>
 			
 			
 			<div class="method-subsection brief-description">
-				<p>Object that provides audio</p>
+				<p>Full-sized image</p>
 			</div>
 			
 		    
 
-			<div class="method-subsection method-declaration"><code>@property (nonatomic, strong) id&lt;ZCCVoiceSource&gt; source</code></div>
+			<div class="method-subsection method-declaration"><code>@property (nonatomic, readonly, nullable) UIImage *image</code></div>
 
 		    
 			
@@ -236,12 +279,6 @@ to 16KHz.</p>
 
 			
 
-			
-			<div class="method-subsection discussion-section">
-				<h4 class="method-subtitle">Discussion</h4>
-				<p>Assign your custom voice source object to this property. A strong reference to this
-object will be maintained until the outgoing voice stream closes.</p>
-			</div>
 			
 
 			
@@ -251,7 +288,48 @@ object will be maintained until the outgoing voice stream closes.</p>
 			
 			<div class="method-subsection declared-in-section">
 				<h4 class="method-subtitle">Declared In</h4>
-				<p><code class="declared-in-ref">ZCCOutgoingVoiceConfiguration.h</code></p>
+				<p><code class="declared-in-ref">ZCCImageInfo.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div><div class="section-method">
+	<a name="//api/name/init" title="init"></a>
+	<h3 class="method-title"><code><a href="#//api/name/init">&ndash;&nbsp;init</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>Do not create instances of <code>ZCCImageInfo</code>. They will be created by the channels SDK.</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>- (instancetype)init</code></div>
+
+		    
+			
+
+			
+
+			
+
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCImageInfo.h</code></p>
 			</div>
 			
 			

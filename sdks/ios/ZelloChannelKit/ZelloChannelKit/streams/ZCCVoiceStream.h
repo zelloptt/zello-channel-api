@@ -17,18 +17,26 @@ NS_ASSUME_NONNULL_BEGIN
 @interface ZCCVoiceStream : NSObject
 
 /**
- * No public initializer is available. Create outgoing voice streams with -[ZCCSession startVoiceMessage]
- * and get incoming voice streams from -[ZCCSessionDelegate session:incomingVoiceDidStart:].
+ * @abstract No public initializer is available
+ *
+ * @discussion Create outgoing voice streams with <code>-[ZCCSession startVoiceMessage]</code>
+ * and get incoming voice streams from <code>-[ZCCSessionDelegate session:incomingVoiceDidStart:]</code>.
  */
 - (instancetype)init NS_UNAVAILABLE;
 
-/// The name of the channel this stream is connected to
+/**
+ * @abstract The name of the channel this stream is connected to
+ */
 @property (nonatomic, copy, readonly) NSString *channel;
 
-/// The stream's current state
+/**
+ * @abstract The stream's current state
+ */
 @property (atomic, readonly) ZCCStreamState state;
 
-/// Approximately the number of seconds of audio that have been sent or received via this stream
+/**
+ * @abstract Approximately the number of seconds of audio that have been sent or received via this stream
+ */
 @property (nonatomic, readonly) NSTimeInterval position;
 
 @end

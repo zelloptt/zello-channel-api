@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 
-	<title>ZCCIncomingVoiceStream Class Reference</title>
+	<title>ZCCSentLocationContinuation Block Reference</title>
 
 	<link rel="stylesheet" href="../css/style.css">
 	<meta name="viewport" content="initial-scale=1, maximum-scale=1.4">
@@ -43,27 +43,9 @@
 							<select id="jump-to">
 	<option value="top">Jump To&#133;</option>
 	
-	<option value="overview">Overview</option>
-	
-
-	
-	
-	<option value="tasks">Tasks</option>
-	
-	
-
-	
-	
-	<optgroup label="Properties">
-		
-		<option value="//api/name/sender">sender</option>
-		
-	</optgroup>
-	
 
 	
 
-	
 	
 </select>
 						</label>
@@ -77,90 +59,58 @@
 		<div id="overview_contents" class="container">
 			<div id="content">
 				<main role="main">
-					<h1 class="title">ZCCIncomingVoiceStream Class Reference</h1>
+					<h1 class="title">ZCCSentLocationContinuation Block Reference</h1>
 
 					
 					<div class="section section-specification"><table cellspacing="0"><tbody>
 						<tr>
-	<th>Inherits from</th>
-	<td><a href="../Classes/ZCCVoiceStream.html">ZCCVoiceStream</a> : NSObject</td>
-</tr><tr>
 	<th>Declared in</th>
-	<td>ZCCIncomingVoiceStream.h</td>
+	<td>ZCCSession.h</td>
 </tr>
 						</tbody></table></div>
 					
 
                     
-					
-					<div class="section section-overview">
-						<a title="Overview" name="overview"></a>
-						<h2 class="subtitle subtitle-overview">Overview</h2>
-						<p>This class implements voice streams from the Zello Channels server to the client device.</p>
-					</div>
-					
-					
 
 					
-					
-					<div class="section section-tasks">
-						<a title="Tasks" name="tasks"></a>
-						
 
-						
-						
+                    
+                    
+          
+          <a title="Block Definition" name="instance_methods"></a>
+          <h4 class="method-subtitle parameter-title">Block Definition</h4>
+          <h3 class="subsubtitle method-title">ZCCSentLocationContinuation</h3>
 
-						<div class="task-list">
-							<div class="section-method">
-	<a name="//api/name/sender" title="sender"></a>
-	<h3 class="method-title"><code><a href="#//api/name/sender">&nbsp;&nbsp;sender</a></code>
-</h3>
 
-	<div class="method-info">
-		<div class="pointy-thing"></div>
-
-		<div class="method-info-container">
-			
-			
-			<div class="method-subsection brief-description">
-				<p>The username of the speaker</p>
-			</div>
-			
-		    
-
-			<div class="method-subsection method-declaration"><code>@property (nonatomic, copy, readonly) NSString *sender</code></div>
-
-		    
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-
-			
-			<div class="method-subsection declared-in-section">
-				<h4 class="method-subtitle">Declared In</h4>
-				<p><code class="declared-in-ref">ZCCIncomingVoiceStream.h</code></p>
-			</div>
-			
-			
-		</div>
-	</div>
+<div class="method-subsection brief-description">
+  <p>Callback for receiving the location that the Zello channels client is sending to the channel</p>
 </div>
-						</div>
-						
-					</div>
-					
-					
 
-                    
-                    
+
+
+<code>typedef void (^ZCCSentLocationContinuation) (ZCCLocationInfo *_Nullable, location , NSError *_Nullable, error )</code>
+  
+  
+  
+  <div class="method-subsection discussion-section">
+  <h4 class="method-subtitle">Discussion</h4>
+  <p>Callback for receiving the location that the Zello channels client is sending to the channel</p>
+  </div>
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  <div class="method-subsection declared-in-section">
+  <h4 class="method-subtitle">Declared In</h4>
+  <code class="declared-in-ref">ZCCSession.h</code><br />
+  </div>
+  
+  
           
 				</main>
 

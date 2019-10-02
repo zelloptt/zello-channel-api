@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 
-	<title>ZCCReconnectReason Constants Reference</title>
+	<title>ZCCChannelFeatures Constants Reference</title>
 
 	<link rel="stylesheet" href="../css/style.css">
 	<meta name="viewport" content="initial-scale=1, maximum-scale=1.4">
@@ -59,13 +59,13 @@
 		<div id="overview_contents" class="container">
 			<div id="content">
 				<main role="main">
-					<h1 class="title">ZCCReconnectReason Constants Reference</h1>
+					<h1 class="title">ZCCChannelFeatures Constants Reference</h1>
 
 					
 					<div class="section section-specification"><table cellspacing="0"><tbody>
 						<tr>
 	<th>Declared in</th>
-	<td>ZCCSession.h</td>
+	<td>ZCCTypes.h</td>
 </tr>
 						</tbody></table></div>
 					
@@ -75,11 +75,11 @@
 					
 
                     
-                    <h3 class="subsubtitle method-title">ZCCReconnectReason</h3>
+                    <h3 class="subsubtitle method-title">ZCCChannelFeatures</h3>
                     
 					
 					<div class="section section-overview">
-                        <p>Describes why the session disconnected and is attempting to reconnect</p>
+                        <p>Describes the features available in the channel that this session is connected to</p>
 					</div>
 					
 					
@@ -87,11 +87,15 @@
                         <!-- display enum values -->
                         
                         <h4 class="method-subtitle">Definition</h4>
-                        <code>typedef NS_ENUM(NSInteger, ZCCReconnectReason ) {<br>
+                        <code>typedef NS_OPTIONS(NSInteger, ZCCChannelFeatures ) {<br>
                             
-                            &nbsp;&nbsp; <a href="">ZCCReconnectReasonNetworkChange</a>,<br>
+                            &nbsp;&nbsp; <a href="">ZCCChannelFeaturesNone</a> = 0,<br>
                             
-                            &nbsp;&nbsp; <a href="">ZCCReconnectReasonUnknown</a>,<br>
+                            &nbsp;&nbsp; <a href="">ZCCChannelFeaturesImageMessages</a> = 1 &lt; &lt; 1,<br>
+                            
+                            &nbsp;&nbsp; <a href="">ZCCChannelFeaturesTextMessages</a> = 1 &lt; &lt; 2,<br>
+                            
+                            &nbsp;&nbsp; <a href="">ZCCChannelFeaturesLocationMessages</a> = 1 &lt; &lt; 3,<br>
                             
                             };</code>
                     
@@ -101,11 +105,11 @@
                         <h4 class="method-subtitle">Constants</h4>
                         <dl class="termdef">
                             
-                            <dt><a name="" title="ZCCReconnectReasonNetworkChange"></a><code>ZCCReconnectReasonNetworkChange</code></dt>
+                            <dt><a name="" title="ZCCChannelFeaturesNone"></a><code>ZCCChannelFeaturesNone</code></dt>
 <dd>
 
 
-<p>The network has changed</p>
+<p>The channel does not support any features other than voice messages</p>
 
 
 
@@ -113,16 +117,16 @@
 
     
 	<p>
-		Declared In <code class="declared-in-ref">ZCCSession.h</code>.
+		Declared In <code class="declared-in-ref">ZCCTypes.h</code>.
 	</p>
 	
 </dd>
                             
-                            <dt><a name="" title="ZCCReconnectReasonUnknown"></a><code>ZCCReconnectReasonUnknown</code></dt>
+                            <dt><a name="" title="ZCCChannelFeaturesImageMessages"></a><code>ZCCChannelFeaturesImageMessages</code></dt>
 <dd>
 
 
-<p>Session was disconnected for another reason</p>
+<p>If present, the channel supports image messages</p>
 
 
 
@@ -130,7 +134,41 @@
 
     
 	<p>
-		Declared In <code class="declared-in-ref">ZCCSession.h</code>.
+		Declared In <code class="declared-in-ref">ZCCTypes.h</code>.
+	</p>
+	
+</dd>
+                            
+                            <dt><a name="" title="ZCCChannelFeaturesTextMessages"></a><code>ZCCChannelFeaturesTextMessages</code></dt>
+<dd>
+
+
+<p>If present, the channel supports text messages</p>
+
+
+
+
+
+    
+	<p>
+		Declared In <code class="declared-in-ref">ZCCTypes.h</code>.
+	</p>
+	
+</dd>
+                            
+                            <dt><a name="" title="ZCCChannelFeaturesLocationMessages"></a><code>ZCCChannelFeaturesLocationMessages</code></dt>
+<dd>
+
+
+<p>If present, the channel supports location messages</p>
+
+
+
+
+
+    
+	<p>
+		Declared In <code class="declared-in-ref">ZCCTypes.h</code>.
 	</p>
 	
 </dd>
@@ -147,7 +185,7 @@
                     
                     <div class="method-subsection declared-in-section">
                         <h4 class="method-subtitle">Declared In</h4>
-                        <p><code class="declared-in-ref">ZCCSession.h</code></p>
+                        <p><code class="declared-in-ref">ZCCTypes.h</code></p>
                     </div>
                     
                     

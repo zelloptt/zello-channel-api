@@ -62,106 +62,139 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
 /**
  * @abstract Connection to the Zello Channels server
  *
- * @discussion ZCCSession represents the connection to the Zello Channels server. Each session you create
- * connects to a single server and channel specified when the server is created. If you are
- * connecting as a specific user, you must also specify the username and password when you create
- * the session.
+ * @discussion <code>ZCCSession</code> represents the connection to the Zello Channels server. Each
+ * session you create connects to a single server and channel specified when the session is created.
+ * If you are connecting as a specific user, you must also specify the username and password when
+ * you create the session.
  */
 @interface ZCCSession : NSObject
 
-/// The delegate receives callbacks when the connection or stream states change
+/**
+ * @abstract The session's delegate receives callbacks when events occur in the session
+ *
+ * @discussion Delegate methods are called during connection and when messages are received from
+ * the channel. The session is ready for use after <code>sessionDidConnect:</code> is called.
+ */
 @property (atomic, weak, nullable) id<ZCCSessionDelegate> delegate;
 
-/// If not set in the initializer, will be the empty string
+/**
+ * @abstract The username the session uses to authenticate to the Zello server
+ *
+ * @discussion If not set in the initializer, will be the empty string
+ */
 @property (nonatomic, copy, readonly) NSString *username;
 
-/// If not set in the initializer, will be the empty string
+/**
+ * @abstract The password the session uses to authenticate to the Zello server
+ *
+ * @discussion If not set in the initializer, will be the empty string
+ */
 @property (nonatomic, copy, readonly) NSString *password;
 
-/// The name of the channel to connect to
+/**
+ * @abstract The name of the channel to connect to
+ */
 @property (nonatomic, copy, readonly) NSString *channel;
 
-/// The URL of the server to connect to
+/**
+ * @abstract The URL of the server to connect to
+ *
+ * @discussion See <code>https://github.com/zelloptt/zello-channel-api/blob/master/API.md</code>
+ * for valid Zello channels SDK URL patterns.
+ */
 @property (nonatomic, readonly) NSURL *address;
 
-/// The current state of the session object
+/**
+ * @abstract The current state of the session object
+ */
 @property (atomic, readonly) ZCCSessionState state;
 
-/// The channel's online status
+/**
+ * @abstract The channel's online status
+ */
 @property (nonatomic, readonly) ZCCChannelStatus channelStatus;
 
-/// The number of users that are connected to the channel
+/**
+ * @abstract The number of users that are connected to the channel
+ */
 @property (nonatomic, readonly) NSInteger channelUsersOnline;
 
 /**
- * Features supported by the currently connected channel. If a message is sent that the server does
- * not support in this channel, an error will be returned through a delegate callback.
+ * @abstract Features supported by the currently connected channel
+ *
+ * @discussion If a message is sent that the server does not support in this channel, an error will
+ * be returned through a delegate callback.
  */
 @property (nonatomic, readonly) ZCCChannelFeatures channelFeatures;
 
-/// Collection of active streams
+/**
+ * @abstract Collection of active streams
+ */
 @property (atomic, readonly, nonnull) NSArray <ZCCVoiceStream *> *activeStreams;
 
 /**
- * Requests to the Zello Channels server will fail with a timed out error if requestTimeout elapses
- * without a response from the server. Defaults to 30 seconds.
+ * @abstract How long to wait for a response from the Zello Channels server after sending a message
+ *
+ * @discussion Requests to the Zello Channels server will fail with a timed out error if <code>requestTimeout</code>
+ * elapses without a response from the server. Defaults to 30 seconds.
  */
 @property (atomic) NSTimeInterval requestTimeout;
 
 /**
  * @abstract Unavailable default initializer; use a more specific one
  *
- * @discussion Use -initWithURL:channel:callbackQueue: or -initWithURL:username:password:channel:callbackQueue:
+ * @discussion Use <code>initWithURL:channel:callbackQueue:</code> or <code>initWithURL:username:password:channel:callbackQueue:</code>
  * instead.
  */
 - (instancetype)init NS_UNAVAILABLE;
 
 /**
- * Initializes a connection session to the Zello channels server.
+ * @abstract Initializes a connection session to the Zello channels server.
  *
  * @param url the address of the server to connect to
  *
- * @param token JWT value to authenticate your app to the Zello channels server
+ * @param token JWT value to authenticate your app to the Zello channels server.
+ * See <code>https://github.com/zelloptt/zello-channel-api/blob/master/AUTH.md</code>
  *
- * @param username the username of the account that is connecting. If nil, the session will attempt
- * to connect anonymously.
+ * @param username the username of the account that is connecting. If <code>nil</code> or the empty
+ * string, the session will attempt to connect anonymously.
  *
  * @param password the account's password
  *
  * @param channel the name of the channel to connect to
  *
- * @param queue the queue that ZCCSessionDelegate callbacks are called on. If nil, the delegate
- * callbacks will be called on the main queue.
+ * @param queue the queue that <code>ZCCSessionDelegate</code> callbacks are called on. If <code>nil</code>,
+ * the delegate callbacks will be called on the main queue.
  */
 - (instancetype)initWithURL:(NSURL *)url authToken:(NSString *)token username:(nullable NSString *)username password:(nullable NSString *)password channel:(NSString *)channel callbackQueue:(nullable dispatch_queue_t)queue NS_DESIGNATED_INITIALIZER;
 
 /**
- * Initializes an anonymous connection session to the Zello channels server.
+ * @abstract Initializes an anonymous connection session to the Zello channels server.
  *
  * @param url the address of the server to connect to
  *
- * @param token JWT value to authenticate your app to the Zello channels server
+ * @param token JWT value to authenticate your app to the Zello channels server.
+ * See <code>https://github.com/zelloptt/zello-channel-api/blob/master/AUTH.md</code>
  *
  * @param channel the name of the channel to connect to
  *
- * @param queue the queue that ZCCSessionDelegate callbacks are called on. If nil, the delegate
- * callbacks will be called on the main queue.
+ * @param queue the queue that <code>ZCCSessionDelegate</code> callbacks are called on. If <code>nil</code>,
+ * the delegate callbacks will be called on the main queue.
  */
 - (instancetype)initWithURL:(NSURL *)url authToken:(NSString *)token channel:(NSString *)channel callbackQueue:(nullable dispatch_queue_t)queue;
 
 /**
- * Asynchronously disconnect from the server.
+ * @abstract Asynchronously disconnect from the server.
  */
 - (void)disconnect;
 
 /**
- * Asynchronously connect to the server.
+ * @abstract Asynchronously connect to the server.
  */
 - (void)connect;
 
-
 /**
- * @abstract Sends an image message to the currently connected channel
+ * @abstract Sends an image message to the channel
  *
  * @discussion The Zello channels client will resize images that are larger than 1,280x1,280 to have a
  *             maximum height or width of 1,280 pixels. A 90x90 thumbnail will also be generated
@@ -173,13 +206,13 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
  *
  * @param image the image to send
  *
- * @return YES if the image metadata was sent successfully. NO if an error was encountered before
- *         the image metadata could be sent.
+ * @return <code>YES</code> if the image metadata was sent successfully. <code>NO</code> if an error
+ *         was encountered before the image metadata could be sent.
  */
 - (BOOL)sendImage:(UIImage *)image;
 
 /**
- * @abstract Sends an image message to the currently connected channel
+ * @abstract Sends an image message to a specific user in the channel
  *
  * @discussion The Zello channels client will resize images that are larger than 1,280x1,280 to have a
  *             maximum height or width of 1,280 pixels. A 90x90 thumbnail will also be generated
@@ -194,16 +227,16 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
  * @param username The user to send the image message to. Other users on the channel will not receive
  *                 the image.
  *
- * @return YES if the image metadata was sent successfully. NO if an error was encountered before
- *         the image metadata could be sent.
+ * @return <code>YES</code> if the image metadata was sent successfully. <code>NO</code> if an error
+ *         was encountered before the image metadata could be sent.
  */
 - (BOOL)sendImage:(UIImage *)image toUser:(NSString *)username NS_SWIFT_NAME(sendImage(_:to:));
 
 /**
- * Sends the user's current location to the channel
+ * @abstract Sends the user's current location to the channel
  *
- * When the user's location is found, continuation is also called with the location so you can update
- * your app to reflect the location they are reporting to the channel.
+ * @discussion When the user's location is found, <code>continuation</code> is also called with the
+ * location so you can update your app to reflect the location they are reporting to the channel.
  *
  * @param continuation this block is called after the current location is found and reverse geocoding
  *                     is performed. If the location was found, it reports the location as well as
@@ -213,10 +246,10 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
 - (BOOL)sendLocationWithContinuation:(nullable ZCCSentLocationContinuation)continuation NS_SWIFT_NAME(sendLocation(continuation:));
 
 /**
- * Sends the user's current location to a user in the channel
+ * @abstract Sends the user's current location to a specific user in the channel
  *
- * When the user's location is found, continuation is also called with the location so you can update
- * your app to reflect the location they are reporting to the channel.
+ * @discussion When the user's location is found, <code>continuation</code> is also called with the
+ * location so you can update your app to reflect the location they are reporting to the channel.
  *
  * @param username The user to send the location to. Other users in the channel will not receive
  *                 the location.
@@ -229,14 +262,14 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
 - (BOOL)sendLocationToUser:(NSString *)username continuation:(nullable ZCCSentLocationContinuation)continuation NS_SWIFT_NAME(sendLocation(to:continuation:));
 
 /**
- * Sends a text message to the channel
+ * @abstract Sends a text message to the channel
  *
  * @param text the message to send
  */
 - (void)sendText:(NSString *)text;
 
 /**
- * Sends a text message to a user in the currently connected channel
+ * @abstract Sends a text message to a specific user in the channel
  *
  * @param text the message to send
  *
@@ -246,10 +279,10 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
 - (void)sendText:(NSString *)text toUser:(NSString *)username NS_SWIFT_NAME(sendText(_:to:));
 
 /**
- * Creates and starts a voice stream to the server.
+ * @abstract Creates and starts a voice stream to the server.
  *
- * The stream is created synchronously but started asynchronously, so it won't actually begin
- * transmitting until a session:outgoingVoiceDidChangeState: message is sent to the delegate.
+ * @discussion The stream is created synchronously but started asynchronously, so it won't actually begin
+ * transmitting until a <code>session:outgoingVoiceDidChangeState:</code> message is sent to the delegate.
  *
  * @return the stream that will be handling the voice message. If microphone permission has not been
  * granted to the app, returns nil.
@@ -257,10 +290,10 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
 - (nullable ZCCOutgoingVoiceStream *)startVoiceMessage;
 
 /**
- * Creates and starts a voice stream to a specific user in the channel.
+ * @abstract Creates and starts a voice stream to a specific user in the channel.
  *
- * The stream is created synchronously but started asynchronously, so it won't actually begin
- * transmitting until a session:outgoingVoiceDidChangeState: message is sent to the delegate.
+ * @discussion The stream is created synchronously but started asynchronously, so it won't actually begin
+ * transmitting until a <code>session:outgoingVoiceDidChangeState:</code> message is sent to the delegate.
  *
  * @param username the username for the user to send the message to. Other users in the channel
  *                 won't receive the message.
@@ -271,16 +304,19 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
 - (nullable ZCCOutgoingVoiceStream *)startVoiceMessageToUser:(nonnull NSString *)username NS_SWIFT_NAME(startVoiceMessage(to:));
 
 /**
- * Creates and starts a voice stream to the server using a custom voice source instead of the device
- * microphone. The Zello Channels SDK maintains a strong reference to the provided ZCCVoiceSource
+ * @abstract Sends a message with a custom voice source
+ *
+ * @discussion Creates and starts a voice stream to the server using a custom voice source instead of the device
+ * microphone. The Zello Channels SDK maintains a strong reference to the provided <code>ZCCVoiceSource</code>
  * object until the outgoing stream closes.
  *
  * @param sourceConfiguration specifies the voice source object for the message
  *
  * @return the stream that will be handling the voice message
  *
- * @throw NSInvalidArgumentException if sourceConfiguration specifies an unsupported sample rate. Check
- * ZCCOutgoingVoiceConfiguration.supportedSampleRates for supported sample rates.
+ * @exception NSInvalidArgumentException if <code>sourceConfiguration</code> specifies an unsupported
+ * sample rate. Check <code>ZCCOutgoingVoiceConfiguration.supportedSampleRates</code> for supported
+ * sample rates.
  */
 - (ZCCOutgoingVoiceStream *)startVoiceMessageWithSource:(ZCCOutgoingVoiceConfiguration *)sourceConfiguration;
 
@@ -300,7 +336,7 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
  *
  * @return the stream that will be handling the voice message
  *
- * @throw NSInvalidArgumentException if <code>sourceConfiguration</code> specifies an unsupported sample rate. Check
+ * @exception NSInvalidArgumentException if <code>sourceConfiguration</code> specifies an unsupported sample rate. Check
  * <code>ZCCOutgoingVoiceConfiguration.supportedSampleRates</code> for supported sample rates.
  */
 - (ZCCOutgoingVoiceStream *)startVoiceMessageToUser:(NSString *)username source:(ZCCOutgoingVoiceConfiguration *)sourceConfiguration NS_SWIFT_NAME(startVoiceMessage(to:source:));
@@ -343,7 +379,7 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
  * @abstract Called when the session finishes connecting to the server and channel
  *
  * @discussion After <code>sessionDidConnect:</code> is called, the connection to the server is
- * fully established. You can now call <code>-startVoiceMessage</code> to start speaking to the
+ * fully established. You can now call <code>startVoiceMessage</code> to start speaking to the
  * channel, and will receive incoming voice messages when other users speak to the channel.
  *
  * <code>sessionDidConnect:</code> *is* called after an automatic reconnect, so be aware that your
@@ -379,8 +415,8 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
  *
  * @param reason The reason the session was disconnected
  *
- * @return YES to allow the reconnect attempt to continue, NO to prevent the session from attempting
- * to reconnect.
+ * @return <code>YES</code> to allow the reconnect attempt to continue, <code>NO</code> to prevent
+ *         the session from attempting to reconnect.
  */
 - (BOOL)session:(ZCCSession *)session willReconnectForReason:(ZCCReconnectReason)reason;
 
@@ -451,8 +487,8 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
  * to perform different handling of the audio, you can return a <code><ZCCIncomingVoiceConfiguration></code>
  * object instead, with a reference to a custom <code><ZCCVoiceReceiver></code>.
  *
- * If this method is not implemented or returns nil, the Zello Channels SDK will perform its default
- * incoming voice handling and play the audio through the current output audio route.
+ * If this method is not implemented or returns <code>nil</code>, the Zello Channels SDK will perform
+ * its default incoming voice handling and play the audio through the current output audio route.
  *
  * @param session the session that is about to open a new incoming voice stream
  *
@@ -516,25 +552,30 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
  * @discussion This method will probably be called twice for each image message that is received:
  *             once with only the thumbnail present in the image info object, and once with both
  *             the thumbnail and the full-sized image present. <code>image.imageId</code> will be
- *             the same for all messages related to the same image message from a sender.
+ *             the same for all calls related to the same image message from a sender.
+ *
+ * @param session the session that received an image message
  *
  * @param image a container object with information about the sender, message id, and the image
  *        itself
  */
 - (void)session:(ZCCSession *)session didReceiveImage:(ZCCImageInfo *)image;
 
+@optional
 /**
  * @abstract Called when a location message is received
+ *
+ * @param session the session that received a location message
  *
  * @param location an object describing the sender's location
  *
  * @param sender the username of the sender
  */
-@optional
 - (void)session:(ZCCSession *)session didReceiveLocation:(ZCCLocationInfo *)location from:(NSString *)sender;
 
+@optional
 /**
- * Called when a text message is received
+ * @abstract Called when a text message is received
  *
  * @param session the session that received a text message
  *
@@ -542,15 +583,19 @@ typedef NS_ENUM(NSInteger, ZCCReconnectReason) {
  *
  * @param sender the username of the user that sent the message
  */
-@optional
 - (void)session:(ZCCSession *)session didReceiveText:(NSString *)message from:(NSString *)sender;
 
-/**
- * Called when the session encounters an error. The errors reported with this callback are informational
- * and do not mean that the session is no longer functional.
- */
-// TODO: Document -session:didEncounterError:
 @optional
+/**
+ * @abstract This delegate callback reports informational errors from the session
+ *
+ * @discussion Called when the session encounters an error. The errors reported with this callback
+ * are informational and do not mean that the session is no longer functional.
+ *
+ * @param session the session that encountered an error. This session should still be functional.
+ *
+ * @param error the error that was encountered by the session
+ */
 - (void)session:(ZCCSession *)session didEncounterError:(NSError *)error;
 
 

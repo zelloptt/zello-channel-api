@@ -16,16 +16,24 @@ NS_ASSUME_NONNULL_BEGIN
  */
 @interface ZCCLocationInfo: NSObject
 
-/// The latitude in degrees
+/**
+ * @abstract The latitude in degrees
+ */
 @property (nonatomic, readonly) double latitude;
 
-/// The longitude in degrees
+/**
+ * @abstract The longitude in degrees
+ */
 @property (nonatomic, readonly) double longitude;
 
-/// Sender's reported accuracy in meters
+/**
+ * @abstract Sender's reported accuracy in meters
+ */
 @property (nonatomic, readonly) double accuracy;
 
-/// Reverse geocoded location from the sender
+/**
+ * @abstract Reverse geocoded location from the sender
+ */
 @property (nonatomic, readonly, nullable) NSString *address;
 
 @end
