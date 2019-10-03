@@ -14,7 +14,7 @@
  */
 typedef NS_OPTIONS(NSInteger, ZCCChannelFeatures) {
   /// The channel does not support any features other than voice messages
-  ZCCChannelFeaturesNone = 0,
+  ZCCChannelFeaturesNone NS_SWIFT_NAME(noFeatures) = 0,
   /// If present, the channel supports image messages
   ZCCChannelFeaturesImageMessages = 1 << 1,
   /// If present, the channel supports text messages
@@ -31,6 +31,7 @@ typedef NS_OPTIONS(NSInteger, ZCCChannelFeatures) {
  *             it is not considered to be connected to the channel.
  */
 typedef NS_ENUM(NSInteger, ZCCChannelStatus) {
+  /// The status of the channel is not known
   ZCCChannelStatusUnknown,
   /// The session is not connected to the channel
   ZCCChannelStatusOffline,

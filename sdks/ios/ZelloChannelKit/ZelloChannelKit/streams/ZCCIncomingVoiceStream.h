@@ -15,7 +15,9 @@ NS_ASSUME_NONNULL_BEGIN
  */
 @interface ZCCIncomingVoiceStream : ZCCVoiceStream
 
-/// The username of the speaker
+/**
+ * @abstract The username of the speaker
+ */
 @property (nonatomic, copy, readonly) NSString *sender;
 
 @end
