@@ -43,6 +43,13 @@ FOUNDATION_EXPORT NSString * const ZCCOSStatusKey;
  */
 FOUNDATION_EXPORT NSString * const ZCCExceptionKey;
 
+/// Value is the message type that we were trying to parse
+FOUNDATION_EXPORT NSString * const ZCCInvalidJSONMessageKey;
+/// Value is the key in the JSON object that we were trying to parse
+FOUNDATION_EXPORT NSString * const ZCCInvalidJSONKeyKey;
+/// Value is the description of the error encountered while trying to parse the JSON object
+FOUNDATION_EXPORT NSString * const ZCCInvalidJSONProblemKey;
+
 /**
  * Error messages sent by the Zello channels server
  */
@@ -106,16 +113,16 @@ FOUNDATION_EXPORT ZCCServerErrorMessage const ZCCServerErrorMessageFailedToSendD
  */
 FOUNDATION_EXPORT ZCCServerErrorMessage const ZCCServerErrorMessageInvalidAudioPacket;
 
-/// Error codes for Zello Channels SDK errors.
+/// Error codes for Zello Channels SDK errors. See <code>ZCCErrors.h</code> for more information about errors.
 typedef NS_ENUM(NSInteger, ZCCErrorCode) {
   /**
    * An error has occurred in the underlying web socket. If the web socket layer provided an error
-   * string, it will be present in userInfo as the value for the key ZCCErrorWebSocketReasonKey.
+   * string, it will be present in userInfo as the value for the key <code>ZCCErrorWebSocketReasonKey</code>.
    */
   ZCCErrorCodeWebSocketError = 200,
 
   /**
-   * ZCCSession could not connect to the server due to a malformed server address or server lookup
+   * <code>ZCCSession</code> could not connect to the server due to a malformed server address or server lookup
    * failure.
    */
   ZCCErrorCodeInvalidServerAddress = 1001,
@@ -132,6 +139,11 @@ typedef NS_ENUM(NSInteger, ZCCErrorCode) {
   ZCCErrorCodeBadCredentials = 1005,
   /// Stream error
   ZCCErrorCodeBusy = 1006,
+  /**
+   * Invalid JSON message from the server. The error's <code>userInfo</code> dictionary will contain
+   * the message as the value for the <code>ZCCServerInvalidMessageKey</code> key.
+   */
+  ZCCErrorCodeInvalidMessage = 1007,
 
   /// Something went wrong in the audio codec layer
   ZCCErrorCodeDecoderUnknown = 2000,
@@ -140,8 +152,8 @@ typedef NS_ENUM(NSInteger, ZCCErrorCode) {
   ZCCErrorCodeDecoderOpus = 2010,
 
   /**
-   * Not used as an error code. All error codes between DecoderUnknown and DecoderLast are decoder-related
-   * errors.
+   * Not used as an error code. All error codes between <code>DecoderUnknown</code> and <code>DecoderLast</code>
+   * are decoder-related errors.
    */
   ZCCErrorCodeDecoderLast = 2099,
 
@@ -153,12 +165,12 @@ typedef NS_ENUM(NSInteger, ZCCErrorCode) {
 
   /**
    * Something went wrong in Audio Queue Services. The userInfo dictionary will contain
-   * ZCCOSStatusKey with a value describing the specific error.
+   * <code>ZCCOSStatusKey</code> with a value describing the specific error.
    */
   ZCCErrorCodeAudioQueueServices = 2501,
 
   /**
-   * Not used as an error code. All error codes between AudioPlayerUnknown and AudioPlayerLast
+   * Not used as an error code. All error codes between <code>AudioPlayerUnknown</code> and <code>AudioPlayerLast</code>
    * are audio player-related errors.
    */
   ZCCErrorCodeAudioPlayerLast = 2599,

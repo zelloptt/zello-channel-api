@@ -13,7 +13,7 @@
 
 @interface ZCCOutgoingVoiceStream (Internal)
 
-- (nonnull instancetype)initWithChannel:(nonnull NSString *)channel socket:(nonnull ZCCSocket *)socket configuration:(nullable ZCCOutgoingVoiceConfiguration *)configuration;
+- (nonnull instancetype)initWithChannel:(nonnull NSString *)channel recipient:(nullable NSString *)username socket:(nonnull ZCCSocket *)socket configuration:(nullable ZCCOutgoingVoiceConfiguration *)configuration;
 
 - (void)startWithTimeout:(NSTimeInterval)timeout;
 

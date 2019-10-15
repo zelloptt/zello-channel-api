@@ -7,6 +7,8 @@
 //
 
 #import "ZCCCommands.h"
+#import "ZCCImageMessage.h"
+#import "ZCCLocationInfo.h"
 #import "ZCCProtocol.h"
 #import "ZCCStreamParams.h"
 
@@ -32,15 +34,74 @@
   return logonCommand;
 }
 
-+ (NSString *)startStreamWithSequenceNumber:(NSInteger)sequenceNumber params:(ZCCStreamParams *)params {
-  NSString *base64Header = [params.codecHeader base64EncodedStringWithOptions:0];
-  NSDictionary *startStream = @{ZCCCommandKey:ZCCCommandStartStream,
++ (NSString *)sendImage:(ZCCImageMessage *)message sequenceNumber:(NSInteger)sequenceNumber {
+  NSMutableDictionary *command = [@{ZCCCommandKey:ZCCCommandSendImage,
+                                    ZCCSeqKey:@(sequenceNumber),
+                                    ZCCStreamTypeKey:@"jpeg",
+                                    ZCCThumbnailContentLengthKey:@(message.thumbnailLength),
+                                    ZCCImageContentLengthKey:@(message.contentLength),
+                                    ZCCImageWidthKey:@(message.width),
+                                    ZCCImageHeightKey:@(message.height)
+                                    } mutableCopy];
+  if (message.recipient.length > 0) {
+    command[ZCCToUserKey] = message.recipient;
+  }
+
+  NSError *serializationError = nil;
+  NSString *encoded = [[NSString alloc] initWithData:[NSJSONSerialization dataWithJSONObject:command options:0 error:&serializationError] encoding:NSUTF8StringEncoding];
+  if (!encoded) {
+    NSLog(@"[ZCC] Error serializing send_image: %@", serializationError);
+  }
+  return encoded;
+}
+
++ (NSString *)sendLocation:(ZCCLocationInfo *)location sequenceNumber:(NSInteger)sequenceNumber recipient:(NSString *)username {
+  NSMutableDictionary *msg = [@{ZCCCommandKey:ZCCCommandSendLocationMessage,
                                 ZCCSeqKey:@(sequenceNumber),
-                                ZCCStreamTypeKey:params.type,
-                                ZCCStreamCodecKey:params.codecName,
-                                ZCCStreamCodecHeaderKey:base64Header,
-                                ZCCStreamPacketDurationKey:@(params.packetDuration)
-                                };
+                                ZCCLatitudeKey:@(location.latitude),
+                                ZCCLongitudeKey:@(location.longitude),
+                                ZCCAccuracyKey:@(location.accuracy)} mutableCopy];
+  if (location.address) {
+    msg[ZCCReverseGeocodedKey] = location.address;
+  }
+  if (username) {
+    msg[ZCCToUserKey] = username;
+  }
+
+  NSError *serializationError = nil;
+  NSString *locationCommand = [[NSString alloc] initWithData:[NSJSONSerialization dataWithJSONObject:msg options:0 error:&serializationError] encoding:NSUTF8StringEncoding];
+  if (!locationCommand) {
+    NSLog(@"[ZCC] Error serializing location: %@", serializationError);
+  }
+  return locationCommand;
+}
+
++ (NSString *)sendText:(NSString *)message sequenceNumber:(NSInteger)sequenceNumber recipient:(NSString *)username {
+  NSMutableDictionary *text = [@{ZCCCommandKey:ZCCCommandSendTextMessage,
+                                 ZCCSeqKey:@(sequenceNumber),
+                                 ZCCTextContentKey:message} mutableCopy];
+  if (username.length > 0) {
+    text[ZCCToUserKey] = username;
+  }
+  NSError *serializationError = nil;
+  NSString *textCommand = [[NSString alloc] initWithData:[NSJSONSerialization dataWithJSONObject:text options:0 error:&serializationError] encoding:NSUTF8StringEncoding];
+  if (!textCommand) {
+    NSLog(@"[ZCC] Error serializing text: %@", serializationError);
+  }
+  return textCommand;
+}
+
++ (NSString *)startStreamWithSequenceNumber:(NSInteger)sequenceNumber params:(ZCCStreamParams *)params recipient:(NSString *)username {
+  NSString *base64Header = [params.codecHeader base64EncodedStringWithOptions:0];
+  NSMutableDictionary *startStream = [@{ZCCCommandKey:ZCCCommandStartStream,
+                                        ZCCSeqKey:@(sequenceNumber),
+                                        ZCCStreamTypeKey:params.type,
+                                        ZCCStreamCodecKey:params.codecName,
+                                        ZCCStreamCodecHeaderKey:base64Header,
+                                        ZCCStreamPacketDurationKey:@(params.packetDuration)} mutableCopy];
+  if (username.length > 0) {
+    startStream[ZCCToUserKey] = username;
+  }
   NSError *error = nil;
   NSString *command = [[NSString alloc] initWithData:[NSJSONSerialization dataWithJSONObject:startStream options:0 error:&error] encoding:NSUTF8StringEncoding];
   if (!command) {
@@ -74,6 +135,30 @@
   uint32_t packet_id = 0;
   [msg appendBytes:&packet_id length:sizeof(packet_id)];
   [msg appendData:audioData];
+  return msg;
+}
+
++ (NSData *)messageForImageData:(ZCCImageMessage *)imageMessage imageId:(UInt32)imageId {
+  NSMutableData *msg = [NSMutableData data];
+  char type = 0x02; // image
+  [msg appendBytes:&type length:sizeof(type)];
+  uint32_t image_id = htonl(imageId);
+  [msg appendBytes:&image_id length:sizeof(image_id)];
+  uint32_t image_type = htonl(0x01); // image
+  [msg appendBytes:&image_type length:sizeof(image_type)];
+  [msg appendData:imageMessage.imageData];
+  return msg;
+}
+
++ (NSData *)messageForImageThumbnailData:(ZCCImageMessage *)imageMessage imageId:(UInt32)imageId {
+  NSMutableData *msg = [NSMutableData data];
+  char type = 0x02; // image
+  [msg appendBytes:&type length:sizeof(type)];
+  uint32_t image_id = htonl(imageId);
+  [msg appendBytes:&image_id length:sizeof(image_id)];
+  uint32_t image_type = htonl(0x02); // thumbnail
+  [msg appendBytes:&image_type length:sizeof(image_type)];
+  [msg appendData:imageMessage.thumbnailData];
   return msg;
 }
 

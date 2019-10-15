@@ -7,9 +7,13 @@
 //
 
 #import "ZCCSRWebSocket.h"
+#import "ZCCChannelInfo.h"
 #import "ZCCSocket.h"
 #import "ZCCCommands.h"
 #import "ZCCErrors.h"
+#import "ZCCImageHeader.h"
+#import "ZCCImageMessage.h"
+#import "ZCCLocationInfo+Internal.h"
 #import "ZCCProtocol.h"
 #import "ZCCQueueRunner.h"
 #import "ZCCStreamParams.h"
@@ -17,7 +21,10 @@
 
 typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
   ZCCSocketRequestTypeLogon = 1,
-  ZCCSocketRequestTypeStartStream
+  ZCCSocketRequestTypeStartStream,
+  ZCCSocketRequestTypeImageMessage,
+  ZCCSocketRequestTypeLocationMessage,
+  ZCCSocketRequestTypeTextMessage
 };
 
 @interface ZCCSocketResponseCallback : NSObject
@@ -25,6 +32,12 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
 @property (nonatomic, readonly) ZCCSocketRequestType requestType;
 @property (nonatomic, strong) ZCCLogonCallback logonCallback;
 @property (nonatomic, strong) ZCCStartStreamCallback startStreamCallback;
+@property (nonatomic, strong) ZCCSendImageCallback sendImageCallback;
+/**
+ * @warning simpleCommandCallback is called on an arbitrary thread/queue, so if it needs to perform
+ *          work on a particular queue, it is responsible for dispatching to that queue.
+ */
+@property (nonatomic, strong) ZCCSimpleCommandCallback simpleCommandCallback;
 @property (nonatomic, strong) dispatch_block_t timeoutBlock;
 - (instancetype)init NS_UNAVAILABLE;
 - (instancetype)initWithSequenceNumber:(NSInteger)sequenceNumber type:(ZCCSocketRequestType)type NS_DESIGNATED_INITIALIZER;
@@ -99,6 +112,35 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
   [self.webSocket open];
 }
 
+- (void)sendImage:(ZCCImageMessage *)message callback:(ZCCSendImageCallback)callback timeoutAfter:(NSTimeInterval)timeout {
+  [self.workRunner runSync:^{
+    [self sendRequest:^NSString *(NSInteger seqNo) {
+      return [ZCCCommands sendImage:message sequenceNumber:seqNo];
+    } type:ZCCSocketRequestTypeImageMessage timeout:timeout prepareCallback:^(ZCCSocketResponseCallback *responseCallback) {
+      responseCallback.sendImageCallback = callback;
+    } failBlock:^(NSString *failureReason) {
+      callback(NO, 0, failureReason);
+    } timeoutBlock:^(ZCCSocketResponseCallback *responseCallback) {
+      responseCallback.sendImageCallback(NO, 0, @"Send image timed out");
+    }];
+  }];
+}
+
+- (void)sendImageData:(ZCCImageMessage *)message imageId:(UInt32)imageId {
+  NSData *thumbnailDataMessage = [ZCCCommands messageForImageThumbnailData:message imageId:imageId];
+  NSError *error = nil;
+  if (![self.webSocket sendData:thumbnailDataMessage error:&error]) {
+    // TODO: Return error to caller
+    NSLog(@"[ZCC] Failed to send thumbnail: %@", error);
+  }
+
+  NSData *imageDataMessage = [ZCCCommands messageForImageData:message imageId:imageId];
+  if (![self.webSocket sendData:imageDataMessage error:&error]) {
+    // TODO: Return error to caller
+    NSLog(@"[ZCC] Failed to send image: %@", error);
+  }
+}
+
 - (void)sendLogonWithAuthToken:(NSString *)authToken
                   refreshToken:(NSString *)refreshToken
                        channel:(NSString *)channel
@@ -119,12 +161,53 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
   }];
 }
 
+- (void)sendLocation:(ZCCLocationInfo *)location recipient:(NSString *)username timeoutAfter:(NSTimeInterval)timeout {
+  ZCCSimpleCommandCallback callback = ^(BOOL success, NSString *errorMessage) {
+    if (!success && errorMessage) {
+      [self reportError:errorMessage];
+    }
+  };
+
+  [self.workRunner runSync:^{
+    [self sendRequest:^NSString *(NSInteger seqNo) {
+      return [ZCCCommands sendLocation:location sequenceNumber:seqNo recipient:username];
+    } type:ZCCSocketRequestTypeLocationMessage timeout:timeout prepareCallback:^(ZCCSocketResponseCallback *responseCallback) {
+      responseCallback.simpleCommandCallback = callback;
+    } failBlock:^(NSString *failureReason) {
+      callback(NO, failureReason);
+    } timeoutBlock:^(ZCCSocketResponseCallback *responseCallback) {
+      responseCallback.simpleCommandCallback(NO, @"Send location timed out");
+    }];
+  }];
+}
+
+- (void)sendTextMessage:(NSString *)message recipient:(NSString *)username timeoutAfter:(NSTimeInterval)timeout {
+  ZCCSimpleCommandCallback callback = ^(BOOL success, NSString *errorMessage) {
+    if (!success && errorMessage) {
+      [self reportError:errorMessage];
+    }
+  };
+
+  [self.workRunner runSync:^{
+    [self sendRequest:^NSString *(NSInteger seqNo) {
+      return [ZCCCommands sendText:message sequenceNumber:seqNo recipient:username];
+    } type:ZCCSocketRequestTypeTextMessage timeout:timeout prepareCallback:^(ZCCSocketResponseCallback *responseCallback) {
+      responseCallback.simpleCommandCallback = callback;
+    } failBlock:^(NSString *failureReason) {
+      callback(NO, failureReason);
+    } timeoutBlock:^(ZCCSocketResponseCallback *responseCallback) {
+      responseCallback.simpleCommandCallback(NO, @"Send text timed out");
+    }];
+  }];
+}
+
 - (void)sendStartStreamWithParams:(ZCCStreamParams *)params
+                           recipient:(NSString *)username
                          callback:(nonnull ZCCStartStreamCallback)callback
                      timeoutAfter:(NSTimeInterval)timeout {
   [self.workRunner runSync:^{
     [self sendRequest:^(NSInteger seqNo) {
-      return [ZCCCommands startStreamWithSequenceNumber:seqNo params:params];
+      return [ZCCCommands startStreamWithSequenceNumber:seqNo params:params recipient:username];
     } type:ZCCSocketRequestTypeStartStream timeout:timeout prepareCallback:^(ZCCSocketResponseCallback *responseCallback) {
       responseCallback.startStreamCallback = callback;
     } failBlock:^(NSString *failureReason) {
@@ -272,9 +355,14 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
     NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:&error];
     if (!json) {
       id<ZCCSocketDelegate> delegate = self.delegate;
-      if ([delegate respondsToSelector:@selector(socket:didReceiveUnrecognizedMessage:)]) {
+      if ([delegate respondsToSelector:@selector(socket:didEncounterErrorParsingMessage:)]) {
         [self.delegateRunner runAsync:^{
-          [delegate socket:self didReceiveUnrecognizedMessage:string];
+          NSMutableDictionary *info = [@{ZCCServerInvalidMessageKey:string} mutableCopy];
+          if (error) {
+            info[NSUnderlyingErrorKey] = error;
+          }
+          NSError *parseError = [NSError errorWithDomain:ZCCErrorDomain code:ZCCErrorCodeBadResponse userInfo:info];
+          [delegate socket:self didEncounterErrorParsingMessage:parseError];
         }];
       }
       return;
@@ -287,7 +375,7 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
     }
     id command = json[ZCCCommandKey];
     if (![command isKindOfClass:[NSString class]]) {
-      [self reportInvalidStringMessage:string];
+      [self reportInvalidJSONInMessage:nil key:@"command" errorDescription:@"command missing or not string" original:string];
       return;
     }
 
@@ -307,8 +395,20 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
       [self handleError:json original:string];
       return;
     }
+    if ([command isEqualToString:ZCCEventOnLocation]) {
+      [self handleLocation:json original:string];
+      return;
+    }
+    if ([command isEqualToString:ZCCEventOnTextMessage]) {
+      [self handleTextMessage:json original:string];
+      return;
+    }
+    if ([command isEqualToString:ZCCEventOnImage]) {
+      [self handleImage:json original:string];
+      return;
+    }
 
-    [self reportInvalidStringMessage:string];
+    [self reportInvalidJSONInMessage:command key:ZCCCommandKey errorDescription:@"unrecognized command" original:string];
   }];
 }
 
@@ -325,6 +425,15 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
 
     case ZCCSocketRequestTypeStartStream:
       [self handleStartStreamResponse:encoded callback:callback original:original];
+      break;
+
+    case ZCCSocketRequestTypeTextMessage:
+    case ZCCSocketRequestTypeLocationMessage:
+      [self handleSimpleCommandResponse:encoded callback:callback original:original];
+      break;
+
+    case ZCCSocketRequestTypeImageMessage:
+      [self handleSendImageResponse:encoded callback:callback original:original];
       break;
   }
   if (callback.timeoutBlock) {
@@ -361,6 +470,47 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
   }];
 }
 
+- (void)handleSendImageResponse:(NSDictionary *)encoded callback:(ZCCSocketResponseCallback *)callback original:(NSString *)original {
+  if (!callback.sendImageCallback) {
+    // Incorrect response type
+    [self reportInvalidStringMessage:original];
+    return;
+  }
+
+  id success = encoded[ZCCSuccessKey];
+  if ([success isKindOfClass:[NSNumber class]] && [success boolValue]) {
+    id imageId = encoded[ZCCImageIDKey];
+    if (![imageId isKindOfClass:[NSNumber class]]) {
+      // Missing or invalid image ID
+      [self.delegateRunner runAsync:^{
+        callback.sendImageCallback(NO, 0, @"image_id missing or invalid");
+      }];
+      return;
+    }
+    long long imageIdValue = [imageId longLongValue];
+    if (imageIdValue < 0 || imageIdValue > UINT32_MAX) {
+      // Image ID out of range
+      [self.delegateRunner runAsync:^{
+        callback.sendImageCallback(NO, 0, [NSString stringWithFormat:@"image_id (%lld) out of range", imageIdValue]);
+      }];
+      return;
+    }
+    [self.delegateRunner runAsync:^{
+      callback.sendImageCallback(YES, (UInt32)imageIdValue, nil);
+    }];
+    return;
+  }
+
+  // Handle error from server
+  id errorMessage = encoded[ZCCErrorKey];
+  if (![errorMessage isKindOfClass:[NSString class]]) {
+    errorMessage = nil;
+  }
+  [self.delegateRunner runAsync:^{
+    callback.sendImageCallback(NO, 0, errorMessage);
+  }];
+}
+
 - (void)handleStartStreamResponse:(NSDictionary *)encoded callback:(ZCCSocketResponseCallback *)callback original:(NSString *)original {
   if (!callback.startStreamCallback) {
     // Incorrect response type
@@ -373,13 +523,17 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
     id streamId = encoded[ZCCStreamIDKey];
     if (![streamId isKindOfClass:[NSNumber class]]) {
       // Missing or invalid stream id
-      [self reportInvalidStringMessage:original];
+      [self.delegateRunner runAsync:^{
+        callback.startStreamCallback(NO, 0, @"stream_id missing or invalid");
+      }];
       return;
     }
     long long streamIdValue = [streamId longLongValue];
     if (streamIdValue < 0 || streamIdValue > UINT32_MAX) {
       // Stream ID out of range
-      [self reportInvalidStringMessage:original];
+      [self.delegateRunner runAsync:^{
+        callback.startStreamCallback(NO, 0, @"stream_id out of range");
+      }];
       return;
     }
     [self.delegateRunner runAsync:^{
@@ -398,27 +552,61 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
   }];
 }
 
+- (void)handleSimpleCommandResponse:(NSDictionary *)encoded callback:(ZCCSocketResponseCallback *)callback original:(NSString *)original {
+  if (!callback.simpleCommandCallback) {
+    [self reportInvalidStringMessage:original];
+    return;
+  }
+  ZCCSimpleCommandCallback simpleCallback = callback.simpleCommandCallback;
+
+  id success = encoded[ZCCSuccessKey];
+  if ([success isKindOfClass:[NSNumber class]] && [success boolValue]) {
+    simpleCallback(YES, nil);
+    return;
+  }
+
+  id errorMessage = encoded[ZCCErrorKey];
+  if (![errorMessage isKindOfClass:[NSString class]]) {
+    errorMessage = @"Unknown server error";
+  }
+  simpleCallback(NO, errorMessage);
+}
+
 - (void)handleChannelStatus:(NSDictionary *)encoded original:(NSString *)original {
   id channelName = encoded[ZCCChannelNameKey];
   if (![channelName isKindOfClass:[NSString class]]) {
-    [self reportInvalidStringMessage:original];
+    [self reportInvalidJSONInMessage:ZCCEventOnChannelStatus key:ZCCChannelNameKey errorDescription:@"Channel name missing or not a string" original:original];
     return;
   }
   id status = encoded[ZCCChannelStatusStatusKey];
   if (![status isKindOfClass:[NSString class]]) {
-    [self reportInvalidStringMessage:original];
+    [self reportInvalidJSONInMessage:ZCCEventOnChannelStatus key:ZCCChannelStatusStatusKey errorDescription:@"Channel status missing or not a string" original:original];
     return;
   }
   id numUsers = encoded[ZCCChannelStatusNumberOfUsersKey];
   if (![numUsers isKindOfClass:[NSNumber class]]) {
-    [self reportInvalidStringMessage:original];
+    [self reportInvalidJSONInMessage:ZCCEventOnChannelStatus key:ZCCChannelStatusNumberOfUsersKey errorDescription:@"Number of users missing or not a number" original:original];
     return;
+  }
+  ZCCChannelInfo channelInfo = ZCCChannelInfoZero();
+  channelInfo.status = ZCCChannelStatusFromString(status);
+  id images = encoded[@"images_supported"];
+  if ([images isKindOfClass:[NSNumber class]]) {
+    channelInfo.imagesSupported = [images boolValue];
+  }
+  id texting = encoded[@"texting_supported"];
+  if ([texting isKindOfClass:[NSNumber class]]) {
+    channelInfo.textingSupported = [texting boolValue];
+  }
+  id locations = encoded[@"locations_supported"];
+  if ([locations isKindOfClass:[NSNumber class]]) {
+    channelInfo.locationsSupported = [locations boolValue];
   }
 
   id<ZCCSocketDelegate> delegate = self.delegate;
   if ([delegate respondsToSelector:@selector(socket:didReportStatus:forChannel:usersOnline:)]) {
     [self.delegateRunner runAsync:^{
-      [delegate socket:self didReportStatus:status forChannel:channelName usersOnline:[numUsers integerValue]];
+      [delegate socket:self didReportStatus:channelInfo forChannel:channelName usersOnline:[numUsers integerValue]];
     }];
   }
 }
@@ -426,54 +614,54 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
 - (void)handleStreamStart:(NSDictionary *)encoded original:(NSString *)original {
   id type = encoded[ZCCStreamTypeKey];
   if (![type isKindOfClass:[NSString class]]) {
-    [self reportInvalidStringMessage:original];
+    [self reportInvalidJSONInMessage:ZCCEventOnStreamStart key:ZCCStreamTypeKey errorDescription:@"type is missing or invalid" original:original];
     return;
   }
   id codec = encoded[ZCCStreamCodecKey];
   if (![codec isKindOfClass:[NSString class]]) {
-    [self reportInvalidStringMessage:original];
+    [self reportInvalidJSONInMessage:ZCCEventOnStreamStart key:ZCCStreamCodecKey errorDescription:@"codec is missing or invalid" original:original];
     return;
   }
   id header = encoded[ZCCStreamCodecHeaderKey];
-  if (![type isKindOfClass:[NSString class]]) {
-    [self reportInvalidStringMessage:original];
+  if (![header isKindOfClass:[NSString class]]) {
+    [self reportInvalidJSONInMessage:ZCCEventOnStreamStart key:ZCCStreamCodecHeaderKey errorDescription:@"codec_header missing or invalid" original:original];
     return;
   }
   NSData *headerData = [[NSData alloc] initWithBase64EncodedString:header options:0];
   if (!headerData) {
-    [self reportInvalidStringMessage:original];
+    [self reportInvalidJSONInMessage:ZCCEventOnStreamStart key:ZCCStreamCodecHeaderKey errorDescription:@"codec_header missing or invalid" original:original];
     return;
   }
   id packetDuration = encoded[ZCCStreamPacketDurationKey];
   if (![packetDuration isKindOfClass:[NSNumber class]]) {
-    [self reportInvalidStringMessage:original];
+    [self reportInvalidJSONInMessage:ZCCEventOnStreamStart key:ZCCStreamPacketDurationKey errorDescription:@"packet_duration missing or not a number" original:original];
     return;
   }
   long long packetDurationValue = [packetDuration longLongValue];
   if (packetDurationValue < 0) {
-    [self reportInvalidStringMessage:original];
+    [self reportInvalidJSONInMessage:ZCCEventOnStreamStart key:ZCCStreamPacketDurationKey errorDescription:@"packet_duration out of range" original:original];
     return;
   }
   id streamId = encoded[ZCCStreamIDKey];
   if (![streamId isKindOfClass:[NSNumber class]]) {
-    [self reportInvalidStringMessage:original];
+    [self reportInvalidJSONInMessage:ZCCEventOnStreamStart key:ZCCStreamIDKey errorDescription:@"stream_id missing or invalid" original:original];
     return;
   }
   long long streamIdValue = [streamId longLongValue];
   if (streamIdValue < 0 || streamIdValue > UINT32_MAX) {
     // Stream ID out of range
-    [self reportInvalidStringMessage:original];
+    [self reportInvalidJSONInMessage:ZCCEventOnStreamStart key:ZCCStreamIDKey errorDescription:@"stream_id out of range" original:original];
     return;
   }
   // Should we check that streamId fits into 16 bits?
   id channel = encoded[ZCCChannelNameKey];
   if (![channel isKindOfClass:[NSString class]]) {
-    [self reportInvalidStringMessage:original];
+    [self reportInvalidJSONInMessage:ZCCEventOnStreamStart key:ZCCChannelNameKey errorDescription:@"channel missing or invalid" original:original];
     return;
   }
-  id from = encoded[ZCCOnStreamStartSenderKey];
+  id from = encoded[ZCCFromUserKey];
   if (![from isKindOfClass:[NSString class]]) {
-    [self reportInvalidStringMessage:original];
+    [self reportInvalidJSONInMessage:ZCCEventOnStreamStart key:ZCCFromUserKey errorDescription:@"from missing or invalid" original:original];
     return;
   }
 
@@ -493,13 +681,13 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
 - (void)handleStreamStop:(NSDictionary *)encoded original:(NSString *)original {
   id streamId = encoded[ZCCStreamIDKey];
   if (![streamId isKindOfClass:[NSNumber class]]) {
-    [self reportInvalidStringMessage:original];
+    [self reportInvalidJSONInMessage:ZCCEventOnStreamStop key:ZCCStreamIDKey errorDescription:@"stream_id missing or invalid" original:original];
     return;
   }
   long long streamIdValue = [streamId longLongValue];
   if (streamIdValue < 0 || streamIdValue > UINT32_MAX) {
     // Stream ID out of range
-    [self reportInvalidStringMessage:original];
+    [self reportInvalidJSONInMessage:ZCCEventOnStreamStop key:ZCCStreamIDKey errorDescription:@"stream_id out of range" original:original];
     return;
   }
 
@@ -514,62 +702,245 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
 - (void)handleError:(NSDictionary *)encoded original:(NSString *)original {
   id errorMessage = encoded[ZCCErrorKey];
   if (![errorMessage isKindOfClass:[NSString class]]) {
-    [self reportInvalidStringMessage:original];
+    [self reportInvalidJSONInMessage:ZCCEventOnError key:ZCCErrorKey errorDescription:@"error missing or not string" original:original];
+    return;
+  }
+
+  [self reportError:errorMessage];
+}
+
+- (void)handleLocation:(NSDictionary *)encoded original:(NSString *)original {
+  id latitude = encoded[ZCCLatitudeKey];
+  if (![latitude isKindOfClass:[NSNumber class]]) {
+    [self reportInvalidJSONInMessage:ZCCEventOnLocation key:ZCCLatitudeKey errorDescription:@"latitude missing or invalid" original:original];
+    return;
+  }
+  double latitudeValue = [latitude doubleValue];
+  id longitude = encoded[ZCCLongitudeKey];
+  if (![longitude isKindOfClass:[NSNumber class]]) {
+    [self reportInvalidJSONInMessage:ZCCEventOnLocation key:ZCCLongitudeKey errorDescription:@"longitude missing or invalid" original:original];
+    return;
+  }
+  double longitudeValue = [longitude doubleValue];
+  id accuracy = encoded[ZCCAccuracyKey];
+  if (![accuracy isKindOfClass:[NSNumber class]]) {
+    [self reportInvalidJSONInMessage:ZCCEventOnLocation key:ZCCAccuracyKey errorDescription:@"accuracy missing or invalid" original:original];
+    return;
+  }
+  double accuracyValue = [accuracy doubleValue];
+  id sender = encoded[ZCCFromUserKey];
+  if (![sender isKindOfClass:[NSString class]]) {
+    [self reportInvalidJSONInMessage:ZCCEventOnLocation key:ZCCFromUserKey errorDescription:@"from missing or invalid" original:original];
+    return;
+  }
+  id address = encoded[ZCCReverseGeocodedKey];
+  if (![address isKindOfClass:[NSString class]]) {
+    address = nil;
+  }
+
+  ZCCLocationInfo *location = [[ZCCLocationInfo alloc] initWithLatitude:latitudeValue longitude:longitudeValue accuracy:accuracyValue];
+  if (address) {
+    [location setAddress:address];
+  }
+
+  id<ZCCSocketDelegate> delegate = self.delegate;
+  [self.delegateRunner runAsync:^{
+    [delegate socket:self didReceiveLocationMessage:location sender:sender];
+  }];
+}
+
+- (void)handleTextMessage:(NSDictionary *)encoded original:(NSString *)original {
+  id message = encoded[ZCCTextContentKey];
+  if (![message isKindOfClass:[NSString class]]) {
+    [self reportInvalidJSONInMessage:ZCCEventOnTextMessage key:ZCCTextContentKey errorDescription:@"text missing or invalid" original:original];
+    return;
+  }
+  id sender = encoded[ZCCFromUserKey];
+  if (![sender isKindOfClass:[NSString class]]) {
+    [self reportInvalidJSONInMessage:ZCCEventOnTextMessage key:ZCCFromUserKey errorDescription:@"from missing or invalid" original:original];
     return;
   }
 
   id<ZCCSocketDelegate> delegate = self.delegate;
-  if ([delegate respondsToSelector:@selector(socket:didReportError:)]) {
+  [self.delegateRunner runAsync:^{
+    [delegate socket:self didReceiveTextMessage:message sender:sender];
+  }];
+}
+
+- (void)handleImage:(NSDictionary *)encoded original:(NSString *)original {
+  ZCCImageHeader *header = [[ZCCImageHeader alloc] init];
+  id channel = encoded[ZCCChannelNameKey];
+  if ([channel isKindOfClass:[NSString class]]) {
+    header.channel = channel;
+  }
+  id sender = encoded[ZCCFromUserKey];
+  if (![sender isKindOfClass:[NSString class]]) {
+    [self reportInvalidJSONInMessage:ZCCEventOnImage key:ZCCFromUserKey errorDescription:@"from missing or invalid" original:original];
+    return;
+  }
+  header.sender = sender;
+  id imageId = encoded[ZCCMessageIDKey];
+  if (![imageId isKindOfClass:[NSNumber class]]) {
+    [self reportInvalidJSONInMessage:ZCCEventOnImage key:ZCCMessageIDKey errorDescription:@"message_id missing or invalid" original:original];
+    return;
+  }
+  long long imageIdValue = [imageId longLongValue];
+  if (imageIdValue < 0 || imageIdValue > UINT32_MAX) {
+    [self reportInvalidJSONInMessage:ZCCEventOnImage key:ZCCMessageIDKey errorDescription:@"message_id out of range" original:original];
+    return;
+  }
+  header.imageId = (NSUInteger)imageIdValue;
+
+  id source = encoded[ZCCImageSourceKey];
+  if ([source isKindOfClass:[NSString class]]) {
+    header.source = source;
+  }
+  id type = encoded[ZCCStreamTypeKey];
+  if (![type isKindOfClass:[NSString class]]) {
+    [self reportInvalidJSONInMessage:ZCCEventOnImage key:ZCCStreamTypeKey errorDescription:@"type missing or invalid" original:original];
+    return;
+  }
+  if ([type isEqualToString:@"jpeg"]) {
+    header.imageType = ZCCImageTypeJPEG;
+  } else {
+    header.imageType = ZCCImageTypeUnkown;
+  }
+  id height = encoded[ZCCImageHeightKey];
+  if ([height isKindOfClass:[NSNumber class]]) {
+    long long heightValue = [height longLongValue];
+    if (heightValue < 0 || heightValue > INT32_MAX) {
+      [self reportInvalidJSONInMessage:ZCCEventOnImage key:ZCCImageHeightKey errorDescription:@"height out of range" original:original];
+      return;
+    }
+    header.height = (NSInteger)heightValue;
+  }
+  id width = encoded[ZCCImageWidthKey];
+  if ([width isKindOfClass:[NSNumber class]]) {
+    long long widthValue = [width longLongValue];
+    if (widthValue < 0 || widthValue > INT32_MAX) {
+      [self reportInvalidJSONInMessage:ZCCEventOnImage key:ZCCImageWidthKey errorDescription:@"width out of range" original:original];
+      return;
+    }
+    header.width = widthValue;
+  }
+
+  id<ZCCSocketDelegate> delegate = self.delegate;
+  [self.delegateRunner runAsync:^{
+    [delegate socket:self didReceiveImageHeader:header];
+  }];
+}
+
+/**
+ * Report an error parsing a JSON message from the server
+ *
+ * @param message the type of message
+ * @param key the key we were trying to retrieve
+ * @param description a description of the error encountered
+ * @param original the original string we were trying to parse
+ */
+- (void)reportInvalidJSONInMessage:(nullable NSString *)message key:(NSString *)key errorDescription:(NSString *)description original:(NSString *)original {
+  id<ZCCSocketDelegate> delegate = self.delegate;
+  if ([delegate respondsToSelector:@selector(socket:didEncounterErrorParsingMessage:)]) {
+    NSMutableDictionary *info = [@{ZCCServerInvalidMessageKey:original,
+                                  ZCCInvalidJSONKeyKey:key,
+                                  ZCCInvalidJSONProblemKey:description} mutableCopy];
+    if (message) {
+      info[ZCCInvalidJSONMessageKey] = message;
+    }
+    NSError *error = [NSError errorWithDomain:ZCCErrorDomain code:ZCCErrorCodeInvalidMessage userInfo:info];
     [self.delegateRunner runAsync:^{
-      [delegate socket:self didReportError:errorMessage];
+      [delegate socket:self didEncounterErrorParsingMessage:error];
     }];
   }
 }
 
 - (void)reportInvalidStringMessage:(NSString *)message {
   id<ZCCSocketDelegate> delegate = self.delegate;
-  if ([delegate respondsToSelector:@selector(socket:didReceiveUnrecognizedMessage:)]) {
+  if ([delegate respondsToSelector:@selector(socket:didEncounterErrorParsingMessage:)]) {
+    NSError *error = [NSError errorWithDomain:ZCCErrorDomain code:ZCCErrorCodeBadResponse userInfo:@{ZCCServerInvalidMessageKey:message}];
     [self.delegateRunner runAsync:^{
-      [delegate socket:self didReceiveUnrecognizedMessage:message];
+      [delegate socket:self didEncounterErrorParsingMessage:error];
     }];
   }
 }
 
 - (void)webSocket:(ZCCSRWebSocket *)webSocket didReceiveMessageWithData:(NSData *)data {
   [self.workRunner runSync:^{
-    NSUInteger minValidLength = sizeof(uint8_t) + sizeof(uint32_t) + sizeof(uint32_t);
-    if (data.length < minValidLength) { // minimum audio data message is 5 bytes
-      uint8_t type = 0;
-      if (data.length >= 1) {
-        [data getBytes:&type length:1];
-      }
-      [self reportUnrecognizedBinaryMessage:data type:type];
+    if (data.length < 1) {
+      [self reportUnrecognizedBinaryMessage:data type:0];
       return;
     }
+    uint8_t type;
+    [data getBytes:&type length:1];
+    switch (type) {
+      case 0x01:
+        [self handleAudioData:data];
+        break;
 
-    char type = 0x00;
-    [data getBytes:&type length:sizeof(type)];
-    if (type != 0x01) {
-      [self reportUnrecognizedBinaryMessage:data type:type];
-      return;
-    }
+      case 0x02:
+        [self handleImageData:data];
+        break;
 
-    uint32_t streamId = 0;
-    NSUInteger streamIdOffset = sizeof(type);
-    [data getBytes:&streamId range:NSMakeRange(streamIdOffset, sizeof(streamId))];
-    streamId = ntohl(streamId);
-    uint32_t packetId = 0;
-    NSUInteger packetIdOffset = streamIdOffset + sizeof(streamId);
-    [data getBytes:&packetId range:NSMakeRange(packetIdOffset, sizeof(packetId))];
-    packetId = ntohl(packetId);
-    NSUInteger dataOffset = packetIdOffset + sizeof(packetId);
-    NSData *audio = [data subdataWithRange:NSMakeRange(dataOffset, data.length - dataOffset)];
-    id<ZCCSocketDelegate> delegate = self.delegate;
-    if ([delegate respondsToSelector:@selector(socket:didReceiveAudioData:streamId:packetId:)]) {
-      [self.delegateRunner runAsync:^{
-        [delegate socket:self didReceiveAudioData:audio streamId:streamId packetId:packetId];
-      }];
+      default:
+        [self reportUnrecognizedBinaryMessage:data type:type];
     }
+  }];
+}
+
+- (void)handleAudioData:(NSData *)data {
+  NSUInteger minValidLength = sizeof(uint8_t) + sizeof(uint32_t) + sizeof(uint32_t);
+  if (data.length < minValidLength) { // minimum audio data message is 9 bytes
+    uint8_t type = 0;
+    if (data.length >= 1) {
+      [data getBytes:&type length:1];
+    }
+    [self reportUnrecognizedBinaryMessage:data type:type];
+    return;
+  }
+
+  uint32_t streamId = 0;
+  NSUInteger streamIdOffset = 1; // 1 byte for type
+  [data getBytes:&streamId range:NSMakeRange(streamIdOffset, sizeof(streamId))];
+  streamId = ntohl(streamId);
+  uint32_t packetId = 0;
+  NSUInteger packetIdOffset = streamIdOffset + sizeof(streamId);
+  [data getBytes:&packetId range:NSMakeRange(packetIdOffset, sizeof(packetId))];
+  packetId = ntohl(packetId);
+  NSUInteger dataOffset = packetIdOffset + sizeof(packetId);
+  NSData *audio = [data subdataWithRange:NSMakeRange(dataOffset, data.length - dataOffset)];
+  id<ZCCSocketDelegate> delegate = self.delegate;
+  if ([delegate respondsToSelector:@selector(socket:didReceiveAudioData:streamId:packetId:)]) {
+    [self.delegateRunner runAsync:^{
+      [delegate socket:self didReceiveAudioData:audio streamId:streamId packetId:packetId];
+    }];
+  }
+}
+
+- (void)handleImageData:(NSData *)data {
+  NSUInteger minValidLength = sizeof(uint8_t) + sizeof(uint32_t) + sizeof(uint32_t);
+  if (data.length < minValidLength) {
+    [self reportUnrecognizedBinaryMessage:data type:0x02];
+    return;
+  }
+
+  uint32_t imageId;
+  NSUInteger offset = 1; // 1 byte for type
+  [data getBytes:&imageId range:NSMakeRange(offset, sizeof(imageId))];
+  imageId = ntohl(imageId);
+  offset += sizeof(imageId);
+  uint32_t imageType;
+  [data getBytes:&imageType range:NSMakeRange(offset, sizeof(imageType))];
+  imageType = ntohl(imageType);
+  if (imageType != 0x01 & imageType != 0x02) {
+    [self reportUnrecognizedBinaryMessage:data type:0x02];
+    return;
+  }
+  offset += sizeof(imageType);
+  NSData *imageData = [data subdataWithRange:NSMakeRange(offset, data.length - offset)];
+
+  id<ZCCSocketDelegate> delegate = self.delegate;
+  [self.delegateRunner runAsync:^{
+    [delegate socket:self didReceiveImageData:imageData imageId:imageId isThumbnail:(imageType == 0x02)];
   }];
 }
 
@@ -587,6 +958,15 @@ typedef NS_ENUM(NSInteger, ZCCSocketRequestType) {
 - (NSInteger)incrementedSequenceNumber {
     self.nextSequenceNumber += 1;
     return self.nextSequenceNumber;
+}
+
+- (void)reportError:(nonnull NSString *)errorMessage {
+  id<ZCCSocketDelegate> delegate = self.delegate;
+  if ([delegate respondsToSelector:@selector(socket:didReportError:)]) {
+    [self.delegateRunner runAsync:^{
+      [delegate socket:self didReportError:errorMessage];
+    }];
+  }
 }
 
 @end

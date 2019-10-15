@@ -60,7 +60,15 @@
 	
 	<optgroup label="Instance Methods">
 		
+		<option value="//api/name/session:didEncounterError:">- session:didEncounterError:</option>
+		
 		<option value="//api/name/session:didFailToConnectWithError:">- session:didFailToConnectWithError:</option>
+		
+		<option value="//api/name/session:didReceiveImage:">- session:didReceiveImage:</option>
+		
+		<option value="//api/name/session:didReceiveLocation:from:">- session:didReceiveLocation:from:</option>
+		
+		<option value="//api/name/session:didReceiveText:from:">- session:didReceiveText:from:</option>
 		
 		<option value="//api/name/session:incomingVoice:didUpdateProgress:">- session:incomingVoice:didUpdateProgress:</option>
 		
@@ -83,6 +91,8 @@
 		<option value="//api/name/sessionDidDisconnect:">- sessionDidDisconnect:</option>
 		
 		<option value="//api/name/sessionDidStartConnecting:">- sessionDidStartConnecting:</option>
+		
+		<option value="//api/name/sessionDidUpdateChannelStatus:">- sessionDidUpdateChannelStatus:</option>
 		
 	</optgroup>
 	
@@ -300,7 +310,7 @@ describes the reason for the failure to connect.</p>
 			<div class="method-subsection discussion-section">
 				<h4 class="method-subtitle">Discussion</h4>
 				<p>After <code>sessionDidConnect:</code> is called, the connection to the server is
-fully established. You can now call <code>-startVoiceMessage</code> to start speaking to the
+fully established. You can now call <code>startVoiceMessage</code> to start speaking to the
 channel, and will receive incoming voice messages when other users speak to the channel.</p>
 
 <p><code>sessionDidConnect:</code> <em>is</em> called after an automatic reconnect, so be aware that your
@@ -425,8 +435,8 @@ attempts by implementing <code>session:willReconnectForReason:</code> and return
 			
 			<div class="method-subsection return">
 				<h4 class="method-subtitle parameter-title">Return Value</h4>
-				<p>YES to allow the reconnect attempt to continue, NO to prevent the session from attempting
-to reconnect.</p>
+				<p><code>YES</code> to allow the reconnect attempt to continue, <code>NO</code> to prevent
+the session from attempting to reconnect.</p>
 			</div>
 			
 
@@ -438,6 +448,66 @@ to reconnect.</p>
 				<p>When the session becomes unexpectedly disconnected from a network change or other
 event, it will automatically attempt to reconnect with a randomized backoff delay. You can prevent
 the session from reconnecting by implementing this method and returning <code>NO</code>.</p>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCSession.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div><div class="section-method">
+	<a name="//api/name/sessionDidUpdateChannelStatus:" title="sessionDidUpdateChannelStatus:"></a>
+	<h3 class="method-title"><code><a href="#//api/name/sessionDidUpdateChannelStatus:">&ndash;&nbsp;sessionDidUpdateChannelStatus:</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>called when the client receives a channel status update message from the server</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>- (void)sessionDidUpdateChannelStatus:(ZCCSession *)<em>session</em></code></div>
+
+		    
+			
+			<div class="method-subsection arguments-section parameters">
+				<h4 class="method-subtitle parameter-title">Parameters</h4>
+				<table class="argument-def parameter-def">
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>session</code></th>
+						<td><p>the session that has new information about its channel</p></td>
+					</tr>
+				
+				</table>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection discussion-section">
+				<h4 class="method-subtitle">Discussion</h4>
+				<p>This method is called once shortly after the session connects to the channel, and
+again whenever another user connects to or disconnects from the channel. The delegate
+can read channel information from the session&rsquo;s properties.</p>
 			</div>
 			
 
@@ -715,8 +785,8 @@ tell the Zello Channels SDK to play the incoming stream through the device speak
 to perform different handling of the audio, you can return a <code><a href="../Classes/ZCCIncomingVoiceConfiguration.html">ZCCIncomingVoiceConfiguration</a></code>
 object instead, with a reference to a custom <code><a href="../Protocols/ZCCVoiceReceiver.html">ZCCVoiceReceiver</a></code>.</p>
 
-<p>If this method is not implemented or returns nil, the Zello Channels SDK will perform its default
-incoming voice handling and play the audio through the current output audio route.</p>
+<p>If this method is not implemented or returns <code>nil</code>, the Zello Channels SDK will perform
+its default incoming voice handling and play the audio through the current output audio route.</p>
 			</div>
 			
 
@@ -933,6 +1003,263 @@ wall time.</p>
 			
 		</div>
 	</div>
+</div><div class="section-method">
+	<a name="//api/name/session:didReceiveImage:" title="session:didReceiveImage:"></a>
+	<h3 class="method-title"><code><a href="#//api/name/session:didReceiveImage:">&ndash;&nbsp;session:didReceiveImage:</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>Called when an image message is received</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>- (void)session:(ZCCSession *)<em>session</em> didReceiveImage:(ZCCImageInfo *)<em>image</em></code></div>
+
+		    
+			
+			<div class="method-subsection arguments-section parameters">
+				<h4 class="method-subtitle parameter-title">Parameters</h4>
+				<table class="argument-def parameter-def">
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>session</code></th>
+						<td><p>the session that received an image message</p></td>
+					</tr>
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>image</code></th>
+						<td><p>a container object with information about the sender, message id, and the image
+itself</p></td>
+					</tr>
+				
+				</table>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection discussion-section">
+				<h4 class="method-subtitle">Discussion</h4>
+				<p>This method will probably be called twice for each image message that is received:
+once with only the thumbnail present in the image info object, and once with both
+the thumbnail and the full-sized image present. <code>image.imageId</code> will be
+the same for all calls related to the same image message from a sender.</p>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCSession.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div><div class="section-method">
+	<a name="//api/name/session:didReceiveLocation:from:" title="session:didReceiveLocation:from:"></a>
+	<h3 class="method-title"><code><a href="#//api/name/session:didReceiveLocation:from:">&ndash;&nbsp;session:didReceiveLocation:from:</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>Called when a location message is received</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>- (void)session:(ZCCSession *)<em>session</em> didReceiveLocation:(ZCCLocationInfo *)<em>location</em> from:(NSString *)<em>sender</em></code></div>
+
+		    
+			
+			<div class="method-subsection arguments-section parameters">
+				<h4 class="method-subtitle parameter-title">Parameters</h4>
+				<table class="argument-def parameter-def">
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>session</code></th>
+						<td><p>the session that received a location message</p></td>
+					</tr>
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>location</code></th>
+						<td><p>an object describing the sender&rsquo;s location</p></td>
+					</tr>
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>sender</code></th>
+						<td><p>the username of the sender</p></td>
+					</tr>
+				
+				</table>
+			</div>
+			
+
+			
+
+			
+
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCSession.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div><div class="section-method">
+	<a name="//api/name/session:didReceiveText:from:" title="session:didReceiveText:from:"></a>
+	<h3 class="method-title"><code><a href="#//api/name/session:didReceiveText:from:">&ndash;&nbsp;session:didReceiveText:from:</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>Called when a text message is received</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>- (void)session:(ZCCSession *)<em>session</em> didReceiveText:(NSString *)<em>message</em> from:(NSString *)<em>sender</em></code></div>
+
+		    
+			
+			<div class="method-subsection arguments-section parameters">
+				<h4 class="method-subtitle parameter-title">Parameters</h4>
+				<table class="argument-def parameter-def">
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>session</code></th>
+						<td><p>the session that received a text message</p></td>
+					</tr>
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>message</code></th>
+						<td><p>the message that was received</p></td>
+					</tr>
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>sender</code></th>
+						<td><p>the username of the user that sent the message</p></td>
+					</tr>
+				
+				</table>
+			</div>
+			
+
+			
+
+			
+
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCSession.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
+</div><div class="section-method">
+	<a name="//api/name/session:didEncounterError:" title="session:didEncounterError:"></a>
+	<h3 class="method-title"><code><a href="#//api/name/session:didEncounterError:">&ndash;&nbsp;session:didEncounterError:</a></code>
+</h3>
+
+	<div class="method-info">
+		<div class="pointy-thing"></div>
+
+		<div class="method-info-container">
+			
+			
+			<div class="method-subsection brief-description">
+				<p>This delegate callback reports informational errors from the session</p>
+			</div>
+			
+		    
+
+			<div class="method-subsection method-declaration"><code>- (void)session:(ZCCSession *)<em>session</em> didEncounterError:(NSError *)<em>error</em></code></div>
+
+		    
+			
+			<div class="method-subsection arguments-section parameters">
+				<h4 class="method-subtitle parameter-title">Parameters</h4>
+				<table class="argument-def parameter-def">
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>session</code></th>
+						<td><p>the session that encountered an error. This session should still be functional.</p></td>
+					</tr>
+				
+					<tr>
+						<th scope="row" class="argument-name"><code>error</code></th>
+						<td><p>the error that was encountered by the session</p></td>
+					</tr>
+				
+				</table>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection discussion-section">
+				<h4 class="method-subtitle">Discussion</h4>
+				<p>Called when the session encounters an error. The errors reported with this callback
+are informational and do not mean that the session is no longer functional.</p>
+			</div>
+			
+
+			
+
+			
+
+			
+			<div class="method-subsection declared-in-section">
+				<h4 class="method-subtitle">Declared In</h4>
+				<p><code class="declared-in-ref">ZCCSession.h</code></p>
+			</div>
+			
+			
+		</div>
+	</div>
 </div>
 						</div>
 						
@@ -948,7 +1275,7 @@ wall time.</p>
 				<footer>
 					<div class="footer-copyright">
 						
-						<p class="copyright">Copyright &copy; 2018 Zello. All rights reserved. Updated: 2018-04-02</p>
+						<p class="copyright">Copyright &copy; 2019 Zello. All rights reserved. Updated: 2019-10-02</p>
 						
 						
 						<p class="generator">Generated by <a href="http://appledoc.gentlebytes.com">appledoc 2.2.1 (build 1334)</a>.</p>

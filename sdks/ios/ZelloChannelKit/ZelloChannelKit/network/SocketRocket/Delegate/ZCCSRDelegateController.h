@@ -13,6 +13,8 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+#if OBJC_BOOL_IS_BOOL
+
 struct ZCCSRDelegateAvailableMethods {
     BOOL didReceiveMessage : 1;
     BOOL didReceiveMessageWithString : 1;
@@ -24,6 +26,23 @@ struct ZCCSRDelegateAvailableMethods {
     BOOL didReceivePong : 1;
     BOOL shouldConvertTextFrameToString : 1;
 };
+
+#else
+
+struct ZCCSRDelegateAvailableMethods {
+  BOOL didReceiveMessage;
+  BOOL didReceiveMessageWithString;
+  BOOL didReceiveMessageWithData;
+  BOOL didOpen;
+  BOOL didFailWithError;
+  BOOL didCloseWithCode;
+  BOOL didReceivePing;
+  BOOL didReceivePong;
+  BOOL shouldConvertTextFrameToString;
+};
+
+#endif
+
 typedef struct ZCCSRDelegateAvailableMethods ZCCSRDelegateAvailableMethods;
 
 typedef void(^ZCCSRDelegateBlock)(id<ZCCSRWebSocketDelegate> _Nullable delegate, ZCCSRDelegateAvailableMethods availableMethods);

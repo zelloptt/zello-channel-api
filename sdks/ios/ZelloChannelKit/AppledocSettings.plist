@@ -21,12 +21,15 @@
 	<key>--input</key>
 	<array>
 		<string>ZelloChannelKit/ZCCErrors.h</string>
+		<string>ZelloChannelKit/images/ZCCImageInfo.h</string>
 		<string>ZelloChannelKit/streams/ZCCIncomingVoiceConfiguration.h</string>
 		<string>ZelloChannelKit/streams/ZCCIncomingVoiceStream.h</string>
+		<string>ZelloChannelKit/location/ZCCLocationInfo.h</string>
 		<string>ZelloChannelKit/streams/ZCCOutgoingVoiceConfiguration.h</string>
 		<string>ZelloChannelKit/streams/ZCCOutgoingVoiceStream.h</string>
 		<string>ZelloChannelKit/ZCCSession.h</string>
 		<string>ZelloChannelKit/streams/ZCCStreamState.h</string>
+		<string>ZelloChannelKit/ZCCTypes.h</string>
 		<string>ZelloChannelKit/streams/ZCCVoiceStream.h</string>
 	</array>
 </dict>

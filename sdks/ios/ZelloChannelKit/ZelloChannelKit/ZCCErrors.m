@@ -16,6 +16,10 @@ NSString * const ZCCOSStatusKey = @"com.zello.ZCCOSStatusKey";
 NSString * const ZCCServerErrorMessageKey = @"com.zello.ZCCServerErrorMessageKey";
 NSString * const ZCCServerInvalidMessageKey = @"com.zello.ZCCServerInvalidMessageKey";
 
+NSString * const ZCCInvalidJSONMessageKey = @"com.zello.ZCCInvalidJSONMessageKey";
+NSString * const ZCCInvalidJSONKeyKey = @"com.zello.ZCCInvalidJSONKeyKey";
+NSString * const ZCCInvalidJSONProblemKey = @"com.zello.ZCCInvalidJSONProblemKey";
+
 ZCCServerErrorMessage const ZCCServerErrorMessageUnknownCommand = @"unknown command";
 ZCCServerErrorMessage const ZCCServerErrorMessageInternalServerError = @"internal server error";
 ZCCServerErrorMessage const ZCCServerErrorMessageInvalidJSON = @"invalid json";
