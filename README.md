@@ -3,7 +3,7 @@
 
 ## Overview
 
-Zello is the most popular push-to-talk app in the world available for Android, iOS and Windows PC platforms. With this API can embed live voice push-to-talk feature into your own application taking advantage of our scalable and reliable platform.
+Zello is the most popular push-to-talk app in the world available for Android, iOS and Windows PC platforms. With this API you can embed live voice push-to-talk feature into your own application taking advantage of our scalable and reliable platform.
 
 To get started check out these resources:
 
