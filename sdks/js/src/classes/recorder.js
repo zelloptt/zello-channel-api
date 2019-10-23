@@ -13,7 +13,8 @@ class Recorder {
     this.options = Object.assign({
       bufferLength: 4096,
       monitorGain: 0,
-      recordingGain: 1
+      recordingGain: 1,
+      mediaConstraints: { audio: true }
     }, options);
     this.encoder = encoder;
     this.state = "inactive";
@@ -102,7 +103,7 @@ class Recorder {
     if (this.stream && this.sourceNode) {
       return global.Promise.resolve(this.sourceNode);
     }
-    return global.navigator.mediaDevices.getUserMedia({audio: true}).then((stream) => {
+    return global.navigator.mediaDevices.getUserMedia(this.options.mediaConstraints).then((stream) => {
       this.stream = stream;
       return this.audioContext.createMediaStreamSource(stream);
     });
