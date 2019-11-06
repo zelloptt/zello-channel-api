@@ -6,7 +6,7 @@
 //  Copyright © 2018 Zello. All rights reserved.
 //
 
-#import <ZelloChannelKit/ZelloChannelKit.h>
+@import ZelloChannelKit;
 #import "BaseViewController.h"
 #import "common.h"
 #import "Zello.h"
