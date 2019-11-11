@@ -6,7 +6,7 @@
 //  Copyright © 2018 Zello. All rights reserved.
 //
 
-#import <ZelloChannelKit/ZelloChannelKit.h>
+@import ZelloChannelKit;
 #import "RiderDriverViewController.h"
 #import "SessionViewController.h"
 #import "common.h"
