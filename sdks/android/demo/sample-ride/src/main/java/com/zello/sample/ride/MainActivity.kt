@@ -1,32 +1,45 @@
 package com.zello.sample.ride
 
+import android.Manifest
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.DialogInterface
 import android.content.pm.PackageManager
 import android.content.res.Configuration
+import android.graphics.BitmapFactory
 import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
+import android.support.v4.app.ActivityCompat
+import android.support.v4.content.ContextCompat
+import android.support.v7.app.AlertDialog
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.MenuItem
 import android.view.View
+import android.view.inputmethod.InputMethodManager
+import android.widget.FrameLayout
 import android.widget.Toast
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.Marker
+import com.google.android.gms.maps.model.MarkerOptions
+import com.zello.channel.sdk.ImageInfo
 import com.zello.channel.sdk.ReconnectReason
 import com.zello.channel.sdk.IncomingVoiceConfiguration
 import com.zello.channel.sdk.IncomingVoiceStream
 import com.zello.channel.sdk.IncomingVoiceStreamInfo
+import com.zello.channel.sdk.Location
 import com.zello.channel.sdk.OutgoingVoiceConfiguration
 import com.zello.channel.sdk.OutgoingVoiceStream
 import com.zello.channel.sdk.OutgoingVoiceStreamError
+import com.zello.channel.sdk.SentLocationCallback
 import com.zello.channel.sdk.Session
 import com.zello.channel.sdk.SessionConnectError
 import com.zello.channel.sdk.SessionListener
@@ -35,6 +48,7 @@ import com.zello.channel.sdk.VoiceSink
 import com.zello.channel.sdk.VoiceSource
 import com.zello.channel.sdk.VoiceStreamState
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.image_message_dialog_contents.view.*
 import java.util.Date
 
 @Suppress("NON_EXHAUSTIVE_WHEN")
@@ -56,6 +70,7 @@ class MainActivity : AppCompatActivity(), SessionListener, OnMapReadyCallback, P
 
 	private var incomingStream: IncomingVoiceStream? = null
 	private var outgoingStream: OutgoingVoiceStream? = null
+	private var pendingSendLocation: Boolean = false
 
 	private val qaFragment
 		get() = fragmentManager.findFragmentById(R.id.qaFragment) as? QaMonitorFragment
@@ -108,8 +123,46 @@ class MainActivity : AppCompatActivity(), SessionListener, OnMapReadyCallback, P
 		talkButtonLandscape.imageResourceId = R.drawable.ptt_icon
 		honkButtonPortrait.setOnClickListener { honk() }
 		honkButtonLandscape.setOnClickListener { honk() }
+		sendFeedbackButton.setOnClickListener {
+			sendFeedback(sendFeedbackField.text.toString())
+			sendFeedbackField.text.clear()
+			val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+			imm.hideSoftInputFromWindow(sendFeedbackField.windowToken, 0)
+		}
+		carImageButton.setOnClickListener { sendCarImage() }
+		rideActionNavigatePortrait.setOnClickListener { sendLocation() }
+		rideActionNavigateLandscape.setOnClickListener { sendLocation() }
 
 		update()
+	}
+
+	private fun sendLocation() {
+		if (pendingSendLocation) return
+
+		pendingSendLocation = true
+		// Check if we have location permission
+		if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_DENIED
+			&& ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_DENIED) {
+			// Prompt for location permission
+			ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.ACCESS_FINE_LOCATION), 1234)
+			return
+		}
+
+		sendLocationMessage()
+	}
+
+	private fun sendLocationMessage() {
+		session?.sendLocation(SentLocationCallback { _, error ->
+			if (error != null) {
+				Log.w(TAG, "Failed to send location: ${error.errorMessage}")
+			}
+			pendingSendLocation = false
+		})
+	}
+
+	private fun sendCarImage() {
+		val image = BitmapFactory.decodeResource(resources, R.drawable.smolcar)
+		session?.sendImage(image)
 	}
 
 	override fun onDestroy() {
@@ -277,6 +330,8 @@ class MainActivity : AppCompatActivity(), SessionListener, OnMapReadyCallback, P
 		configureMap()
 	}
 
+	//region SessionListener
+
 	/**
 	 * Connection process to the server has started.
 	 */
@@ -356,7 +411,7 @@ class MainActivity : AppCompatActivity(), SessionListener, OnMapReadyCallback, P
 	 */
 	override fun onIncomingVoiceWillStart(session: Session, streamInfo: IncomingVoiceStreamInfo): IncomingVoiceConfiguration? {
 		if (role == Role.QA) {
-			val message = ChannelMessage(streamInfo.sender, Date())
+			val message = ChannelMessageVoice(streamInfo.sender, Date())
 			qaFragment?.onNewMessage(message)
 			return IncomingVoiceConfiguration(message, qaFragment?.isRealtimeMonitorEnabled ?: false)
 		}
@@ -390,6 +445,42 @@ class MainActivity : AppCompatActivity(), SessionListener, OnMapReadyCallback, P
 		if (incomingStream == stream) updatePttButton()
 	}
 
+	override fun onTextMessage(session: Session, message: String, sender: String) {
+		if (role == Role.QA) {
+			qaFragment?.onTextMessage(message = message, sender = sender)
+		}
+	}
+
+	override fun onImageMessage(session: Session, imageInfo: ImageInfo) {
+		if (imageInfo.image == null) {
+			// Ignoring thumbnail
+			return
+		}
+
+		val builder = AlertDialog.Builder(this)
+		builder.setTitle("From ${imageInfo.sender}")
+		val imageView = layoutInflater.inflate(R.layout.image_message_dialog_contents, null)
+		imageView.imageView.setImageBitmap(imageInfo.image)
+		builder.setView(imageView)
+		builder.setPositiveButton("OK") { _, _ ->
+			// Just close the dialog
+		}
+
+		val dialog = builder.create()
+		dialog.show()
+	}
+
+	override fun onLocationMessage(session: Session, sender: String, location: Location) {
+		if (role == Role.RIDER) {
+			// Update map to show position
+			map?.addMarker(MarkerOptions().position(LatLng(location.latitude, location.longitude)).title(sender))
+			map?.moveCamera(CameraUpdateFactory.newLatLng(latlng))
+			map?.animateCamera(CameraUpdateFactory.newLatLngZoom(latlng, mapZoomLevel), mapZoomAnimationDuration, null)
+		}
+	}
+
+	//endregion
+
 	private fun handleQaMessageEnded(stream: IncomingVoiceStream) {
 		qaFragment?.onMessageEnd(stream)
 	}
@@ -417,6 +508,14 @@ class MainActivity : AppCompatActivity(), SessionListener, OnMapReadyCallback, P
 	 * Callback received when a permissions request has been completed.
 	 */
 	override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+		if (permissions.contains(Manifest.permission.ACCESS_FINE_LOCATION)) {
+			val locationIndex = permissions.indexOf(Manifest.permission.ACCESS_FINE_LOCATION)
+			if (grantResults[locationIndex] == PackageManager.PERMISSION_GRANTED) {
+				sendLocationMessage()
+			} else {
+				pendingSendLocation = false
+			}
+		}
 	}
 
 	private fun attemptLogin() {
@@ -434,6 +533,10 @@ class MainActivity : AppCompatActivity(), SessionListener, OnMapReadyCallback, P
 		if (!initial) {
 			update()
 		}
+	}
+
+	private fun sendFeedback(message: String) {
+		session?.sendText(message)
 	}
 
 	/**
@@ -593,6 +696,7 @@ class MainActivity : AppCompatActivity(), SessionListener, OnMapReadyCallback, P
 		talkButtonPortraitContainer.visibility = if (portrait) View.VISIBLE else View.GONE
 		talkButtonLandscape.visibility = if (!portrait) View.VISIBLE else View.GONE
 		honkButtonLandscape.visibility = if (portrait) View.GONE else View.VISIBLE
+		sendFeedbackContainer.visibility = View.GONE
 	}
 
 	// Called to set up the screen when the rider mode is activated
@@ -614,6 +718,7 @@ class MainActivity : AppCompatActivity(), SessionListener, OnMapReadyCallback, P
 		talkButtonPortraitContainer.visibility = if (portrait) View.VISIBLE else View.GONE
 		talkButtonLandscape.visibility = if (!portrait) View.VISIBLE else View.GONE
 		honkButtonLandscape.visibility = View.GONE
+		sendFeedbackContainer.visibility = View.VISIBLE
 	}
 
 	private fun setupQa() {

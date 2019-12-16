@@ -1,11 +1,21 @@
 package com.zello.sample.ride
 
-import android.util.Log
 import com.zello.channel.sdk.IncomingVoiceStream
 import com.zello.channel.sdk.VoiceReceiver
 import java.util.Date
 
-class ChannelMessage(val sender: String, val receivedDate: Date) : VoiceReceiver {
+interface ChannelMessage {
+	val sender: String
+	val receivedDate: Date
+	val isRecording: Boolean
+		get() {
+			 return false
+		}
+	val titleText: String
+	val subtitleText: String
+}
+
+class ChannelMessageVoice(override val sender: String, override val receivedDate: Date) : ChannelMessage, VoiceReceiver {
 
 	interface Events {
 		fun onRecordingChanged(message: ChannelMessage, isRecording: Boolean)
@@ -16,12 +26,22 @@ class ChannelMessage(val sender: String, val receivedDate: Date) : VoiceReceiver
 			value?.onRecordingChanged(this, isRecording)
 		}
 
-	var isRecording = false
+	override var isRecording = false
 		private set(value) {
 			if (field != value) {
 				field = value
 				listener?.onRecordingChanged(this, value)
 			}
+		}
+
+	override val titleText: String
+		get() {
+			return sender
+		}
+
+	override val subtitleText: String
+		get() {
+			return receivedDate.toString()
 		}
 
 	var audioData = shortArrayOf()
@@ -55,8 +75,9 @@ class ChannelMessage(val sender: String, val receivedDate: Date) : VoiceReceiver
 	// endregion
 
 	override fun toString() = "<ChannelMessage from ${sender} at ${receivedDate}>"
+}
 
-	companion object {
-		private val TAG = "ZCC->CM"
-	}
+class ChannelMessageText(override val sender: String, override val receivedDate: Date, val message: String) : ChannelMessage {
+	override val titleText = message
+	override val subtitleText = sender
 }

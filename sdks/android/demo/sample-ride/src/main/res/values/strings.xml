@@ -18,7 +18,7 @@
     <string name="action_sign_in">Continue</string>
     <string name="action_sign_in_short">Continue</string>
     <string name="action_cancel">Cancel</string>
-    <string name="action_navigate">Navigate</string>
+    <string name="action_navigate">Send Location</string>
     <string name="error_sdk">There was an error while initializing the SDK.</string>
     <string name="error_field_required">This field is required</string>
     <string name="error_connect_unknown">Unexpected error occurred.</string>
