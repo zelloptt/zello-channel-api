@@ -32,7 +32,7 @@
 			android:textSize="@dimen/text_medium" />
 	</LinearLayout>
 
-	<!-- User role -->
+	<!-- Role selection UI -->
 	<LinearLayout
 		android:id="@+id/roleForm"
 		android:layout_width="match_parent"
@@ -123,6 +123,7 @@
 			android:layout_height="match_parent"
 			android:visibility="gone" />
 
+		<!-- Header -->
 		<LinearLayout
 			android:id="@+id/rideTopPanel"
 			android:layout_width="match_parent"
@@ -223,6 +224,7 @@
 					android:gravity="center_vertical"
 					android:orientation="horizontal">
 
+					<!-- Driver info -->
 					<LinearLayout
 						android:id="@+id/rideBottomDriverPanel"
 						android:layout_width="0dp"
@@ -272,8 +274,20 @@
 							android:text="@string/rider_info"
 							android:textColor="@color/text_info"
 							android:textSize="@dimen/text_medium" />
+
+
+						<ImageButton
+							android:id="@+id/carImageButton"
+							android:layout_width="44dp"
+							android:layout_height="44dp"
+							android:layout_margin="8dp"
+							android:padding="0dp"
+							android:scaleType="fitCenter"
+							android:src="@drawable/smolcar"/>
+
 					</LinearLayout>
 
+					<!-- Rider info -->
 					<LinearLayout
 						android:id="@+id/rideBottomRiderPanel"
 						android:layout_width="0dp"
@@ -349,6 +363,30 @@
 					android:text="@string/action_honk"/>
 			</LinearLayout>
 
+			<LinearLayout
+				android:id="@+id/sendFeedbackContainer"
+				android:layout_width="match_parent"
+				android:layout_height="wrap_content"
+				android:orientation="horizontal"
+				android:background="@drawable/floating_panel"
+				android:elevation="@dimen/panel_elevation"
+				android:layout_marginTop="@dimen/panel_margin"
+				android:padding="2dp"
+				android:visibility="visible">
+				<EditText
+					android:id="@+id/sendFeedbackField"
+					android:layout_width="0dp"
+					android:layout_height="wrap_content"
+					android:layout_weight="1"
+					android:hint="Send Feedback"/>
+				<Button
+					android:id="@+id/sendFeedbackButton"
+					android:layout_width="wrap_content"
+					android:layout_height="match_parent"
+					android:text="Send"/>
+			</LinearLayout>
+
+			<!-- PTT Button -->
 			<LinearLayout
 				android:id="@+id/talkButtonPortraitContainer"
 				android:layout_width="match_parent"
