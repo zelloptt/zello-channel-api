@@ -20,7 +20,7 @@ class QaMonitorFragment : Fragment() {
 
 	class ChannelMessageAdapter(context: Context) : ArrayAdapter<ChannelMessage>(context, android.R.layout.simple_list_item_activated_2) {
 
-		override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
+		override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
 			val view = convertView ?: LayoutInflater.from(context).inflate(android.R.layout.simple_list_item_activated_2, parent, false)
 			val message = getItem(position) ?: return super.getView(position, convertView, parent)
 
@@ -94,7 +94,7 @@ class QaMonitorFragment : Fragment() {
 	}
 
 	// region Fragment lifecycle
-	override fun onCreateView(inflater: LayoutInflater?, container: ViewGroup?, savedInstanceState: Bundle?): View {
+	override fun onCreateView(inflater: LayoutInflater?, container: ViewGroup?, savedInstanceState: Bundle?): View? {
 		if (inflater == null) {
 			return super.onCreateView(inflater, container, savedInstanceState)
 		}
