@@ -13,7 +13,7 @@ The [protocol specification](https://github.com/zelloptt/zello-channel-api/blob/
 
 ## Current Version
 
-The Zello Channels SDK 1.0 is currently in beta.
+The Zello Channels SDK 0.5 is currently in beta.
 
 ## Installation
 
@@ -21,27 +21,30 @@ The Zello Channels SDK 1.0 is currently in beta.
 
 #### Prerequisites
 
-Use [Android Studio](https://developer.android.com/studio/) 3.2.1 or newer to develop with Zello Channels SDK for Android. The SDK is delivered as .aar library but you can also build it from [source](android/sdk).
+Use [Android Studio](https://developer.android.com/studio/) 3.5.3 or newer to develop with Zello Channels SDK for Android. The SDK is available on JCenter as `com.zello:zello-channel-sdk`.
 
 #### Configure your project
 
 Open your project in Android Studio or create a new one. Alternatively you can use a [demo](android/demo) included with the SDK to get started.
 
-Click `File > New > New Module`. Click `Import .JAR/.AAR Package` then click Next. Browse for `zello-channel-sdk.aar` then click Finish.
+Ensure that `jcenter()` is included in your `repositories` closure. Example:
 
-Make sure `':zello-channel-sdk'` is listed at the top of your `settings.gradle` file:
-
+```gradle
+allprojects {
+  repositories {
+    jcenter()
+  }
+}
 ```
-include ':app', ':zello-channel-sdk'
-``` 
 
-Add `implementation project(':zello-channel-sdk')` to `dependencies` section of your `build.gradle` file for the main app module. Example:
+Add `implementation 'com.zello:zello-channel-sdk'` to your `dependencies` closure. Example:
 
 ```gradle
 dependencies {
-    implementation project(':zello-channel-sdk')
+    implementation 'com.zello:zello-channel-sdk:0.5.0'
 }
 ```
+
 For additional information please refer to the Android Studio [documentation](https://developer.android.com/studio/projects/android-library#AddDependency).
 
 
@@ -156,7 +159,6 @@ val session = Session.Builder(this, serverAddress, myToken, "mysteries").
 session.sessionListener = this
 session.connect()
 ```
-
 
 ###### iOS
 Each connection to the Zello server is represented by a `ZCCSession` object. When you create the `ZCCSession` object, you provide it with the address for the Zello server, your authentication token, the name of the channel you are connecting to, and optionally a username and password. 
@@ -273,6 +275,11 @@ In Android, the events interface is `SessionListener`.
 |`onIncomingVoiceStarted()`|An incoming voice stream has been established and has started playing.
 |`onIncomingVoiceStopped()`|An incoming voice stream has finished playing.
 |`onIncomingVoiceProgress()`|This callback is called periodically as incoming voice data is decoded.
+|`onChannelStatusUpdate()`|The channel the session is connected to has changed its status. The Session object contains information about the numbers of users connected to the channel and the messaging features supported by the channel.
+|`onTextMessage()`|A text message has been received on the channel.
+|`onImageMessage()`|An image message has been received on the channel.
+|`onLocationMessage()`|A location message has been received on the channel.
+|`onError()`|A non-fatal error has been encountered. The Session is still connected to the channel and can still be used.
 
 ###### iOS
 In iOS, the events interface is `ZCCSessionDelegate`.
