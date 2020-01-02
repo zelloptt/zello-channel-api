@@ -65,14 +65,13 @@ class DriverRiderFragment: Fragment(), OnMapReadyCallback, PttButton.PttButtonLi
 		}
 		this.savedInstanceState = savedInstanceState
 
-		// TODO: Inflate correct layout
 		return inflater.inflate(R.layout.driver_rider, container)
 	}
 
 	override fun onViewCreated(view: View?, savedInstanceState: Bundle?) {
 		super.onViewCreated(view, savedInstanceState)
 
-		// TODO: Attach event listeners
+		// Attach event listeners
 		rideActionCancel?.setOnClickListener {
 			listener?.onCancel()
 		}
@@ -86,8 +85,7 @@ class DriverRiderFragment: Fragment(), OnMapReadyCallback, PttButton.PttButtonLi
 		carImageButton.setOnClickListener { sendCarImage() }
 		rideActionNavigatePortrait.setOnClickListener { sendLocation() }
 
-
-		// TODO: View touchup
+		// View touchup
 		talkButtonPortrait.listener = this
 		talkButtonPortrait.textAppearance = R.style.TextAppearance_Button_Ptt
 		talkButtonPortrait.imageResourceId = R.drawable.ptt_icon
@@ -254,34 +252,21 @@ class DriverRiderFragment: Fragment(), OnMapReadyCallback, PttButton.PttButtonLi
 
 	// Called to set up the screen when the driver mode is activated
 	fun setupDriver() {
-//		if (session == null) {
-//			session = Session.Builder(this, MainActivity.serverAddress, MainActivity.devAuthToken, MainActivity.channelName).
-//					setUsername("", "").build()
-//		}
 		Zello.instance.establishSession(activity, "", "")
 
 		updatePttButton()
-//		val portrait = isPortrait()
 		rideText1.text = resources.getString(R.string.ride_driver_text1)
 		rideText2.text = resources.getString(R.string.ride_driver_text2)
 		rideActionNavigatePortrait.visibility = View.VISIBLE
-//		rideActionNavigateLandscape.visibility = if (!portrait) View.VISIBLE else View.GONE
 		rideActionCancel.visibility = View.GONE
 		rideBottomDriverPanel.visibility = View.VISIBLE
 		rideBottomRiderPanel.visibility = View.GONE
 		talkButtonPortraitContainer.visibility = View.VISIBLE
-//		talkButtonLandscape.visibility = if (!portrait) View.VISIBLE else View.GONE
-//		honkButtonLandscape.visibility = if (portrait) View.GONE else View.VISIBLE
 		sendFeedbackContainer.visibility = View.GONE
 	}
 
 	// Called to set up the screen when the rider mode is activated
 	fun setupRider() {
-//		if (session == null) {
-//			session = Session.Builder(this, serverAddress, devAuthToken, channelName).
-//					setUsername("", "").build()
-//		}
-
 		Zello.instance.establishSession(activity, "", "")
 
 		updatePttButton()
@@ -289,13 +274,10 @@ class DriverRiderFragment: Fragment(), OnMapReadyCallback, PttButton.PttButtonLi
 		rideText1.text = resources.getString(R.string.ride_rider_text1)
 		rideText2.text = resources.getString(R.string.ride_rider_text2)
 		rideActionNavigatePortrait.visibility = View.GONE
-//		rideActionNavigateLandscape.visibility = View.GONE
 		rideActionCancel.visibility = View.VISIBLE
 		rideBottomDriverPanel.visibility = View.GONE
 		rideBottomRiderPanel.visibility = View.VISIBLE
 		talkButtonPortraitContainer.visibility = if (portrait) View.VISIBLE else View.GONE
-//		talkButtonLandscape.visibility = if (!portrait) View.VISIBLE else View.GONE
-//		honkButtonLandscape.visibility = View.GONE
 		sendFeedbackContainer.visibility = View.VISIBLE
 	}
 
