@@ -329,7 +329,7 @@ All apps using Zello SDK must adhere to the following guidelines:
 
 ## Additional resources
 
-* [Android SDK API reference](https://zelloptt.github.io/zello-channel-api/Android/com.zello.channel.sdk/)
+* [Android SDK API reference](https://www.javadoc.io/doc/com.zello/zello-channel-sdk/latest/com.zello.channel.sdk/index.html)
 * [iOS SDK API reference](https://zelloptt.github.io/zello-channel-api/iOS/)
 * [Browser Javascript API reference](https://zelloptt.github.io/zello-channel-api/js/Sdk.html)
 * [Zello Channel Server API](https://github.com/zelloptt/zello-channel-api/blob/master/API.md)
