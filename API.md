@@ -237,7 +237,7 @@ Starts sending a new image to the channel. The successful response includes `ima
 `{type(8) = 0x02, image_id(32), image_type(32) = 0x01, data[]}`
 
 ## Sending text messages
-After successfully connecting to the channel and receiving channel status you can start sending text images.
+After successfully connecting to the channel and receiving channel status you can start sending text messages.
 
 ### `send_text_message`
 Sends a new text message to the channel.
@@ -522,6 +522,6 @@ Indicates incoming shared location from the channel.
 |Send and receive voice messages | Supported | Supported
 |Interoperability with Zello apps on Android, iOS, and PC | Supported | Supported
 |Create and access ad hoc channels anonymously | Planned | Planned
-|Send and receive images | Planned | Planned
-|Send and receive text messages | Planned | Planned
+|Send and receive images | Supported | Supported
+|Send and receive text messages | Supported | Supported
 |Moderate Zello consumer channels | Planned | n/a
