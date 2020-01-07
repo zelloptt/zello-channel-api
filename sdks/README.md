@@ -13,7 +13,7 @@ The [protocol specification](https://github.com/zelloptt/zello-channel-api/blob/
 
 ## Current Version
 
-The Zello Channels SDK 1.0 is currently in beta.
+The Zello Channels SDK 0.5 is currently in beta.
 
 ## Installation
 
@@ -49,47 +49,16 @@ For additional information please refer to the Android Studio [documentation](ht
 
 #### Prerequisites
 
-The Zello Channels SDK for iOS was developed using Xcode 9.2 and has not been tested with earlier versions. We recommend using Xcode 9.2 or newer to develop apps that incorporate the Zello Channels SDK.
+The Zello Channels SDK for iOS was developed using Xcode 10.3 and has not been tested with earlier versions. We recommend using Xcode 10.3 or newer to develop apps that incorporate the Zello Channels SDK.
 
 [Download Xcode](https://itunes.apple.com/us/app/xcode/id497799835?mt=12) and install it. Open your existing project or create a new one. The minimum iOS version supported by the Zello Channels SDK is iOS 9.3.
 
 #### Configure your project
 
-Select your project in Xcode, and drag the `ZelloChannelKit.framework` file into the Embedded Binaries section of the project's General tab. This should set up the project to link against the ZelloChannelKit framework and include it in the packaged app.
+ZelloChannelKit is distributed as a cocoapod. If you are not already using Cocoapods in your project, follow [the instructions](https://cocoapods.org/) to download and set it up. Add the following line to your `Podfile`:
 
-`ZelloChannelKit.framework` is compiled to run on both devices and in the iOS simulator. Before you can release your app, you must remove the simulator code from the framework. You can configure Xcode to automatically remove the simulator code from embedded frameworks for Release builds. Select the Build Phases tab for your project and click the + button to add a new Run Script phase. Copy the following script into the box:
-
-```sh
-if [ "${CONFIGURATION}" != "Debug" ]; then
-APP_PATH="${TARGET_BUILD_DIR}/${WRAPPER_NAME}"
-
-# This script loops through the frameworks embedded in the application and
-# removes unused architectures.
-find "$APP_PATH" -name '*.framework' -type d | while read -r FRAMEWORK
-do
-FRAMEWORK_EXECUTABLE_NAME=$(defaults read "$FRAMEWORK/Info.plist" CFBundleExecutable)
-FRAMEWORK_EXECUTABLE_PATH="$FRAMEWORK/$FRAMEWORK_EXECUTABLE_NAME"
-echo "Executable is $FRAMEWORK_EXECUTABLE_PATH"
-
-EXTRACTED_ARCHS=()
-
-for ARCH in $ARCHS
-do
-echo "Extracting $ARCH from $FRAMEWORK_EXECUTABLE_NAME"
-lipo -extract "$ARCH" "$FRAMEWORK_EXECUTABLE_PATH" -o "$FRAMEWORK_EXECUTABLE_PATH-$ARCH"
-EXTRACTED_ARCHS+=("$FRAMEWORK_EXECUTABLE_PATH-$ARCH")
-done
-
-echo "Merging extracted architectures: ${ARCHS}"
-lipo -o "$FRAMEWORK_EXECUTABLE_PATH-merged" -create "${EXTRACTED_ARCHS[@]}"
-rm "${EXTRACTED_ARCHS[@]}"
-
-echo "Replacing original executable with thinned version"
-rm "$FRAMEWORK_EXECUTABLE_PATH"
-mv "$FRAMEWORK_EXECUTABLE_PATH-merged" "$FRAMEWORK_EXECUTABLE_PATH"
-
-done
-fi
+```
+pod 'ZelloChannelKit', '~> 0.5'
 ```
 
 ### Browser JavaScript
@@ -156,7 +125,6 @@ val session = Session.Builder(this, serverAddress, myToken, "mysteries").
 session.sessionListener = this
 session.connect()
 ```
-
 
 ###### iOS
 Each connection to the Zello server is represented by a `ZCCSession` object. When you create the `ZCCSession` object, you provide it with the address for the Zello server, your authentication token, the name of the channel you are connecting to, and optionally a username and password. 
@@ -291,6 +259,11 @@ In iOS, the events interface is `ZCCSessionDelegate`.
 |`session:incomingVoiceDidStart:`|An incoming voice stream has been established and has started playing.
 |`session:incomingVoiceDidStop:`|An incoming voice stream has finished playing.
 |`session:incomingVoice:didUpdateProgress:`|This callback is called periodically as incoming voice data is decoded.
+|`sessionDidUpdateChannelStatus:`|The channel the session is connected to has changed its status. The Session contains information about the numbers of users connected to the channel and the messaging features supported by the channel.
+|`session:didReceiveText:from:`|A text message has been received on the channel.
+|`session:didReceiveImage:`|An image message has been received on the channel.
+|`session:didReceiveLocation:from:`|A location message has been received on the channel.
+|`session:didEncounterError:`|A non-fatal error has been encountered. The Session is still connected to the channel and can still be used.
 
 > __NB:__ `ZCCSessionDelegate` methods are called on the dispatch queue you provided to the `ZCCSession` initializer. If you did not provide a dispatch queue, the delegate methods are called on the main dispatch queue.
 
