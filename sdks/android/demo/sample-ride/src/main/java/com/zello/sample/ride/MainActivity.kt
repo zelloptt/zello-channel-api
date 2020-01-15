@@ -1,5 +1,6 @@
 package com.zello.sample.ride
 
+import android.Manifest
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
 import android.annotation.SuppressLint
@@ -9,54 +10,49 @@ import android.content.res.Configuration
 import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
-import android.support.v7.app.AppCompatActivity
-import android.util.Log
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.MenuItem
 import android.view.View
 import android.widget.Toast
-import com.google.android.gms.maps.CameraUpdateFactory
-import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.model.LatLng
+import com.zello.channel.sdk.ImageInfo
 import com.zello.channel.sdk.ReconnectReason
 import com.zello.channel.sdk.IncomingVoiceConfiguration
 import com.zello.channel.sdk.IncomingVoiceStream
 import com.zello.channel.sdk.IncomingVoiceStreamInfo
-import com.zello.channel.sdk.OutgoingVoiceConfiguration
+import com.zello.channel.sdk.Location
 import com.zello.channel.sdk.OutgoingVoiceStream
 import com.zello.channel.sdk.OutgoingVoiceStreamError
 import com.zello.channel.sdk.Session
 import com.zello.channel.sdk.SessionConnectError
 import com.zello.channel.sdk.SessionListener
 import com.zello.channel.sdk.SessionState
-import com.zello.channel.sdk.VoiceSink
-import com.zello.channel.sdk.VoiceSource
-import com.zello.channel.sdk.VoiceStreamState
 import kotlinx.android.synthetic.main.activity_main.*
+import kotlinx.android.synthetic.main.image_message_dialog_contents.view.*
 import java.util.Date
 
 @Suppress("NON_EXHAUSTIVE_WHEN")
-class MainActivity : AppCompatActivity(), SessionListener, OnMapReadyCallback, PttButton.PttButtonListener {
+class MainActivity : AppCompatActivity(), SessionListener {
 
-	private var session: Session? = null
+	private val session: Session? get() = Zello.instance.session
 	private var role: Role = Role.NONE
 		set(value) {
 			if (field == Role.QA && value != Role.QA) {
 				qaFragment?.reset()
 			}
 			field = value
+			driverRiderFragment?.role = value
 		}
-	private var mapReady: Boolean = false
 	private var savedInstanceState: Bundle? = null
-	private var map: GoogleMap? = null
-	private var mapConfigured: Boolean = false
 	private var orientation = Configuration.ORIENTATION_PORTRAIT
 
-	private var incomingStream: IncomingVoiceStream? = null
-	private var outgoingStream: OutgoingVoiceStream? = null
+	private var pendingSendLocation: Boolean = false
 
+	private val driverRiderFragment
+		get() = fragmentManager.findFragmentById(R.id.driverRiderFragment) as? DriverRiderFragment
 	private val qaFragment
 		get() = fragmentManager.findFragmentById(R.id.qaFragment) as? QaMonitorFragment
 
@@ -71,20 +67,14 @@ class MainActivity : AppCompatActivity(), SessionListener, OnMapReadyCallback, P
 		orientation = resources.configuration.orientation
 
 		if (savedInstanceState != null) {
-			session = lastCustomNonConfigurationInstance as? Session
 			selectRole(Role.fromInt(savedInstanceState.getInt(extraRole, SessionState.DISCONNECTED.ordinal)), true)
 			if (session == null || session?.state == SessionState.DISCONNECTED) {
 				if (savedInstanceState.getBoolean(extraConnected, false)) {
 					attemptLogin()
 				}
-			} else {
-				session?.sessionListener = this
 			}
 		}
-
-		rideActionCancel.setOnClickListener {
-			disconnect()
-		}
+		Zello.instance.listener = this
 
 		riderButton.setOnClickListener {
 			selectRole(Role.RIDER, false)
@@ -99,64 +89,15 @@ class MainActivity : AppCompatActivity(), SessionListener, OnMapReadyCallback, P
 			attemptLogin()
 		}
 		progressCancelButton.setOnClickListener { disconnect() }
-		talkButtonPortrait.listener = this
-		talkButtonPortrait.textAppearance = R.style.TextAppearance_Button_Ptt
-		talkButtonPortrait.imageResourceId = R.drawable.ptt_icon
-		talkButtonLandscape.compact = true
-		talkButtonLandscape.listener = this
-		talkButtonLandscape.textAppearance = R.style.TextAppearance_Button_Ptt
-		talkButtonLandscape.imageResourceId = R.drawable.ptt_icon
-		honkButtonPortrait.setOnClickListener { honk() }
-		honkButtonLandscape.setOnClickListener { honk() }
 
 		update()
 	}
 
 	override fun onDestroy() {
 		super.onDestroy()
-		(talkButtonPortrait as PttButton).listener = null
-		(talkButtonLandscape as PttButton).listener = null
-		session?.sessionListener = null
-		session?.disconnect()
-		if (mapReady) {
-			try {
-				rideMap.onDestroy()
-			} catch (ignore: Throwable) {
-			}
-		}
+		Zello.instance.disconnect()
 	}
 
-	override fun onResume() {
-		super.onResume()
-		if (mapReady) {
-			try {
-				rideMap.onResume()
-			} catch (ignore: Throwable) {
-			}
-		} else {
-			initMap(savedInstanceState, true)
-		}
-	}
-
-	override fun onPause() {
-		super.onPause()
-		if (mapReady) {
-			try {
-				rideMap?.onPause()
-			} catch (ignore: Throwable) {
-			}
-		}
-	}
-
-	override fun onLowMemory() {
-		super.onLowMemory()
-		if (mapReady) {
-			try {
-				rideMap.onLowMemory()
-			} catch (ignore: Throwable) {
-			}
-		}
-	}
 
 	override fun onSaveInstanceState(outState: Bundle) {
 		super.onSaveInstanceState(outState)
@@ -174,8 +115,8 @@ class MainActivity : AppCompatActivity(), SessionListener, OnMapReadyCallback, P
 			orientation = newConfig.orientation
 			update()
 			when (role) {
-				Role.RIDER -> setupRider()
-				Role.DRIVER -> setupDriver()
+				Role.RIDER -> driverRiderFragment?.setupRider()
+				Role.DRIVER -> driverRiderFragment?.setupDriver()
 				Role.QA -> setupQa()
 			}
 		}
@@ -206,76 +147,10 @@ class MainActivity : AppCompatActivity(), SessionListener, OnMapReadyCallback, P
 
 		riderLayout.requestLayout()
 		driverLayout.requestLayout()
-		rideBottomPanel.requestLayout()
+		driverRiderFragment?.requestLayout()
 	}
 
-	override fun onPttButtonDown() {
-		if (session?.state != SessionState.CONNECTED) return
-		if (mayRecordAudio()) {
-			outgoingStream = session?.startVoiceMessage()
-		}
-	}
-
-	override fun onPttButtonUp(cancelled: Boolean) {
-		outgoingStream?.stop()
-	}
-
-	fun honk() {
-		if (outgoingStream != null) {
-			return
-		}
-		val session = session ?: return
-
-		val voiceSource = object: VoiceSource {
-			var stopped = false
-
-			override fun startProvidingAudio(sink: VoiceSink, sampleRate: Int, stream: OutgoingVoiceStream) {
-				val honkFd = resources.openRawResourceFd(R.raw.honk)
-				val honkReader = WavReader(honkFd)
-				fun wavReaderCallback(status: WavReader.ReadStatus, samples: ShortArray?) {
-					if (stopped) return
-
-					when (status) {
-						WavReader.ReadStatus.Done -> {
-							if (samples != null && samples.isNotEmpty()) {
-								sink.provideAudio(samples)
-							}
-							sink.stop()
-							outgoingStream?.stop()
-						}
-						WavReader.ReadStatus.More -> {
-							if (samples != null && samples.isNotEmpty()) {
-								sink.provideAudio(samples)
-							}
-						}
-						WavReader.ReadStatus.Error -> {
-							Log.w(TAG, "Error reading honk.wav")
-							sink.stop()
-							outgoingStream?.stop()
-						}
-					}
-				}
-				honkReader.read(::wavReaderCallback)
-			}
-
-			override fun stopProvidingAudio(sink: VoiceSink) {
-				stopped = true
-			}
-
-		}
-
-		// Read the sample rate from the audio file
-		val honkFd = resources.openRawResourceFd(R.raw.honk)
-		val honkReader = WavReader(honkFd)
-		val sampleRate = honkReader.sampleRate
-		honkFd.close()
-		outgoingStream = session.startVoiceMessage(OutgoingVoiceConfiguration(voiceSource, sampleRate)) ?: return
-	}
-
-	override fun onMapReady(googleMap: GoogleMap?) {
-		map = googleMap
-		configureMap()
-	}
+	//region SessionListener
 
 	/**
 	 * Connection process to the server has started.
@@ -295,11 +170,8 @@ class MainActivity : AppCompatActivity(), SessionListener, OnMapReadyCallback, P
 	 * Server connection was ended.
 	 */
 	override fun onDisconnected(session: Session) {
-		incomingStream = null
-		outgoingStream = null
 		role = Role.NONE
 		update()
-		this.session = null
 		showToast(this, R.string.error_disconnected)
 	}
 
@@ -307,9 +179,7 @@ class MainActivity : AppCompatActivity(), SessionListener, OnMapReadyCallback, P
 	 * We've been disconnected, but will automatically reconnect
 	 */
 	override fun onSessionWillReconnect(session: Session, reason: ReconnectReason): Boolean {
-		incomingStream = null
-		outgoingStream = null
-		updatePttButton()
+		driverRiderFragment?.updatePttButton()
 		return true
 	}
 
@@ -319,7 +189,6 @@ class MainActivity : AppCompatActivity(), SessionListener, OnMapReadyCallback, P
 	override fun onConnectFailed(session: Session, error: SessionConnectError) {
 		role = Role.NONE
 		update()
-		this.session = null
 		showToast(this, getConnectErrorText(error, this))
 	}
 
@@ -327,10 +196,7 @@ class MainActivity : AppCompatActivity(), SessionListener, OnMapReadyCallback, P
 	 * An outgoing message failed to start.
 	 */
 	override fun onOutgoingVoiceError(session: Session, stream: OutgoingVoiceStream, error: OutgoingVoiceStreamError) {
-		if (outgoingStream == stream) {
-			outgoingStream = null
-		}
-		updatePttButton()
+		driverRiderFragment?.updatePttButton()
 		showToast(this, getVoiceStreamErrorText(error, this))
 	}
 
@@ -338,17 +204,14 @@ class MainActivity : AppCompatActivity(), SessionListener, OnMapReadyCallback, P
 	 * An outgoing message state has changed.
 	 */
 	override fun onOutgoingVoiceStateChanged(session: Session, stream: OutgoingVoiceStream) {
-		if (stream == outgoingStream && stream.state == VoiceStreamState.STOPPED) {
-			outgoingStream = null
-		}
-		updatePttButton()
+		driverRiderFragment?.updatePttButton()
 	}
 
 	/**
 	 * An incoming message recording progress has changed.
 	 */
 	override fun onOutgoingVoiceProgress(session: Session, stream: OutgoingVoiceStream, positionMs: Int) {
-		updatePttButton()
+		driverRiderFragment?.updatePttButton()
 	}
 
 	/**
@@ -356,7 +219,7 @@ class MainActivity : AppCompatActivity(), SessionListener, OnMapReadyCallback, P
 	 */
 	override fun onIncomingVoiceWillStart(session: Session, streamInfo: IncomingVoiceStreamInfo): IncomingVoiceConfiguration? {
 		if (role == Role.QA) {
-			val message = ChannelMessage(streamInfo.sender, Date())
+			val message = ChannelMessageVoice(streamInfo.sender, Date())
 			qaFragment?.onNewMessage(message)
 			return IncomingVoiceConfiguration(message, qaFragment?.isRealtimeMonitorEnabled ?: false)
 		}
@@ -368,16 +231,14 @@ class MainActivity : AppCompatActivity(), SessionListener, OnMapReadyCallback, P
 	 * A new incoming message has started playing.
 	 */
 	override fun onIncomingVoiceStarted(session: Session, stream: IncomingVoiceStream) {
-		incomingStream = stream
-		updatePttButton()
+		driverRiderFragment?.updatePttButton()
 	}
 
 	/**
 	 * Incoming message playback has finished.
 	 */
 	override fun onIncomingVoiceStopped(session: Session, stream: IncomingVoiceStream) {
-		incomingStream = null
-		updatePttButton()
+		driverRiderFragment?.updatePttButton()
 		if (role == Role.QA) {
 			handleQaMessageEnded(stream)
 		}
@@ -387,48 +248,105 @@ class MainActivity : AppCompatActivity(), SessionListener, OnMapReadyCallback, P
 	 * Incoming message playback progress changed.
 	 */
 	override fun onIncomingVoiceProgress(session: Session, stream: IncomingVoiceStream, positionMs: Int) {
-		if (incomingStream == stream) updatePttButton()
+		driverRiderFragment?.updatePttButton()
 	}
+
+	override fun onTextMessage(session: Session, message: String, sender: String) {
+		if (role == Role.QA) {
+			qaFragment?.onTextMessage(message = message, sender = sender)
+		}
+	}
+
+	override fun onImageMessage(session: Session, imageInfo: ImageInfo) {
+		if (imageInfo.image == null) {
+			// Ignoring thumbnail
+			return
+		}
+
+		val builder = AlertDialog.Builder(this)
+		builder.setTitle("From ${imageInfo.sender}")
+		val imageView = layoutInflater.inflate(R.layout.image_message_dialog_contents, null)
+		imageView.imageView.setImageBitmap(imageInfo.image)
+		builder.setView(imageView)
+		builder.setPositiveButton("OK") { _, _ ->
+			// Just close the dialog
+		}
+
+		val dialog = builder.create()
+		dialog.show()
+	}
+
+	override fun onLocationMessage(session: Session, sender: String, location: Location) {
+		if (role == Role.RIDER) {
+			driverRiderFragment?.showMark(LatLng(location.latitude, location.longitude), sender)
+		}
+	}
+
+	//endregion
+
+	// region DriverRiderFragmentListener
+
+	val driverRiderListener: DriverRiderFragmentListener by lazy {
+		object : DriverRiderFragmentListener {
+			override fun onCancel() {
+				this@MainActivity.disconnect()
+			}
+
+			override val mayRecordAudio: Boolean
+				get() = this@MainActivity.mayRecordAudio
+		}
+	}
+
+	// endregion
 
 	private fun handleQaMessageEnded(stream: IncomingVoiceStream) {
 		qaFragment?.onMessageEnd(stream)
 	}
 
-	private fun mayRecordAudio(): Boolean {
-		if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-			return true
+	val mayRecordAudio: Boolean
+		get() {
+			if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+				return true
+			}
+			if (checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+				return true
+			}
+			val pref = getSharedPreferences(preferencesName, 0)
+			if (!pref.getBoolean(keyMicPermissionRequested, false) || shouldShowRequestPermissionRationale(android.Manifest.permission.RECORD_AUDIO)) {
+				val editor = pref.edit()
+				editor.putBoolean(keyMicPermissionRequested, true)
+				editor.apply()
+				requestPermissions(arrayOf(android.Manifest.permission.RECORD_AUDIO), REQUEST_RECORD_AUDIO)
+			} else {
+				showToast(this, R.string.error_voice_mic_premission)
+			}
+			return false
 		}
-		if (checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-			return true
-		}
-		val pref = getSharedPreferences(preferencesName, 0)
-		if (!pref.getBoolean(keyMicPermissionRequested, false) || shouldShowRequestPermissionRationale(android.Manifest.permission.RECORD_AUDIO)) {
-			val editor = pref.edit()
-			editor.putBoolean(keyMicPermissionRequested, true)
-			editor.apply()
-			requestPermissions(arrayOf(android.Manifest.permission.RECORD_AUDIO), REQUEST_RECORD_AUDIO)
-		} else {
-			showToast(this, R.string.error_voice_mic_premission)
-		}
-		return false
-	}
 
 	/**
 	 * Callback received when a permissions request has been completed.
 	 */
 	override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+		if (permissions.contains(Manifest.permission.ACCESS_FINE_LOCATION)) {
+			val locationIndex = permissions.indexOf(Manifest.permission.ACCESS_FINE_LOCATION)
+			if (grantResults[locationIndex] == PackageManager.PERMISSION_GRANTED) {
+				driverRiderFragment?.sendLocationMessage()
+			} else {
+				pendingSendLocation = false
+			}
+		}
 	}
 
 	private fun attemptLogin() {
-		session?.sessionListener = this
-		session?.connect()
+		Zello.instance.listener = this
+		Zello.instance.session?.connect()
 	}
 
 	private fun selectRole(role: Role, initial: Boolean) {
 		this.role = role
 		when (role) {
-			Role.DRIVER -> setupDriver()
-			Role.RIDER -> setupRider()
+			Role.DRIVER -> driverRiderFragment?.setupDriver()
+			Role.RIDER -> driverRiderFragment?.setupRider()
 			Role.QA -> setupQa()
 		}
 		if (!initial) {
@@ -461,7 +379,7 @@ class MainActivity : AppCompatActivity(), SessionListener, OnMapReadyCallback, P
 	private fun update() {
 		updateTitle()
 		supportActionBar?.setShowHideAnimationEnabled(false)
-		val state: SessionState = session?.state ?: SessionState.DISCONNECTED
+		val state: SessionState = Zello.instance.session?.state ?: SessionState.DISCONNECTED
 		val error = state == SessionState.ERROR
 		supportActionBar?.setHomeAsUpIndicator(if (state == SessionState.CONNECTED) R.mipmap.icon_cancel else 0)
 		// Show the back button when anything but the first screen is shown
@@ -469,7 +387,7 @@ class MainActivity : AppCompatActivity(), SessionListener, OnMapReadyCallback, P
 		// The driver sees both action bar and toolbar
 		supportActionBar?.elevation = getToolbarElevation(state == SessionState.CONNECTED && role == Role.DRIVER, this)
 		// The rider does not see the action bar
-		if (state == SessionState.CONNECTED && (role == Role.RIDER || !isPortrait())) {
+		if (state == SessionState.CONNECTED && (role == Role.RIDER)) {
 			supportActionBar?.hide()
 		} else {
 			supportActionBar?.show()
@@ -478,23 +396,8 @@ class MainActivity : AppCompatActivity(), SessionListener, OnMapReadyCallback, P
 		showScreen(errorForm, error)
 		showScreen(roleForm, !error && state == SessionState.DISCONNECTED)
 		showScreen(progressForm, !error && state == SessionState.CONNECTING)
-		showScreen(rideForm, !error && state == SessionState.CONNECTED && role != Role.QA)
+		showScreen(driverRiderForm, !error && state == SessionState.CONNECTED && role != Role.QA)
 		showScreen(qaForm, !error && state == SessionState.CONNECTED && role == Role.QA)
-	}
-
-	private fun updatePttButton() {
-		if (role == Role.DRIVER) {
-			if (isPortrait()) {
-				honkButtonPortrait.visibility = View.VISIBLE
-			} else {
-				honkButtonLandscape.visibility = View.VISIBLE
-			}
-		} else {
-			honkButtonPortrait.visibility = View.GONE
-			honkButtonLandscape.visibility = View.GONE
-		}
-		val button = if (isPortrait()) talkButtonPortrait else talkButtonLandscape
-		(button as PttButton).update(role, outgoingStream, incomingStream)
 	}
 
 	private fun updateTitle() {
@@ -525,104 +428,14 @@ class MainActivity : AppCompatActivity(), SessionListener, OnMapReadyCallback, P
 
 	private fun disconnect(): Boolean {
 		role = Role.NONE
-		session?.sessionListener = null
-		session?.disconnect()
+		Zello.instance.disconnect()
 		update()
 		return true
 	}
 
-	private fun initMap(savedInstanceState: Bundle?, resume: Boolean) {
-		if (!Utils.areGooglePlayServicesEnabled(this)) {
-			return
-		}
-
-		try {
-			rideMap.onCreate(savedInstanceState)
-			rideMap.getMapAsync(this)
-
-			if (resume) {
-				rideMap.onResume()
-			}
-			mapReady = true
-		} catch (ignore: Throwable) {
-		}
-	}
-
-	private fun configureMap() {
-		if (mapConfigured || map == null) {
-			return
-		}
-
-		Utils.hideMapLogo(rideMap)
-
-		map?.isIndoorEnabled = true
-		map?.isTrafficEnabled = true
-		map?.mapType = com.google.android.gms.maps.GoogleMap.MAP_TYPE_NORMAL
-		val settings = map?.uiSettings
-		settings?.isCompassEnabled = true
-		settings?.isMyLocationButtonEnabled = false
-		settings?.isZoomControlsEnabled = false
-		settings?.isRotateGesturesEnabled = true
-		settings?.isScrollGesturesEnabled = true
-		settings?.isTiltGesturesEnabled = false
-		settings?.isZoomGesturesEnabled = true
-
-		rideMap.visibility = View.VISIBLE
-		map?.moveCamera(CameraUpdateFactory.newLatLng(latlng))
-		map?.animateCamera(CameraUpdateFactory.newLatLngZoom(latlng, mapZoomLevel), mapZoomAnimationDuration, null)
-
-		mapConfigured = true
-	}
-
-	// Called to set up the screen when the driver mode is activated
-	private fun setupDriver() {
-		if (session == null) {
-			session = Session.Builder(this, serverAddress, devAuthToken, channelName).
-					setUsername("", "").build()
-		}
-
-		updatePttButton()
-		val portrait = isPortrait()
-		rideText1.text = resources.getString(R.string.ride_driver_text1)
-		rideText2.text = resources.getString(R.string.ride_driver_text2)
-		rideActionNavigatePortrait.visibility = if (portrait) View.VISIBLE else View.GONE
-		rideActionNavigateLandscape.visibility = if (!portrait) View.VISIBLE else View.GONE
-		rideActionCancel.visibility = if (!portrait) View.VISIBLE else View.GONE
-		rideBottomDriverPanel.visibility = View.VISIBLE
-		rideBottomRiderPanel.visibility = View.GONE
-		talkButtonPortraitContainer.visibility = if (portrait) View.VISIBLE else View.GONE
-		talkButtonLandscape.visibility = if (!portrait) View.VISIBLE else View.GONE
-		honkButtonLandscape.visibility = if (portrait) View.GONE else View.VISIBLE
-	}
-
-	// Called to set up the screen when the rider mode is activated
-	private fun setupRider() {
-		if (session == null) {
-			session = Session.Builder(this, serverAddress, devAuthToken, channelName).
-					setUsername("", "").build()
-		}
-
-		updatePttButton()
-		val portrait = isPortrait()
-		rideText1.text = resources.getString(R.string.ride_rider_text1)
-		rideText2.text = resources.getString(R.string.ride_rider_text2)
-		rideActionNavigatePortrait.visibility = View.GONE
-		rideActionNavigateLandscape.visibility = View.GONE
-		rideActionCancel.visibility = View.VISIBLE
-		rideBottomDriverPanel.visibility = View.GONE
-		rideBottomRiderPanel.visibility = View.VISIBLE
-		talkButtonPortraitContainer.visibility = if (portrait) View.VISIBLE else View.GONE
-		talkButtonLandscape.visibility = if (!portrait) View.VISIBLE else View.GONE
-		honkButtonLandscape.visibility = View.GONE
-	}
-
 	private fun setupQa() {
-		if (session == null) {
-			session = Session.Builder(this, serverAddress, devAuthToken, channelName).build()
-		}
+		Zello.instance.establishSession(this, "", "")
 	}
-
-	private fun isPortrait(): Boolean = orientation != Configuration.ORIENTATION_LANDSCAPE
 
 	companion object {
 		private val TAG = "demo"
@@ -631,27 +444,6 @@ class MainActivity : AppCompatActivity(), SessionListener, OnMapReadyCallback, P
 		 * ID to identity READ_CONTACTS permission request
 		 */
 		private val REQUEST_RECORD_AUDIO = 0
-
-		/**
-		 * Hardcoded server URL
-		 */
-		// TODO: Replace with the correct API endpoint
-		private val serverAddress = "wss://zellowork.io/ws/default"
-
-		private val devAuthToken = "[AUTH TOKEN]"
-
-		/**
-		 * Hardcoded channel name
-		 */
-		// TODO: Replace with the channel name you want to connect to
-		private val channelName = "Everyone"
-
-		/**
-		 * Austin
-		 */
-		private val latlng = LatLng(30.2672, -97.7431)
-		private val mapZoomLevel = 10f
-		private val mapZoomAnimationDuration = 1
 
 		/**
 		 * Instance save related consts

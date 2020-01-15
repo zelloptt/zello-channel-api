@@ -1,1 +1,1 @@
-include ':sample-ride', ':zello-channel-sdk'
+include ':sample-ride'

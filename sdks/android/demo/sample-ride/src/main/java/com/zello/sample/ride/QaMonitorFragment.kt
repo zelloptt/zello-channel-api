@@ -14,17 +14,18 @@ import android.widget.ArrayAdapter
 import android.widget.TextView
 import com.zello.channel.sdk.IncomingVoiceStream
 import kotlinx.android.synthetic.main.qa_monitor.*
+import java.util.Date
 
 class QaMonitorFragment : Fragment() {
 
 	class ChannelMessageAdapter(context: Context) : ArrayAdapter<ChannelMessage>(context, android.R.layout.simple_list_item_activated_2) {
 
-		override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
+		override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
 			val view = convertView ?: LayoutInflater.from(context).inflate(android.R.layout.simple_list_item_activated_2, parent, false)
 			val message = getItem(position) ?: return super.getView(position, convertView, parent)
 
 			val titleView = view.findViewById<TextView>(android.R.id.text1)
-			titleView.text = message.sender
+			titleView.text = message.titleText
 			val titleColor: Int
 			if (message.isRecording) {
 				titleColor = 0xffff0000.toInt()
@@ -33,7 +34,7 @@ class QaMonitorFragment : Fragment() {
 			}
 			titleView.setTextColor(titleColor)
 			val subtitleView = view.findViewById<TextView>(android.R.id.text2)
-			subtitleView.text = message.receivedDate.toString()
+			subtitleView.text = message.subtitleText
 			return view
 		}
 
@@ -45,8 +46,8 @@ class QaMonitorFragment : Fragment() {
 	val isRealtimeMonitorEnabled
 		get() = monitorSwitch.isChecked
 
-	fun onNewMessage(message: ChannelMessage) {
-		message.listener = object: ChannelMessage.Events {
+	fun onNewMessage(message: ChannelMessageVoice) {
+		message.listener = object: ChannelMessageVoice.Events {
 			override fun onRecordingChanged(message: ChannelMessage, isRecording: Boolean) {
 				// Manually setting the visual recording state because onNotifyDataSetChanged() didn't work
 				val messagePosition = adapter?.getPosition(message)
@@ -64,6 +65,10 @@ class QaMonitorFragment : Fragment() {
 			}
 		}
 
+		insertNewMessage(message)
+	}
+
+	private fun insertNewMessage(message: ChannelMessage) {
 		// Maintain the checked item when we add this new item
 		val selectedPosition = monitorList.checkedItemPosition
 		val selectedItem = if (selectedPosition != AdapterView.INVALID_POSITION) adapter?.getItem(selectedPosition) else null
@@ -77,6 +82,11 @@ class QaMonitorFragment : Fragment() {
 	fun onMessageEnd(stream: IncomingVoiceStream) {
 	}
 
+	fun onTextMessage(message: String, sender: String) {
+		val channelMessage = ChannelMessageText(sender = sender, receivedDate = Date(), message = message)
+		insertNewMessage(channelMessage)
+	}
+
 	fun reset() {
 		player?.stop()
 		player = null
@@ -84,7 +94,7 @@ class QaMonitorFragment : Fragment() {
 	}
 
 	// region Fragment lifecycle
-	override fun onCreateView(inflater: LayoutInflater?, container: ViewGroup?, savedInstanceState: Bundle?): View {
+	override fun onCreateView(inflater: LayoutInflater?, container: ViewGroup?, savedInstanceState: Bundle?): View? {
 		if (inflater == null) {
 			return super.onCreateView(inflater, container, savedInstanceState)
 		}
@@ -97,7 +107,11 @@ class QaMonitorFragment : Fragment() {
 
 		monitorList.setOnItemClickListener { adapterView: AdapterView<*>, itemView: View, position: Int, id: Long ->
 			// Play the selected message
-			val message = adapterView.getItemAtPosition(position) as? ChannelMessage ?: return@setOnItemClickListener
+			val message = adapterView.getItemAtPosition(position) as? ChannelMessageVoice
+			if (message == null) {
+				monitorList.setItemChecked(position, false)
+				return@setOnItemClickListener
+			}
 			if (message.isRecording) {
 				return@setOnItemClickListener
 			}
