@@ -1,0 +1,68 @@
+<html>
+<head>
+    <meta name="viewport" content="width=device-width">
+    <meta name="viewport" content="initial-scale=1.0">
+    <style>
+        body {
+            border: 0;
+            margin: 0;
+            padding: 0;
+            padding-left: 2px;
+        }
+    </style>
+    <script src="https://zello.io/sdks/js/latest/zcc.sdk.js"></script>
+    <script>
+      var session = null;
+      var widget = null;
+      var AuthToken = "<%=jsonWebToken%>";
+      function connect() {
+        ZCC.Sdk.init({
+          player: true,
+          recorder: false,
+          encoder: false,
+          widget: true
+        })
+        .then(function() {
+
+          widget = new ZCC.Widget({
+            headless: false,
+            element: document.getElementById('player')
+          });
+
+          session = new ZCC.Session({
+            serverUrl: 'wss://zello.io/ws/',
+            channel: 'Zello Sdk',
+            authToken: AuthToken,
+            listen_only: true
+          });
+
+          widget.setSession(session);
+
+          return session.connect();
+        })
+        .then(function() {
+          // connected
+        })
+        .catch(function(err) {
+            console.warn(err);
+        });
+      }
+    </script>
+</head>
+<body onload="connect()">
+<div id="player">
+</div>
+
+<div id="possibleError">
+  <h4>"<%=possibleError%>"</h4>
+  <a href="<%=urlPath%> target="_blank">"<%=urlPath%>"</a>
+  <h4>AND your Issuer</h4>
+
+  <h2>  argv = ["private_key_file.json"/*<-fill this file with your Private Key*/ 
+    ,"Issuer"/*<-fill this with your Issuer*/ ] IN index.js</h2>
+ 
+</div>
+
+
+</body>
+</html>
