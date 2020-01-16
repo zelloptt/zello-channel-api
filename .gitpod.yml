@@ -1,0 +1,6 @@
+ports:
+  - port: 3000
+    onOpen: open-preview
+tasks:
+  - before: if [[ -z "$run" ]]; then cd src; else cd /$run; fi
+    command: nvm install 13.3.0 && npm install && npm start
