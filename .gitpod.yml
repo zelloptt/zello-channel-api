@@ -2,5 +2,5 @@ ports:
   - port: 3000
     onOpen: open-preview
 tasks:
-  - before: if [[ -z "$run" ]]; then cd auth/js/jsonwebtoken/project; else cd /$run; fi
+  - before: if [[ -z "$run" ]]; then cd auth/js/jsonwebtoken/project/src; else cd auth/js/jsonwebtoken/project/$run; fi
     command: nvm install 13.3.0 && npm install && npm start
