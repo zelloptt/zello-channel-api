@@ -6,5 +6,7 @@
 <p>
     <img src="https://raw.githubusercontent.com/Allanksr/zello-channel-api/master/auth/js/jsonwebtoken/preview/those%202%20files%20must%20be%20reviewed.PNG" width="100">     
 <img src="https://raw.githubusercontent.com/Allanksr/zello-channel-api/master/auth/js/jsonwebtoken/preview/start.PNG" width="300">
-    <img src="https://raw.githubusercontent.com/Allanksr/zello-channel-api/master/auth/js/jsonwebtoken/preview/developerZello.PNG" width="300"> 
+    <img src="https://raw.githubusercontent.com/Allanksr/zello-channel-api/master/auth/js/jsonwebtoken/preview/developerZello.PNG" width="300">
 </p>
+
+[DevPanel](https://developers.zello.com/)<br>
