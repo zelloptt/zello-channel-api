@@ -5,5 +5,6 @@
 [![PWA no Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](http://gitpod.io/#https://github.com/Allanksr/zello-channel-api) 
 <p>
     <img src="https://github.com/Allanksr/zello-channel-api/blob/master/auth/js/jsonwebtoken/preview/those%202%20files%20must%20be%20reviewed.PNG" width="100">     
-<img src="https://github.com/Allanksr/zello-channel-api/blob/master/auth/js/jsonwebtoken/preview/start.PNG" width="300">     
+<img src="https://github.com/Allanksr/zello-channel-api/blob/master/auth/js/jsonwebtoken/preview/start.PNG" width="300">
+    <img src="https://github.com/Allanksr/zello-channel-api/blob/master/auth/js/jsonwebtoken/preview/developerZello.PNG" width="300"> 
 </p>
