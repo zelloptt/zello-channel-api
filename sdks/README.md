@@ -297,7 +297,7 @@ In iOS, the events interface is `ZCCSessionDelegate`.
 All apps using Zello SDK must adhere to the following guidelines:
 
 * All UI screens, embedding Zello SDK must include Zello logo
-* Use Zello logo and / or "Zello", "ZelloWork" names, when referencing to Zello inside of your app
+* Use Zello logo and / or "Zello", "Zello Work" names, when referencing to Zello inside of your app
 * [Send us the app for review](https://zellowork.com/contact/) before distributing the app to any third parties or customers
 
 
