@@ -116,7 +116,7 @@ Starts a new stream to the channel. The successful response includes `stream_id`
 | `seq` | integer | Command sequence number
 | `type` | string | Stream type. Only `audio` is currently supported
 | `codec` | string | The name of audio codec used. Required for `audio` streams. Must be `opus`.
-| `codec_header` | string | base64-encoded codec header buffer. Required for `opus` streams.
+| `codec_header` | string | base64-encoded 4 byte string: first 2 bytes for sample rate (little-endian), 3rd byte is number of frames per packet (1 or 2), 4th byte is the frame size in ms.  Required for `opus` streams.  Example:  value of #gd4BPA== in base64 decodes to 0x80 0x3e 0x01 0x3c which represents 16000 Hz sample rate, 1 frame per packet, 60 ms frame size
 | `packet_duration` | integer | Audio packet duration in milliseconds. Values between 2.5 ms and 60 ms are supported.
 | `for` | string | Optional username to send message to. Other users in the channel won't be receiving this message
 
@@ -180,7 +180,7 @@ Stops outgoing stream. Send this command after you sent the last data packet.
 ```
 
 ### Stream data
-The same packet structure is used for any streamed data (e.g. audio) travelling both ways. The packet ID field is only used with the audio packets sent from the server to a client. Fields are stored in network byte order.
+The same packet structure is used for any streamed data (e.g. audio) travelling both ways. The packet ID field is only used with the audio packets sent from the server to a client but is still required when sending audio packets from the client to the server, in which case it should be filled with zeros. Fields are stored in network byte order.
 
 `{type(8) = 0x01, stream_id(32), packet_id(32), data[]}`
 
