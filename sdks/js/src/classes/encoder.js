@@ -33,7 +33,7 @@ class Encoder extends Emitter {
    * Emit encoded data portion to let <code>OutgoingMessage</code> instance get encoded data ready to be sent into channel
    *
    * @method Encoder#ondata
-   * @param {Uint8Array} data encoded opus data portion
+   * @param {Uint8Array | array} data encoded opus data portion
    * **/
   ondata(data) {}
 
