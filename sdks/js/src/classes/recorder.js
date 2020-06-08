@@ -80,7 +80,7 @@ class Recorder {
     return this.audioContext;
   }
 
-  initAudioGraph(isInputDeviceChange=false) {
+  initAudioGraph(isInputDeviceChange = false) {
 
     // First buffer can contain old data. Don't encode it.
     if (!isInputDeviceChange) {
@@ -147,18 +147,19 @@ class Recorder {
   }
 
   changeInputDevice() {
-    if (this.state = "recording") {
-      this.options.mediaConstraints.audio = {deviceId: {exact: deviceId}};
-      this.disconnectNodes();
-      this.clearStream();
-      this.initAudioContext();
-      this.initAudioGraph(true);
-      this.initSourceNode().then((sourceNode) => {
-        this.sourceNode = sourceNode;
-        this.sourceNode.connect(this.monitorGainNode);
-        this.sourceNode.connect(this.recordingGainNode);
-      });
-    }
+    if (this.state !== "recording") {
+      return;
+    };
+    this.options.mediaConstraints.audio = {deviceId: {exact: deviceId}};
+    this.disconnectNodes();
+    this.clearStream();
+    this.initAudioContext();
+    this.initAudioGraph(true);
+    this.initSourceNode().then((sourceNode) => {
+      this.sourceNode = sourceNode;
+      this.sourceNode.connect(this.monitorGainNode);
+      this.sourceNode.connect(this.recordingGainNode);
+    });
   }
 
   init() {
