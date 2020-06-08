@@ -146,7 +146,7 @@ class Recorder {
     }
   }
 
-  changeInputDevice() {
+  changeInputDevice(deviceId) {
     if (this.state !== "recording") {
       return;
     }
