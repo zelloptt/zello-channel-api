@@ -80,10 +80,10 @@ class Recorder {
     return this.audioContext;
   }
 
-  initAudioGraph(isInputDeviceChange = false) {
+  initAudioGraph(fromInputDeviceChange = false) {
 
     // First buffer can contain old data. Don't encode it.
-    if (!isInputDeviceChange) {
+    if (!fromInputDeviceChange) {
       this.encodeBuffers = () => {
         delete this.encodeBuffers;
       }; 
@@ -149,7 +149,7 @@ class Recorder {
   changeInputDevice() {
     if (this.state !== "recording") {
       return;
-    };
+    }
     this.options.mediaConstraints.audio = {deviceId: {exact: deviceId}};
     this.disconnectNodes();
     this.clearStream();
