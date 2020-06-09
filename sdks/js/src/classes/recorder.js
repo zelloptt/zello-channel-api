@@ -50,6 +50,13 @@ class Recorder {
     }
   }
 
+  disconnectNodes() {
+    this.monitorGainNode.disconnect();
+    this.scriptProcessorNode.disconnect();
+    this.recordingGainNode.disconnect();
+    this.sourceNode.disconnect();
+  }
+
   getSampleRate() {
     return this.audioContext.sampleRate;
   }
@@ -73,12 +80,14 @@ class Recorder {
     return this.audioContext;
   }
 
-  initAudioGraph() {
+  initAudioGraph(fromInputDeviceChange = false) {
 
     // First buffer can contain old data. Don't encode it.
-    this.encodeBuffers = () => {
-      delete this.encodeBuffers;
-    };
+    if (!fromInputDeviceChange) {
+      this.encodeBuffers = () => {
+        delete this.encodeBuffers;
+      }; 
+    }
 
     this.scriptProcessorNode = this.audioContext.createScriptProcessor(
       this.options.bufferLength,
@@ -135,6 +144,22 @@ class Recorder {
     if (this.monitorGainNode && this.audioContext) {
       this.monitorGainNode.gain.setTargetAtTime(gain, this.audioContext.currentTime, 0.01);
     }
+  }
+
+  changeInputDevice(deviceId) {
+    if (this.state !== "recording") {
+      return;
+    }
+    this.options.mediaConstraints.audio = {deviceId: {exact: deviceId}};
+    this.disconnectNodes();
+    this.clearStream();
+    this.initAudioContext();
+    this.initAudioGraph(true);
+    this.initSourceNode().then((sourceNode) => {
+      this.sourceNode = sourceNode;
+      this.sourceNode.connect(this.monitorGainNode);
+      this.sourceNode.connect(this.recordingGainNode);
+    });
   }
 
   init() {
