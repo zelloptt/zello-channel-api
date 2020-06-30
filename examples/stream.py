@@ -65,17 +65,10 @@ async def zello_opus_stream(username, password, token, channel, oggfile):
                 print("Channel not available")
                 return
 
-            await ws.send_str(start_stream_request(stream))
-
-            async for msg in ws:
-                stream_id = get_stream_id(msg)
-                if stream_id:
-                    break
-
-            stream.set_stream_id(stream_id)
+            await start_zello_stream(ws, stream)
 
             while True:
-                packet = stream.get_next_opus_packet()
+                packet = stream.get_next_zello_stream_packet()
                 if not packet:
                     print("No more audio packets")
                     break
@@ -84,9 +77,7 @@ async def zello_opus_stream(username, password, token, channel, oggfile):
                     print("Session is closed!")
                     break
 
-                await ws.send_bytes(packet)
-                # For some reason socket closes in ~1 minute, so do not pause
-                # await asyncio.sleep((stream.get_packet_duration() - 10) / 1000)
+                await send_audio_packet(ws, packet, stream.get_packet_duration())
 
             await ws.send_str(json.dumps({
                 "command": "stop_stream",
@@ -94,20 +85,43 @@ async def zello_opus_stream(username, password, token, channel, oggfile):
             }))
 
 
-def start_stream_request(stream):
+async def send_audio_packet(ws, packet, packet_duration):
+    start_ts = time.time()
+    await ws.send_bytes(packet)
+    try:
+        await asyncio.wait_for(ws.receive(), packet_duration / 1000)
+    except asyncio.TimeoutError:
+        pass
+
+    time_passed = time.time() - start_ts
+    if time_passed < packet_duration / 1000:
+        await asyncio.sleep(packet_duration / 1000 - time_passed)
+
+
+async def start_zello_stream(ws, stream):
     sample_rate = stream.get_sample_rate()
     frames_per_packet = stream.get_frames_per_packet()
     packet_duration = stream.get_packet_duration()
+    # Sample_rate is in little endian.
+    # https://github.com/zelloptt/zello-channel-api/blob/409378acd06257bcd07e3f89e4fbc885a0cc6663/sdks/js/src/classes/utils.js#L63
     codec_header = base64.b64encode(sample_rate.to_bytes(2, "little") + \
         frames_per_packet.to_bytes(1, "big") + packet_duration.to_bytes(1, "big")).decode()
-    return json.dumps({
+
+    await ws.send_str(json.dumps({
         "command": "start_stream",
         "seq": 2,
         "type": "audio",
         "codec": "opus",
         "codec_header": codec_header,
         "packet_duration": packet_duration
-        })
+        }))
+
+    async for msg in ws:
+        stream_id = get_stream_id(msg)
+        if stream_id:
+            break
+
+    stream.set_stream_id(stream_id)
 
 
 def get_stream_id(msg):
@@ -139,7 +153,10 @@ class OpusFileStream:
         self.__fill_opus_config()
 
 
+    # https://tools.ietf.org/html/rfc3533
     def __get_next_ogg_packet_start(self):
+        # Each Ogg page starts with magic bytes "OggS"
+        # Stream may be corrupted, so find a first valid magic
         magic = bytes("OggS", "ascii")
         verified_bytes = 0
         while True:
@@ -156,6 +173,26 @@ class OpusFileStream:
 
 
     def __parse_ogg_packet_header(self):
+        # The Ogg page has the following format:
+        # 0               1               2               3                Byte
+        # 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1| Bit
+        # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        # | capture_pattern: Magic number for page start "OggS"           | 0-3
+        # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        # | version       | header_type   | granule_position              | 4-7
+        # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        # |                                                               | 8-11
+        # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        # |                               | bitstream_serial_number       | 12-15
+        # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        # |                               | page_sequence_number          | 16-19
+        # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        # |                               | CRC_checksum                  | 20-23
+        # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        # |                               | page_segments | segment_table | 24-27
+        # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        # | ...                                                           | 28-
+        # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
         version = self.oggfile.read(1)
         header_type = self.oggfile.read(1)
         granule = self.oggfile.read(8)
@@ -172,6 +209,10 @@ class OpusFileStream:
         data = bytes()
         continue_needed = False
 
+        # Read data from the next segment according to the sizes table page_segments.
+        # The length of 255 indicates the data requires continuing from the next
+        # segment. The data from the last segment may still require continuing.
+        # Return the bool continue_needed to accumulate such lacing data.
         while self.segment_idx < self.segments_count:
             segment_size = self.segment_sizes[self.segment_idx]
             segment = self.oggfile.read(segment_size)
@@ -184,11 +225,11 @@ class OpusFileStream:
         return data, continue_needed
 
 
-    def __get_stream_packet_header(self):
-        header = (1).to_bytes(1, "big") + self.stream_id.to_bytes(4, "big") + \
-            self.packet_id.to_bytes(4, "big")
+    def __generate_zello_stream_packet(self, data):
+        packet = (1).to_bytes(1, "big") + self.stream_id.to_bytes(4, "big") + \
+            self.packet_id.to_bytes(4, "big") + data
         self.packet_id += 1
-        return header
+        return packet
 
 
     def __parse_opushead_header(self, data):
@@ -253,17 +294,22 @@ class OpusFileStream:
     def get_packet_duration(self):
         return self.packet_duration
 
+
+    # There are three mandatory headers. Don't send data until the headers are parsed.
     def all_headers_parsed(self):
         return self.opus_headers_count >= 3
 
-    def get_next_opus_packet(self):
+
+    def get_next_zello_stream_packet(self):
         continue_needed = False
         data = bytes()
 
+        # The Table Of Contents byte has been read from the first audio data segment
+        # stored in the saved_packets[] list.
         if self.all_headers_parsed() and len(self.saved_packets) > 0:
             data = self.saved_packets[0]
             self.saved_packets.remove(self.saved_packets[0])
-            return self.__get_stream_packet_header() + data
+            return self.__generate_zello_stream_packet(data)
 
         while True:
             if self.segment_idx >= self.segments_count:
@@ -281,9 +327,10 @@ class OpusFileStream:
                     print("Skipping frame: continuation sequence is broken")
                     continue
 
-            # Get another chunk of data from the parsed Ogg packet
+            # Get another chunk of data from the parsed Ogg page
             segment_data, continue_needed = self.__get_ogg_segment_data()
             data += segment_data
+            # The last data chunk may require continuing in the next Ogg page
             if continue_needed:
                 continue
 
@@ -300,12 +347,13 @@ class OpusFileStream:
                 print("Skipping frame - TOC differs")
                 continue
 
-            data = self.__get_stream_packet_header() + data
-            return data
+            return self.__generate_zello_stream_packet(data)
 
         return None
 
-    # Parse OpusHead, OpusTags and TOC byte from the first Opus packet
+
+    # First header is OpusHead, second one - OpusTags.
+    # Third one is a Table Of Contents byte from the first Opus packet.
     def __parse_opus_headers(self, data):
         if self.opus_headers_count < 1:
             if self.__parse_opushead_header(data):
@@ -323,7 +371,7 @@ class OpusFileStream:
 
     def __fill_opus_config(self):
         while not self.all_headers_parsed():
-            self.get_next_opus_packet()
+            self.get_next_zello_stream_packet()
 
 
 if __name__ == "__main__":
