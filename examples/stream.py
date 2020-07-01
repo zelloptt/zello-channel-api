@@ -12,7 +12,7 @@ WS_ENDPOINT="wss://zello.io/ws"
 def main():
     loop = asyncio.get_event_loop()
     try:
-        loop.run_until_complete(zello_opus_stream(
+        loop.run_until_complete(zello_stream_audio_to_channel(
             "username",
             "password",
             "token",
@@ -22,86 +22,52 @@ def main():
         loop.close()
 
 
-async def zello_opus_stream(username, password, token, channel, oggfile):
-    stream = OpusFileStream(oggfile)
-
+async def zello_stream_audio_to_channel(username, password, token, channel, opusfile):
+    opus_file_stream = OpusFileStream(opusfile)
     conn = aiohttp.TCPConnector(family = socket.AF_INET, verify_ssl = False)
-    async with aiohttp.ClientSession(connector=conn) as session:
+    async with aiohttp.ClientSession(connector = conn) as session:
         async with session.ws_connect(WS_ENDPOINT) as ws:
-            await ws.send_str(json.dumps({
-                "command": "logon",
-                "seq": 1,
-                "auth_token": token,
-                "username": username,
-                "password": password,
-                "channel": channel
-            }))
-
-            authorized = False
-            channel_available = None
-
-            async for msg in ws:
-                print(msg)
-                if msg.type == aiohttp.WSMsgType.TEXT:
-                    res = json.loads(msg.data)
-                    if "refresh_token" in res:
-                        refresh_token = res["refresh_token"]
-                        print("Time:", session.loop.time())
-                        print("Token:", refresh_token)
-                        authorized = True
-                    elif "command" in res and res["command"] == "on_channel_status":
-                        channel_available = res["status"] == "online"
-                    if authorized and channel_available:
-                        print("Starting streaming")
-                        break
-                else:
-                    print("Unexpected message type[{}]".format(msg.type))
-
-            if not authorized:
-                print("Authorithation failed")
-                return
-
-            if not channel_available:
-                print("Channel not available")
-                return
-
-            await start_zello_stream(ws, stream)
-
-            while True:
-                packet = stream.get_next_zello_stream_packet()
-                if not packet:
-                    print("No more audio packets")
-                    break
-
-                if session.closed:
-                    print("Session is closed!")
-                    break
-
-                await send_audio_packet(ws, packet, stream.get_packet_duration())
-
-            await ws.send_str(json.dumps({
-                "command": "stop_stream",
-                "stream_id": stream_id
-            }))
+            try:
+                await authenticate(ws, username, password, token, channel)
+                stream_id = await start_zello_stream(ws, opus_file_stream)
+                await stream_audio_data(session, ws, stream_id, opus_file_stream)
+                await stop_zello_stream(ws, stream_id)
+            finally:
+                pass
 
 
-async def send_audio_packet(ws, packet, packet_duration):
-    start_ts = time.time()
-    await ws.send_bytes(packet)
-    try:
-        await asyncio.wait_for(ws.receive(), packet_duration / 1000)
-    except asyncio.TimeoutError:
-        pass
+async def authenticate(ws, username, password, token, channel):
+    # https://github.com/zelloptt/zello-channel-api/blob/master/AUTH.md
+    await ws.send_str(json.dumps({
+        "command": "logon",
+        "seq": 1,
+        "auth_token": token,
+        "username": username,
+        "password": password,
+        "channel": channel
+    }))
 
-    time_passed = time.time() - start_ts
-    if time_passed < packet_duration / 1000:
-        await asyncio.sleep(packet_duration / 1000 - time_passed)
+    is_authorized = False
+    is_channel_available = False
+    async for msg in ws:
+        if msg.type == aiohttp.WSMsgType.TEXT:
+            res = json.loads(msg.data)
+            if "refresh_token" in res:
+                is_authorized = True
+            elif "command" in res and res["command"] == "on_channel_status":
+                is_channel_available = res["status"] == "online"
+            if is_authorized and is_channel_available:
+                break
+
+    if not is_authorized or not is_channel_available:
+        raise NameError('Authentication failed')
 
 
-async def start_zello_stream(ws, stream):
-    sample_rate = stream.get_sample_rate()
-    frames_per_packet = stream.get_frames_per_packet()
-    packet_duration = stream.get_packet_duration()
+async def start_zello_stream(ws, opus_file_stream):
+    sample_rate = opus_file_stream.sample_rate
+    frames_per_packet = opus_file_stream.frames_per_packet
+    packet_duration = opus_file_stream.packet_duration
+
     # Sample_rate is in little endian.
     # https://github.com/zelloptt/zello-channel-api/blob/409378acd06257bcd07e3f89e4fbc885a0cc6663/sdks/js/src/classes/utils.js#L63
     codec_header = base64.b64encode(sample_rate.to_bytes(2, "little") + \
@@ -117,34 +83,77 @@ async def start_zello_stream(ws, stream):
         }))
 
     async for msg in ws:
-        stream_id = get_stream_id(msg)
-        if stream_id:
+        if msg.type == aiohttp.WSMsgType.TEXT:
+            data = json.loads(msg.data)
+            if data["success"]:
+                return data["stream_id"]
+
+    raise NameError('Failed to create Zello audio stream')
+
+
+async def stop_zello_stream(ws, stream_id):
+    await ws.send_str(json.dumps({
+        "command": "stop_stream",
+        "stream_id": stream_id
+        }))
+
+
+async def send_audio_packet(ws, packet):
+    # Once the data has been sent - listen on websocket, connection may be closed otherwise.
+    await ws.send_bytes(packet)
+    await ws.receive()
+
+
+def generate_zello_stream_packet(stream_id, packet_id, data):
+    # https://github.com/zelloptt/zello-channel-api/blob/master/API.md#stream-data
+    return (1).to_bytes(1, "big") + stream_id.to_bytes(4, "big") + \
+        packet_id.to_bytes(4, "big") + data
+
+
+async def stream_audio_data(session, ws, stream_id, opus_file_stream):
+    packet_duration_sec = opus_file_stream.packet_duration / 1000
+    min_send_delay = packet_duration_sec / 4
+    packet_id = 1
+    while True:
+        start_ts_sec = time.time()
+        data = opus_file_stream.get_next_opus_packet()
+
+        if not data:
+            print("No more audio packets")
             break
 
-    stream.set_stream_id(stream_id)
+        if session.closed:
+            raise NameError("Session is closed!")
+
+        packet = generate_zello_stream_packet(stream_id, packet_id, data)
+        packet_id += 1
+        try:
+            time_passed_sec = time.time() - start_ts_sec
+            # Once wait_for() is timed out - it takes additional operational time.
+            # Recalculate delay and sleep at the end of the loop to compensate this delay.
+            if packet_duration_sec - time_passed_sec > min_send_delay:
+                delay = packet_duration_sec - time_passed_sec - min_send_delay
+                await asyncio.wait_for(
+                    send_audio_packet(ws, packet), delay
+                )
+        except asyncio.TimeoutError:
+            pass
+
+        time_passed_sec = time.time() - start_ts_sec
+        if time_passed_sec < packet_duration_sec:
+            await asyncio.sleep(packet_duration_sec - time_passed_sec)
 
 
-def get_stream_id(msg):
-    if msg.type == aiohttp.WSMsgType.TEXT:
-        data = json.loads(msg.data)
-        if data["success"]:
-            return data["stream_id"]
-        else:
-            print("unexpected message type[{}]".format(msg.type))
-    return None
-
-
-# https://tools.ietf.org/html/rfc7845
 class OpusFileStream:
+    # https://tools.ietf.org/html/rfc7845
+    # https://tools.ietf.org/html/rfc3533
     def __init__(self, filename):
-        self.oggfile = open(filename, "rb")
-        if not self.oggfile:
+        self.opusfile = open(filename, "rb")
+        if not self.opusfile:
             raise NameError('Failed opening {filename}')
         self.segment_sizes = bytes()
-        self.stream_id = 0
         self.segment_idx = 0
         self.segments_count = 0
-        self.packet_id = 1
         self.sequence_number = -1
         self.opus_headers_count = 0
         self.packet_duration = 0
@@ -153,14 +162,13 @@ class OpusFileStream:
         self.__fill_opus_config()
 
 
-    # https://tools.ietf.org/html/rfc3533
     def __get_next_ogg_packet_start(self):
         # Each Ogg page starts with magic bytes "OggS"
         # Stream may be corrupted, so find a first valid magic
         magic = bytes("OggS", "ascii")
         verified_bytes = 0
         while True:
-            byte = self.oggfile.read(1)
+            byte = self.opusfile.read(1)
             if not byte:
                 return False
 
@@ -174,8 +182,8 @@ class OpusFileStream:
 
     def __parse_ogg_packet_header(self):
         # The Ogg page has the following format:
-        # 0               1               2               3                Byte
-        # 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1| Bit
+        #  0               1               2               3                Byte
+        #  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1| Bit
         # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
         # | capture_pattern: Magic number for page start "OggS"           | 0-3
         # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -193,16 +201,16 @@ class OpusFileStream:
         # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
         # | ...                                                           | 28-
         # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-        version = self.oggfile.read(1)
-        header_type = self.oggfile.read(1)
-        granule = self.oggfile.read(8)
-        serial_num = self.oggfile.read(4)
-        self.sequence_number = int.from_bytes(self.oggfile.read(4), "little")
-        checksum = int.from_bytes(self.oggfile.read(4), "little")
-        self.segments_count = int.from_bytes(self.oggfile.read(1), "little")
+        version = self.opusfile.read(1)
+        header_type = self.opusfile.read(1)
+        granule = self.opusfile.read(8)
+        serial_num = self.opusfile.read(4)
+        self.sequence_number = int.from_bytes(self.opusfile.read(4), "little")
+        checksum = int.from_bytes(self.opusfile.read(4), "little")
+        self.segments_count = int.from_bytes(self.opusfile.read(1), "little")
         self.segment_idx = 0
         if self.segments_count > 0:
-            self.segment_sizes = self.oggfile.read(self.segments_count)
+            self.segment_sizes = self.opusfile.read(self.segments_count)
 
 
     def __get_ogg_segment_data(self):
@@ -215,7 +223,7 @@ class OpusFileStream:
         # Return the bool continue_needed to accumulate such lacing data.
         while self.segment_idx < self.segments_count:
             segment_size = self.segment_sizes[self.segment_idx]
-            segment = self.oggfile.read(segment_size)
+            segment = self.opusfile.read(segment_size)
             data += segment
             continue_needed = (segment_size == 255)
             self.segment_idx += 1
@@ -223,13 +231,6 @@ class OpusFileStream:
                 break
 
         return data, continue_needed
-
-
-    def __generate_zello_stream_packet(self, data):
-        packet = (1).to_bytes(1, "big") + self.stream_id.to_bytes(4, "big") + \
-            self.packet_id.to_bytes(4, "big") + data
-        self.packet_id += 1
-        return packet
 
 
     def __parse_opushead_header(self, data):
@@ -250,8 +251,13 @@ class OpusFileStream:
         return data.find(bytes("OpusTags", "ascii")) == 0
 
 
-    # https://tools.ietf.org/html/rfc6716#section-3.1
     def __parse_opus_toc(self, data):
+        # https://tools.ietf.org/html/rfc6716#section-3.1
+        # Each Opus packet starts with the Table Of Content Byte:
+        # |0 1 2 3 4 5 6 7| Bit
+        # +-+-+-+-+-+-+-+-+
+        # | config  |s| c |
+        # +-+-+-+-+-+-+-+-+
         toc_c = data[0] & 0x03
         if toc_c == 0:
             frames_per_packet = 1
@@ -259,7 +265,7 @@ class OpusFileStream:
             frames_per_packet = 2
         else:
             # API requires predefined number of frames per packet
-            frames_per_packet = 2
+            frames_per_packet = 1
 
         configs_ms = {}
         configs_ms[2.5] = [16, 20, 24, 28]
@@ -279,28 +285,12 @@ class OpusFileStream:
         return frames_per_packet, 20
 
 
-    def set_stream_id(self, stream_id):
-        self.stream_id = stream_id
-
-
-    def get_frames_per_packet(self):
-        return self.frames_per_packet
-
-
-    def get_sample_rate(self):
-        return self.sample_rate
-
-
-    def get_packet_duration(self):
-        return self.packet_duration
-
-
-    # There are three mandatory headers. Don't send data until the headers are parsed.
     def all_headers_parsed(self):
+        # There are three mandatory headers. Don't send data until the headers are parsed.
         return self.opus_headers_count >= 3
 
 
-    def get_next_zello_stream_packet(self):
+    def get_next_opus_packet(self):
         continue_needed = False
         data = bytes()
 
@@ -309,7 +299,7 @@ class OpusFileStream:
         if self.all_headers_parsed() and len(self.saved_packets) > 0:
             data = self.saved_packets[0]
             self.saved_packets.remove(self.saved_packets[0])
-            return self.__generate_zello_stream_packet(data)
+            return data
 
         while True:
             if self.segment_idx >= self.segments_count:
@@ -347,14 +337,14 @@ class OpusFileStream:
                 print("Skipping frame - TOC differs")
                 continue
 
-            return self.__generate_zello_stream_packet(data)
+            return data
 
         return None
 
 
-    # First header is OpusHead, second one - OpusTags.
-    # Third one is a Table Of Contents byte from the first Opus packet.
     def __parse_opus_headers(self, data):
+        # First header is OpusHead, second one - OpusTags.
+        # Third one is a Table Of Contents byte from the first Opus packet.
         if self.opus_headers_count < 1:
             if self.__parse_opushead_header(data):
                 self.opus_headers_count += 1
@@ -371,7 +361,9 @@ class OpusFileStream:
 
     def __fill_opus_config(self):
         while not self.all_headers_parsed():
-            self.get_next_zello_stream_packet()
+            packet = self.get_next_opus_packet()
+            if not packet:
+                raise NameError('Invalid Opus file')
 
 
 if __name__ == "__main__":
