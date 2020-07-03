@@ -4,6 +4,7 @@ import json
 import time
 import aiohttp
 import socket
+import sys
 
 
 WS_ENDPOINT="wss://zello.io/ws"
@@ -12,28 +13,41 @@ WS_ENDPOINT="wss://zello.io/ws"
 def main():
     loop = asyncio.get_event_loop()
     try:
-        loop.run_until_complete(zello_stream_audio_to_channel(
+        sys.exit(loop.run_until_complete(zello_stream_audio_to_channel(
             "username",
             "password",
             "token",
             "channel",
-            "opus_filename"))
+            "opus_filename")))
+    except KeyboardInterrupt:
+        def shutdown_exception_handler(loop, context):
+            if "exception" in context and isinstance(context["exception"], asyncio.CancelledError):
+                return
+            loop.default_exception_handler(context)
+
+        loop.set_exception_handler(shutdown_exception_handler)
+        tasks = asyncio.gather(*asyncio.Task.all_tasks(loop=loop), loop=loop, return_exceptions=True)
+        tasks.add_done_callback(lambda t: loop.stop())
+        tasks.cancel()
+        while not tasks.done() and not loop.is_closed():
+            loop.run_forever()
+        print("Stopped by user")
     finally:
         loop.close()
 
 
 async def zello_stream_audio_to_channel(username, password, token, channel, opusfile):
-    opus_file_stream = OpusFileStream(opusfile)
-    conn = aiohttp.TCPConnector(family = socket.AF_INET, verify_ssl = False)
-    async with aiohttp.ClientSession(connector = conn) as session:
-        async with session.ws_connect(WS_ENDPOINT) as ws:
-            try:
+    try:
+        opus_file_stream = OpusFileStream(opusfile)
+        conn = aiohttp.TCPConnector(family = socket.AF_INET, verify_ssl = False)
+        async with aiohttp.ClientSession(connector = conn) as session:
+            async with session.ws_connect(WS_ENDPOINT) as ws:
                 await authenticate(ws, username, password, token, channel)
                 stream_id = await start_zello_stream(ws, opus_file_stream)
                 await stream_audio_data(session, ws, stream_id, opus_file_stream)
                 await stop_zello_stream(ws, stream_id)
-            finally:
-                pass
+    except (NameError, aiohttp.client_exceptions.ClientError, IOError) as error:
+        print(error)
 
 
 async def authenticate(ws, username, password, token, channel):
@@ -51,11 +65,11 @@ async def authenticate(ws, username, password, token, channel):
     is_channel_available = False
     async for msg in ws:
         if msg.type == aiohttp.WSMsgType.TEXT:
-            res = json.loads(msg.data)
-            if "refresh_token" in res:
+            data = json.loads(msg.data)
+            if "refresh_token" in data:
                 is_authorized = True
-            elif "command" in res and res["command"] == "on_channel_status":
-                is_channel_available = res["status"] == "online"
+            elif "command" in data and "status" in data and data["command"] == "on_channel_status":
+                is_channel_available = data["status"] == "online"
             if is_authorized and is_channel_available:
                 break
 
@@ -85,8 +99,10 @@ async def start_zello_stream(ws, opus_file_stream):
     async for msg in ws:
         if msg.type == aiohttp.WSMsgType.TEXT:
             data = json.loads(msg.data)
-            if data["success"]:
+            if "success" in data and "stream_id" in data and data["success"]:
                 return data["stream_id"]
+            else:
+                break
 
     raise NameError('Failed to create Zello audio stream')
 
@@ -150,7 +166,7 @@ class OpusFileStream:
     def __init__(self, filename):
         self.opusfile = open(filename, "rb")
         if not self.opusfile:
-            raise NameError('Failed opening {filename}')
+            raise NameError(f'Failed opening {filename}')
         self.segment_sizes = bytes()
         self.segment_idx = 0
         self.segments_count = 0
@@ -234,6 +250,22 @@ class OpusFileStream:
 
 
     def __parse_opushead_header(self, data):
+        # OpusHead header format:
+        #  0               1               2               3                Byte
+        #  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1| Bit
+        # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        # |      'O'      |      'p'      |      'u'      |      's'      | 0-3
+        # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        # |      'H'      |      'e'      |      'a'      |      'd'      | 4-7
+        # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        # |  Version = 1  | Channel Count |           Pre-skip            | 8-11
+        # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        # |                     Input Sample Rate (Hz)                    | 12-15
+        # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        # |   Output Gain (Q7.8 in dB)    | Mapping Family|               | 16-
+        # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+               :
+        # :               Optional Channel Mapping Table...               :
+        # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
         if data.find(bytes("OpusHead", "ascii")) != 0:
             return False
         version = data[8]
@@ -248,6 +280,25 @@ class OpusFileStream:
 
 
     def __parse_opustags_header(self, data):
+        #  0               1               2               3                Byte
+        #  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1| Bit
+        # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        # |      'O'      |      'p'      |      'u'      |      's'      | 0-3
+        # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        # |      'T'      |      'a'      |      'g'      |      's'      | 4-7
+        # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        # |                     Vendor String Length                      | 8-11
+        # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        # :                        Vendor String...                       : 12-
+        # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        # |                   User Comment List Length                    |
+        # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        # |                 User Comment #0 String Length                 |
+        # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        # :                   User Comment #0 String...                   :
+        # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        # |                 User Comment #1 String Length                 |
+        # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
         return data.find(bytes("OpusTags", "ascii")) == 0
 
 
@@ -265,6 +316,7 @@ class OpusFileStream:
             frames_per_packet = 2
         else:
             # API requires predefined number of frames per packet
+            print("An arbitrary number of frames in the packet - possible audio arifacts")
             frames_per_packet = 1
 
         configs_ms = {}
