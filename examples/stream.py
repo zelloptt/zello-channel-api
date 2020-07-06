@@ -4,22 +4,41 @@ import json
 import time
 import aiohttp
 import socket
-import sys
-
+import configparser
 
 WS_ENDPOINT="wss://zello.io/ws"
 
+ZelloWS = None
+ZelloStreamID = None
+
 
 def main():
+    global ZelloWS, ZelloStreamID
+
+    try:
+        config = configparser.ConfigParser()
+        config.read('stream.conf')
+        username = config['zello']['username']
+        password = config['zello']['password']
+        token = config['zello']['token']
+        channel = config['zello']['channel']
+        filename = config['media']['filename']
+    except KeyError as error:
+        print("Check config file. Missing key:", error)
+        return
+
     loop = asyncio.get_event_loop()
     try:
-        sys.exit(loop.run_until_complete(zello_stream_audio_to_channel(
-            "username",
-            "password",
-            "token",
-            "channel",
-            "opus_filename")))
+        loop.run_until_complete(zello_stream_audio_to_channel(username, password,
+            token, channel, filename))
     except KeyboardInterrupt:
+        try:
+            if ZelloWS and ZelloStreamID:
+                loop.run_until_complete(zello_stream_stop(ZelloWS, ZelloStreamID))
+
+        except aiohttp.client_exceptions.ClientError as error:
+            print("Error during stopping. ", error)
+
         def shutdown_exception_handler(loop, context):
             if "exception" in context and isinstance(context["exception"], asyncio.CancelledError):
                 return
@@ -37,15 +56,19 @@ def main():
 
 
 async def zello_stream_audio_to_channel(username, password, token, channel, opusfile):
+    # Pass out the opened WebSocket and StreamID to handle synchronous keyboard interrupt
+    global ZelloWS, ZelloStreamID
     try:
         opus_file_stream = OpusFileStream(opusfile)
         conn = aiohttp.TCPConnector(family = socket.AF_INET, verify_ssl = False)
         async with aiohttp.ClientSession(connector = conn) as session:
             async with session.ws_connect(WS_ENDPOINT) as ws:
+                ZelloWS = ws
                 await authenticate(ws, username, password, token, channel)
-                stream_id = await start_zello_stream(ws, opus_file_stream)
-                await stream_audio_data(session, ws, stream_id, opus_file_stream)
-                await stop_zello_stream(ws, stream_id)
+                stream_id = await zello_stream_start(ws, opus_file_stream)
+                ZelloStreamID = stream_id
+                await zello_stream_send_audio(session, ws, stream_id, opus_file_stream)
+                await zello_stream_stop(ws, stream_id)
     except (NameError, aiohttp.client_exceptions.ClientError, IOError) as error:
         print(error)
 
@@ -77,7 +100,7 @@ async def authenticate(ws, username, password, token, channel):
         raise NameError('Authentication failed')
 
 
-async def start_zello_stream(ws, opus_file_stream):
+async def zello_stream_start(ws, opus_file_stream):
     sample_rate = opus_file_stream.sample_rate
     frames_per_packet = opus_file_stream.frames_per_packet
     packet_duration = opus_file_stream.packet_duration
@@ -107,7 +130,7 @@ async def start_zello_stream(ws, opus_file_stream):
     raise NameError('Failed to create Zello audio stream')
 
 
-async def stop_zello_stream(ws, stream_id):
+async def zello_stream_stop(ws, stream_id):
     await ws.send_str(json.dumps({
         "command": "stop_stream",
         "stream_id": stream_id
@@ -126,7 +149,7 @@ def generate_zello_stream_packet(stream_id, packet_id, data):
         packet_id.to_bytes(4, "big") + data
 
 
-async def stream_audio_data(session, ws, stream_id, opus_file_stream):
+async def zello_stream_send_audio(session, ws, stream_id, opus_file_stream):
     packet_duration_sec = opus_file_stream.packet_duration / 1000
     min_send_delay = packet_duration_sec / 4
     packet_id = 1
