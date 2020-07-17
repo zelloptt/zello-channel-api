@@ -50,6 +50,18 @@ class Encoder extends Emitter {
       buffers: data
     });
   }
+
+  destroy() {
+    this.encoderWorker.postMessage({
+      command: 'destroy'
+    });
+    this.encoderWorker.postMessage({
+      command: 'close'
+    });
+    this.encoderWorker.terminate();
+    this.removeAllListeners();
+    this.encoderWorker = undefined;
+  }
 }
 
 module.exports = Encoder;
