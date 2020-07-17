@@ -21,6 +21,10 @@ class Encoder extends Emitter {
     }
     this.encoderWorker = new window.Worker(URL.createObjectURL(blob));
     this.encoderWorker.addEventListener('message', (e) => {
+      if (e.data && e.data.message === 'close') {
+        this.onClose();
+        return;
+      }
       if (!e.data || e.data.type !== 'opus' || !e.data.data) {
         return;
       }
@@ -52,13 +56,17 @@ class Encoder extends Emitter {
   }
 
   destroy() {
+    // This destroys the opus memory allocations, not the worker
     this.encoderWorker.postMessage({
       command: 'destroy'
     });
+    // This closes the worker
     this.encoderWorker.postMessage({
       command: 'close'
     });
-    this.encoderWorker.terminate();
+  }
+
+  onClose() {
     this.removeAllListeners();
     this.encoderWorker = undefined;
   }
