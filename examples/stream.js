@@ -1,5 +1,7 @@
 var fs = require('fs');
 var Buffer = require('buffer/').Buffer
+var WebSocket = require('ws');
+var ConfigParser = require('configparser');
 
 class OpusFileStream {
     // https://tools.ietf.org/html/rfc7845
@@ -8,7 +10,7 @@ class OpusFileStream {
         fs.open(filename, 'r', function(err, fd) {
             if (err) {
                 console.log("Failed to open opus file ", filename);
-                return onCompleteCb(false);
+                return onCompleteCb(null);
             }
             this.opusfile = fd;
             this.segmentSizes = new Uint8Array(255);
@@ -19,7 +21,9 @@ class OpusFileStream {
             this.packetDuration = 0;
             this.framesPerPacket = 0;
             this.savedPackets = [];
-            this.fillOpusConfig(onCompleteCb);
+            this.fillOpusConfig(function(success) {
+                return onCompleteCb(success ? this : null);
+            }.bind(this));
         }.bind(this));
     }
     
@@ -349,25 +353,184 @@ class OpusFileStream {
     }
 }
 
-
-// Following is a class usage example:
-function streamPackets() {
-    opusStream.getNextOpusPacket(null, false, function(data) {
-        if (!data) {
-            return console.log("No more audio packets");
+function zelloAuthorize(ws, opusStream, onCompleteCb) {
+    ws.send(JSON.stringify({
+        seq: 1,
+        command: "logon",
+        auth_token: zelloToken,
+        username: zelloUsername,
+        password: zelloPassword,
+        channel: zelloChannel,
+    }));
+    
+    var isAuthorized = false, isChannelAvailable = false;
+    ws.onmessage = function(event) {
+        var json = JSON.parse(event.data);
+        if (json.refresh_token) {
+            isAuthorized = true;
+        } else if (json.command == "on_channel_status" && json.status == "online") {
+            isChannelAvailable = true;
         }
-        
-        // Do something with data
-        
-        streamPackets();
-    });
-}
-
-function StreamStartedCb(success) {
-    if (!success) {
-        return console.log("Failed to start Opus media stream")
+        if (isAuthorized && isChannelAvailable) {
+            return onCompleteCb(true);
+        }
     }
-    streamPackets();
 }
 
-opusStream = new OpusFileStream("filename.opus", StreamStartedCb);
+function zelloStartStream(ws, opusStream, onCompleteCb) {
+    var packetDuration = opusStream.packetDuration;
+    var codecHeaderRaw = new Uint8Array(4);
+    codecHeaderRaw[2] = opusStream.framesPerPacket;
+    codecHeaderRaw[3] = opusStream.packetDuration;
+    
+    // sampleRate is represented in two bytes in little endian.
+    // https://github.com/zelloptt/zello-channel-api/blob/409378acd06257bcd07e3f89e4fbc885a0cc6663/sdks/js/src/classes/utils.js#L63
+    codecHeaderRaw[0] = parseInt(opusStream.sampleRate & 0xff);
+    codecHeaderRaw[1] = parseInt(opusStream.sampleRate / 0x100) & 0xff;
+    var codecHeader = Buffer.from(codecHeaderRaw).toString('base64');
+
+    ws.send(JSON.stringify({
+        "command": "start_stream",
+        "seq": 2,
+        "type": "audio",
+        "codec": "opus",
+        "codec_header": codecHeader,
+        "packet_duration": packetDuration,
+    }));
+                                
+    ws.onmessage = function(event) {
+        var json = JSON.parse(event.data);
+        if (json && json.success && json.stream_id) {
+            return onCompleteCb(json.stream_id);
+        }
+        console.log("Failed to create Zello audio stream");
+        return onCompleteCb(null);
+    }
+}
+
+function zelloStreamSendAudio(ws, opusStream, streamId, onCompleteCb) {
+    var packetDurationMs = opusStream.packetDuration;
+    var date = new Date();
+    var packetId = 1;
+    var zelloStreamNextPacket = function() {
+        var startTsMs = date.getTime();
+        opusStream.getNextOpusPacket(null, false, function(data) {
+            if (!data) {
+                console.log("No more audio packets");
+                return onCompleteCb(true);
+            }
+        
+            // https://github.com/zelloptt/zello-channel-api/blob/master/API.md#stream-data
+            var packet = new Uint8Array(data.length + 9);
+            packet[0] = 1;
+
+            var id = streamId;
+            for (let i = 4; i > 0; i--) {
+                packet[i] = parseInt(id & 0xff);
+                id = parseInt(id / 0x100);
+            }
+    
+            id = packetId;
+            for (let i = 8; i > 4; i--) {
+                packet[i] = parseInt(id & 0xff);
+                id = parseInt(id / 0x100);
+            }
+            packet.set(data, 9);
+            ws.send(packet);
+            packetId++;
+            date = new Date();
+            let timePassedMs = date.getTime() - startTsMs;
+            if (packetDurationMs > timePassedMs) {
+                setTimeout(zelloStreamNextPacket, packetDurationMs - timePassedMs);
+            } else {
+                zelloStreamNextPacket();
+            }
+        });
+    }
+    zelloStreamNextPacket();
+    ws.onmessage = function(event) {
+        return;
+    }
+}
+
+function zelloStopStream(ws, streamId) {
+    ws.send(JSON.stringify({
+        command: "stop_stream",
+        stream_id: streamId}));
+}
+
+function StreamReadyCb(opusStream) {
+    if (!opusStream) {
+        console.log("Failed to start Opus media stream");
+        process.exit();
+    }
+                    
+    var ws = new WebSocket("wss://zello.io/ws");
+    ws.onclose = function(event) {
+        console.log("Connection has been closed");
+        zelloSocket = null;
+        process.exit();
+    };
+                    
+    ws.onopen = function(event) {
+        zelloSocket = ws;
+        
+        zelloAuthorize(ws, opusStream, function(success) {
+            if (!success) {
+                console.log("Failed to authorize");
+                ws.close();
+            }
+            zelloStartStream(ws, opusStream, function(streamId) {
+                if (!streamId) {
+                    console.log("Failed to start Zello stream");
+                    ws.close();
+                }
+                zelloStreamId = streamId;
+                zelloStreamSendAudio(ws, opusStream, streamId, function(success) {
+                    if (!success) {
+                        console.log("Failed to stream audio");
+                    }
+                    zelloStopStream(ws, streamId);
+                    ws.close();
+                });
+            });
+        });
+    };
+}
+
+// Global variables to handle user's SIGINT action
+var zelloSocket = null;
+var zelloStreamId = null;
+
+process.on("SIGINT", function() {
+    console.log("Stopped by user");
+    if (zelloSocket) {
+        if (zelloStreamId) {
+            zelloStopStream(zelloSocket, zelloStreamId);
+        }
+        zelloSocket.close();
+    }
+    process.exit();
+});
+                          
+                              
+var config = new ConfigParser();
+try {
+    config.read('stream.conf');
+} catch(error) {
+    console.log("Failed to open a config file");
+    process.exit();
+}
+                              
+var zelloUsername = config.get('zello', 'username');
+var zelloPassword = config.get('zello', 'password');
+var zelloToken = config.get('zello', 'token');
+var zelloChannel = config.get('zello', 'channel');
+var zelloFilename = config.get('media', 'filename');
+
+if (!zelloUsername || !zelloPassword || !zelloToken || !zelloChannel || !zelloFilename) {
+    console.log("Invalid config file. See example");
+    process.exit();
+}
+                              
+new OpusFileStream(zelloFilename, StreamReadyCb);
