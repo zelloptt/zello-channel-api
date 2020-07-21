@@ -353,14 +353,14 @@ class OpusFileStream {
     }
 }
 
-function zelloAuthorize(ws, opusStream, onCompleteCb) {
+function zelloAuthorize(ws, opusStream, username, password, token, channel, onCompleteCb) {
     ws.send(JSON.stringify({
         seq: 1,
         command: "logon",
-        auth_token: zelloToken,
-        username: zelloUsername,
-        password: zelloPassword,
-        channel: zelloChannel,
+        auth_token: token,
+        username: username,
+        password: password,
+        channel: channel,
     }));
     
     var isAuthorized = false, isChannelAvailable = false;
@@ -459,12 +459,7 @@ function zelloStopStream(ws, streamId) {
         stream_id: streamId}));
 }
 
-function StreamReadyCb(opusStream) {
-    if (!opusStream) {
-        console.log("Failed to start Opus media stream");
-        process.exit();
-    }
-                    
+function zelloStreamReadyCb(opusStream, username, password, token, channel) {
     var ws = new WebSocket("wss://zello.io/ws");
     ws.onclose = function(event) {
         console.log("Connection has been closed");
@@ -475,7 +470,7 @@ function StreamReadyCb(opusStream) {
     ws.onopen = function(event) {
         zelloSocket = ws;
         
-        zelloAuthorize(ws, opusStream, function(success) {
+        zelloAuthorize(ws, opusStream, username, password, token, channel, function(success) {
             if (!success) {
                 console.log("Failed to authorize");
                 ws.close();
@@ -527,10 +522,15 @@ var zelloPassword = config.get('zello', 'password');
 var zelloToken = config.get('zello', 'token');
 var zelloChannel = config.get('zello', 'channel');
 var zelloFilename = config.get('media', 'filename');
-
 if (!zelloUsername || !zelloPassword || !zelloToken || !zelloChannel || !zelloFilename) {
     console.log("Invalid config file. See example");
     process.exit();
 }
                               
-new OpusFileStream(zelloFilename, StreamReadyCb);
+new OpusFileStream(zelloFilename, function(opusStream) {
+    if (!opusStream) {
+        console.log("Failed to start Opus media stream");
+        process.exit();
+    }
+    zelloStreamReadyCb(opusStream, zelloUsername, zelloPassword, zelloToken, zelloChannel);
+});
