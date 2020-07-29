@@ -43,6 +43,11 @@
 	<string>Show your current location</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Use microphone to talk</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+		<string>processing</string>
+	</array>
 	<key>UIFileSharingEnabled</key>
 	<false/>
 	<key>UILaunchStoryboardName</key>

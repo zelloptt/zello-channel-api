@@ -29,6 +29,7 @@
 		A8C65F461FD9D37900E62BE5 /* BaseViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = A8C65F451FD9D37900E62BE5 /* BaseViewController.m */; };
 		BDF3318B194DDA637D7847B2 /* Pods_ZelloChannelDemo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D99472E01CDA702CB7980431 /* Pods_ZelloChannelDemo.framework */; };
 		D14E612E204F3C4D00393FCA /* QAViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = D14E612D204F3C4D00393FCA /* QAViewController.m */; };
+		D159B29824D20A6900C03114 /* silence1s.mp3 in Resources */ = {isa = PBXBuildFile; fileRef = D159B29724D20A6900C03114 /* silence1s.mp3 */; };
 		D18A3B592051A527003EDE38 /* FileAudioSource.m in Sources */ = {isa = PBXBuildFile; fileRef = D18A3B582051A527003EDE38 /* FileAudioSource.m */; };
 		D1C8899D204090A200814E5A /* Zello.m in Sources */ = {isa = PBXBuildFile; fileRef = D1C8899C204090A200814E5A /* Zello.m */; };
 		D1DC878C2322FCD700CBB9CF /* ImagePopupViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = D1DC878B2322FCD700CBB9CF /* ImagePopupViewController.m */; };
@@ -98,6 +99,7 @@
 		B2B45066FAFFBA1C265812D8 /* Pods-ZelloChannelDemo.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ZelloChannelDemo.debug.xcconfig"; path = "Target Support Files/Pods-ZelloChannelDemo/Pods-ZelloChannelDemo.debug.xcconfig"; sourceTree = "<group>"; };
 		D14E612C204F3C4D00393FCA /* QAViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = QAViewController.h; sourceTree = "<group>"; };
 		D14E612D204F3C4D00393FCA /* QAViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = QAViewController.m; sourceTree = "<group>"; };
+		D159B29724D20A6900C03114 /* silence1s.mp3 */ = {isa = PBXFileReference; lastKnownFileType = audio.mp3; path = silence1s.mp3; sourceTree = "<group>"; };
 		D18A3B572051A527003EDE38 /* FileAudioSource.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = FileAudioSource.h; sourceTree = "<group>"; };
 		D18A3B582051A527003EDE38 /* FileAudioSource.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = FileAudioSource.m; sourceTree = "<group>"; };
 		D1C6EA9F203754400017797A /* ZelloChannelKit.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; path = ZelloChannelKit.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -292,6 +294,7 @@
 		A87394E31FD879680007C37B /* Data */ = {
 			isa = PBXGroup;
 			children = (
+				D159B29724D20A6900C03114 /* silence1s.mp3 */,
 				A87394E41FD8798F0007C37B /* driverlist.plist */,
 				D1F6F54A2049B9890045A100 /* honk.wav */,
 			);
@@ -427,6 +430,7 @@
 				A80440711FD5C00F00BFD1BF /* LaunchScreen.storyboard in Resources */,
 				A804406E1FD5C00F00BFD1BF /* Assets.xcassets in Resources */,
 				A87394E51FD8798F0007C37B /* driverlist.plist in Resources */,
+				D159B29824D20A6900C03114 /* silence1s.mp3 in Resources */,
 				A804406C1FD5C00F00BFD1BF /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
