@@ -23,8 +23,17 @@
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
   // Override point for customization after application launch.
 
-  // Create and start the silence player. We'll just leave it running; it doesn't interfere with
-  // playing or sending messages.
+  [self prepareSilencePlayer];
+  return YES;
+}
+
+// Create and start the silence player. We'll just leave it running; it doesn't interfere with
+// playing or sending messages.
+- (void)prepareSilencePlayer {
+  if (self.silencePlayer) {
+    return;
+  }
+
   NSError *error = nil;
   self.silencePlayer = [[AVAudioPlayer alloc] initWithContentsOfURL:[NSBundle.mainBundle URLForResource:@"silence1s" withExtension:@"mp3"] error:&error];
   if (!self.silencePlayer) {
@@ -33,7 +42,6 @@
   self.silencePlayer.volume = 0.0;
   self.silencePlayer.numberOfLoops = -1; // Loop indefinitely
   [self.silencePlayer play];
-  return YES;
 }
 
 - (void)applicationWillResignActive:(UIApplication *)application {
@@ -46,6 +54,7 @@
   // Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later.
   // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
 
+  [self prepareSilencePlayer];
   // The SDK sets the audio session category to PlayAndRecord. It needs to just be Playback to play
   // audio in the background. When the app returns to the foreground, the SDK will set it to
   // PlayAndRecord again the next time we send a message.
