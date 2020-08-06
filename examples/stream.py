@@ -150,11 +150,12 @@ def generate_zello_stream_packet(stream_id, packet_id, data):
 
 
 async def zello_stream_send_audio(session, ws, stream_id, opus_file_stream):
+    time_streaming_sec = 0
     packet_duration_sec = opus_file_stream.packet_duration / 1000
-    min_send_delay = packet_duration_sec / 4
+    packet_timeout_sec = packet_duration_sec / 2
+    start_ts_nanosec = time.time_ns()
     packet_id = 1
     while True:
-        start_ts_sec = time.time()
         data = opus_file_stream.get_next_opus_packet()
 
         if not data:
@@ -167,20 +168,20 @@ async def zello_stream_send_audio(session, ws, stream_id, opus_file_stream):
         packet = generate_zello_stream_packet(stream_id, packet_id, data)
         packet_id += 1
         try:
-            time_passed_sec = time.time() - start_ts_sec
             # Once wait_for() is timed out - it takes additional operational time.
             # Recalculate delay and sleep at the end of the loop to compensate this delay.
-            if packet_duration_sec - time_passed_sec > min_send_delay:
-                delay = packet_duration_sec - time_passed_sec - min_send_delay
-                await asyncio.wait_for(
-                    send_audio_packet(ws, packet), delay
-                )
+            await asyncio.wait_for(
+                send_audio_packet(ws, packet), packet_timeout_sec
+            )
         except asyncio.TimeoutError:
             pass
 
-        time_passed_sec = time.time() - start_ts_sec
-        if time_passed_sec < packet_duration_sec:
-            await asyncio.sleep(packet_duration_sec - time_passed_sec)
+        time_streaming_sec += packet_duration_sec
+        time_elapsed_sec = (time.time_ns() - start_ts_nanosec) / 1000000000
+        sleep_delay_sec = time_streaming_sec - time_elapsed_sec - 0.1
+
+        if sleep_delay_sec > 0:
+            time.sleep(sleep_delay_sec)
 
 
 class OpusFileStream:
