@@ -408,12 +408,17 @@ function zelloStartStream(ws, opusStream, onCompleteCb) {
     }
 }
 
+function getCurrentTimeMs() {
+    var hrTime = process.hrtime();
+    return hrTime[0] * 1000 + hrTime[1] / 1000000;
+}
+
 function zelloStreamSendAudio(ws, opusStream, streamId, onCompleteCb) {
     var packetDurationMs = opusStream.packetDuration;
-    var date = new Date();
+    var startTsMs = getCurrentTimeMs();
     var packetId = 1;
+    var timeStreamingMs = 0;
     var zelloStreamNextPacket = function() {
-        var startTsMs = date.getTime();
         opusStream.getNextOpusPacket(null, false, function(data) {
             if (!data) {
                 console.log("No more audio packets");
@@ -438,10 +443,13 @@ function zelloStreamSendAudio(ws, opusStream, streamId, onCompleteCb) {
             packet.set(data, 9);
             ws.send(packet);
             packetId++;
-            date = new Date();
-            let timePassedMs = date.getTime() - startTsMs;
-            if (packetDurationMs > timePassedMs) {
-                setTimeout(zelloStreamNextPacket, packetDurationMs - timePassedMs);
+
+            timeStreamingMs += packetDurationMs;
+            timeElapsedMs = getCurrentTimeMs() - startTsMs;
+            sleepDelayMs = timeStreamingMs - timeElapsedMs;
+    
+            if (sleepDelayMs > packetDurationMs) {
+                setTimeout(zelloStreamNextPacket, sleepDelayMs);
             } else {
                 zelloStreamNextPacket();
             }
