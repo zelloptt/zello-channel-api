@@ -3,12 +3,17 @@
 //  demo
 //
 //  Created by Jim Pickering on 12/4/17.
-//  Copyright © 2018 Zello. All rights reserved.
+//  Copyright © 2020 Zello. All rights reserved.
 //
 
+@import AVFoundation;
 #import "AppDelegate.h"
 
-@interface AppDelegate ()
+@interface AppDelegate () <AVAudioPlayerDelegate>
+
+// We use an audio player playing silence to keep the system from suspending the app while we're
+// in the background, waiting for incoming messages
+@property (nonatomic, strong) AVAudioPlayer *silencePlayer;
 
 @end
 
@@ -17,9 +22,27 @@
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
   // Override point for customization after application launch.
+
+  [self prepareSilencePlayer];
   return YES;
 }
 
+// Create and start the silence player. We'll just leave it running; it doesn't interfere with
+// playing or sending messages.
+- (void)prepareSilencePlayer {
+  if (self.silencePlayer) {
+    return;
+  }
+
+  NSError *error = nil;
+  self.silencePlayer = [[AVAudioPlayer alloc] initWithContentsOfURL:[NSBundle.mainBundle URLForResource:@"silence1s" withExtension:@"mp3"] error:&error];
+  if (!self.silencePlayer) {
+    NSLog(@"Error initializing audio player: %@", error);
+  }
+  self.silencePlayer.volume = 0.0;
+  self.silencePlayer.numberOfLoops = -1; // Loop indefinitely
+  [self.silencePlayer play];
+}
 
 - (void)applicationWillResignActive:(UIApplication *)application {
   // Sent when the application is about to move from active to inactive state. This can occur for certain types of temporary interruptions (such as an incoming phone call or SMS message) or when the user quits the application and it begins the transition to the background state.
@@ -30,6 +53,16 @@
 - (void)applicationDidEnterBackground:(UIApplication *)application {
   // Use this method to release shared resources, save user data, invalidate timers, and store enough application state information to restore your application to its current state in case it is terminated later.
   // If your application supports background execution, this method is called instead of applicationWillTerminate: when the user quits.
+
+  [self prepareSilencePlayer];
+  // The SDK sets the audio session category to PlayAndRecord. It needs to just be Playback to play
+  // audio in the background. When the app returns to the foreground, the SDK will set it to
+  // PlayAndRecord again the next time we send a message.
+  NSError *error = nil;
+  if (![AVAudioSession.sharedInstance setCategory:AVAudioSessionCategoryPlayback error:&error]) {
+    NSLog(@"%s error setting audio category: %@", __PRETTY_FUNCTION__, error);
+  }
+
 }
 
 
@@ -46,6 +79,5 @@
 - (void)applicationWillTerminate:(UIApplication *)application {
   // Called when the application is about to terminate. Save data if appropriate. See also applicationDidEnterBackground:.
 }
-
 
 @end
