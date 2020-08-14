@@ -134,10 +134,21 @@ outgoingMessage.then(function(result) {
 });
   */
   stop(userCallback) {
+    const promise = new Promise((resolve) => {
+      this.encoder.on(
+        Constants.EVENT_ENCODER_DONE,
+        () => {
+          resolve(this.session.stopStream(
+            { stream_id: this.currentMessageId },
+            userCallback
+          ))
+        }
+      )
+    });
+
     this.stopRecording();
-    return this.session.stopStream({
-      stream_id: this.currentMessageId
-    }, userCallback);
+
+    return promise
   }
 
 
