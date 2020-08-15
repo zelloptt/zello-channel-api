@@ -18,7 +18,7 @@ class OpusFileStream {
             this.segmentsCount = 0;
             this.sequenceNumber = (- 1);
             this.opusHeadersCount = 0;
-            this.packetDuration = 0;
+            this.packetDurationMs = 0;
             this.framesPerPacket = 0;
             this.savedPackets = [];
             this.fillOpusConfig(function(success) {
@@ -294,7 +294,7 @@ class OpusFileStream {
                     
             // The last data chunk may require continuing in the next Ogg page
             if (isContinueNeeded) {
-                return getNextOpusPacket(packet, isContinueNeeded, onCompleteCb);
+                return this.getNextOpusPacket(packet, isContinueNeeded, onCompleteCb);
             }
                         
             // Do not send Opus headers
@@ -306,10 +306,10 @@ class OpusFileStream {
             // Verify the Opus TOC is the same as we initially declared
             var frames, duration;
             [frames, duration] = this.parseOpusTOC(packet);
-            if (this.framesPerPacket !== frames || this.packetDuration !== duration) {
+            if (this.framesPerPacket !== frames || this.packetDurationMs !== duration) {
                 packet = null;
                 console.log("Skipping frame - TOC differs");
-                return getNextOpusPacket(packet, isContinueNeeded, onCompleteCb);
+                return this.getNextOpusPacket(packet, isContinueNeeded, onCompleteCb);
             }
             onCompleteCb(packet);
         }.bind(this));
@@ -328,10 +328,7 @@ class OpusFileStream {
                 this.opusHeadersCount++;
             }
         } else if (this.opusHeadersCount < 3) {
-            var framesPerPacket, packetDuration;
-            [framesPerPacket, packetDuration] = this.parseOpusTOC(data);
-            this.framesPerPacket = framesPerPacket;
-            this.packetDuration = packetDuration;
+            [this.framesPerPacket, this.packetDurationMs] = this.parseOpusTOC(data);
             this.opusHeadersCount++;
             // Save the first Opus packet as it contains audio data
             this.savedPackets.push(data);
@@ -378,10 +375,9 @@ function zelloAuthorize(ws, opusStream, username, password, token, channel, onCo
 }
 
 function zelloStartStream(ws, opusStream, onCompleteCb) {
-    var packetDuration = opusStream.packetDuration;
     var codecHeaderRaw = new Uint8Array(4);
     codecHeaderRaw[2] = opusStream.framesPerPacket;
-    codecHeaderRaw[3] = opusStream.packetDuration;
+    codecHeaderRaw[3] = opusStream.packetDurationMs;
     
     // sampleRate is represented in two bytes in little endian.
     // https://github.com/zelloptt/zello-channel-api/blob/409378acd06257bcd07e3f89e4fbc885a0cc6663/sdks/js/src/classes/utils.js#L63
@@ -395,7 +391,7 @@ function zelloStartStream(ws, opusStream, onCompleteCb) {
         "type": "audio",
         "codec": "opus",
         "codec_header": codecHeader,
-        "packet_duration": packetDuration,
+        "packet_duration": opusStream.packetDurationMs,
     }));
                                 
     ws.onmessage = function(event) {
@@ -413,46 +409,54 @@ function getCurrentTimeMs() {
     return hrTime[0] * 1000 + hrTime[1] / 1000000;
 }
 
+function zelloGenerateAudioPacket(data, streamId, packetId) {
+    // https://github.com/zelloptt/zello-channel-api/blob/master/API.md#stream-data
+    var packet = new Uint8Array(data.length + 9);
+    packet[0] = 1;
+    
+    var id = streamId;
+    for (let i = 4; i > 0; i--) {
+        packet[i] = parseInt(id & 0xff);
+        id = parseInt(id / 0x100);
+    }
+        
+    id = packetId;
+    for (let i = 8; i > 4; i--) {
+        packet[i] = parseInt(id & 0xff);
+        id = parseInt(id / 0x100);
+    }
+    packet.set(data, 9);
+    return packet;
+}
+
+function zelloSendAudioPacket(ws, packet, startTsMs, timeStreamingMs, onCompleteCb) {
+    let timeElapsedMs = getCurrentTimeMs() - startTsMs;
+    let sleepDelayMs = timeStreamingMs - timeElapsedMs;
+    
+    ws.send(packet);
+    if (sleepDelayMs < 1) {
+        return onCompleteCb();
+    }
+    setTimeout(onCompleteCb, sleepDelayMs);
+}
+
 function zelloStreamSendAudio(ws, opusStream, streamId, onCompleteCb) {
-    var packetDurationMs = opusStream.packetDuration;
     var startTsMs = getCurrentTimeMs();
-    var packetId = 1;
     var timeStreamingMs = 0;
-    var zelloStreamNextPacket = function() {
+    var packetId = 0;
+    zelloStreamNextPacket = function() {
         opusStream.getNextOpusPacket(null, false, function(data) {
             if (!data) {
                 console.log("No more audio packets");
                 return onCompleteCb(true);
             }
-        
-            // https://github.com/zelloptt/zello-channel-api/blob/master/API.md#stream-data
-            var packet = new Uint8Array(data.length + 9);
-            packet[0] = 1;
 
-            var id = streamId;
-            for (let i = 4; i > 0; i--) {
-                packet[i] = parseInt(id & 0xff);
-                id = parseInt(id / 0x100);
-            }
-    
-            id = packetId;
-            for (let i = 8; i > 4; i--) {
-                packet[i] = parseInt(id & 0xff);
-                id = parseInt(id / 0x100);
-            }
-            packet.set(data, 9);
-            ws.send(packet);
+            let packet = zelloGenerateAudioPacket(data, streamId, packetId);
+            timeStreamingMs += opusStream.packetDurationMs;
             packetId++;
-
-            timeStreamingMs += packetDurationMs;
-            timeElapsedMs = getCurrentTimeMs() - startTsMs;
-            sleepDelayMs = timeStreamingMs - timeElapsedMs;
-    
-            if (sleepDelayMs > packetDurationMs) {
-                setTimeout(zelloStreamNextPacket, sleepDelayMs);
-            } else {
-                zelloStreamNextPacket();
-            }
+            zelloSendAudioPacket(ws, packet, startTsMs, timeStreamingMs, function() {          
+                return zelloStreamNextPacket();
+            });
         });
     }
     zelloStreamNextPacket();
@@ -470,7 +474,6 @@ function zelloStopStream(ws, streamId) {
 function zelloStreamReadyCb(opusStream, username, password, token, channel) {
     var ws = new WebSocket("wss://zello.io/ws");
     ws.onclose = function(event) {
-        console.log("Connection has been closed");
         zelloSocket = null;
         process.exit();
     };

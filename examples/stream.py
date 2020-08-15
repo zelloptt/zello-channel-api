@@ -45,7 +45,7 @@ def main():
             loop.default_exception_handler(context)
 
         loop.set_exception_handler(shutdown_exception_handler)
-        tasks = asyncio.gather(*asyncio.Task.all_tasks(loop=loop), loop=loop, return_exceptions=True)
+        tasks = asyncio.gather(*asyncio.all_tasks(loop=loop), return_exceptions=True)
         tasks.add_done_callback(lambda t: loop.stop())
         tasks.cancel()
         while not tasks.done() and not loop.is_closed():
@@ -60,7 +60,7 @@ async def zello_stream_audio_to_channel(username, password, token, channel, opus
     global ZelloWS, ZelloStreamID
     try:
         opus_file_stream = OpusFileStream(opusfile)
-        conn = aiohttp.TCPConnector(family = socket.AF_INET, verify_ssl = False)
+        conn = aiohttp.TCPConnector(family = socket.AF_INET, ssl = False)
         async with aiohttp.ClientSession(connector = conn) as session:
             async with session.ws_connect(WS_ENDPOINT) as ws:
                 ZelloWS = ws
@@ -70,7 +70,7 @@ async def zello_stream_audio_to_channel(username, password, token, channel, opus
                 await zello_stream_send_audio(session, ws, stream_id, opus_file_stream)
                 await zello_stream_stop(ws, stream_id)
     except (NameError, aiohttp.client_exceptions.ClientError, IOError) as error:
-        print(error)
+            print(error)
 
 
 async def authenticate(ws, username, password, token, channel):
@@ -150,11 +150,10 @@ def generate_zello_stream_packet(stream_id, packet_id, data):
 
 
 async def zello_stream_send_audio(session, ws, stream_id, opus_file_stream):
-    time_streaming_sec = 0
     packet_duration_sec = opus_file_stream.packet_duration / 1000
-    packet_timeout_sec = packet_duration_sec / 2
-    start_ts_nanosec = time.time_ns()
-    packet_id = 1
+    start_ts_sec = time.time_ns() / 1000000000
+    time_streaming_sec = 0
+    packet_id = 0
     while True:
         data = opus_file_stream.get_next_opus_packet()
 
@@ -165,22 +164,22 @@ async def zello_stream_send_audio(session, ws, stream_id, opus_file_stream):
         if session.closed:
             raise NameError("Session is closed!")
 
-        packet = generate_zello_stream_packet(stream_id, packet_id, data)
         packet_id += 1
+        packet = generate_zello_stream_packet(stream_id, packet_id, data)
         try:
             # Once wait_for() is timed out - it takes additional operational time.
             # Recalculate delay and sleep at the end of the loop to compensate this delay.
             await asyncio.wait_for(
-                send_audio_packet(ws, packet), packet_timeout_sec
+                send_audio_packet(ws, packet), packet_duration_sec * 0.8
             )
         except asyncio.TimeoutError:
             pass
 
         time_streaming_sec += packet_duration_sec
-        time_elapsed_sec = (time.time_ns() - start_ts_nanosec) / 1000000000
-        sleep_delay_sec = time_streaming_sec - time_elapsed_sec - 0.1
+        time_elapsed_sec = (time.time_ns() / 1000000000) - start_ts_sec
+        sleep_delay_sec = time_streaming_sec - time_elapsed_sec
 
-        if sleep_delay_sec > 0:
+        if sleep_delay_sec > 0.001:
             time.sleep(sleep_delay_sec)
 
 

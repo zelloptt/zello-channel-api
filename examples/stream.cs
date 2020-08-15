@@ -546,13 +546,10 @@
                 return false;
             }
 
-            // In order to reduce audio artifacts - stream in advance by 1 second
-            const int streamAdvanceMs = 1000;
             byte[] packet = this.getNextStreamPacket();
-            long nowNanoSec = DateTime.UtcNow.Ticks;
-            long tsBeginNanoSec = nowNanoSec;
-            long timeStreamingNanoSec = 0;
-            long timeElapsedNanoSec = 0;
+            long tsBeginMs = DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond;
+            long timeStreamingMs = 0;
+            long timeElapsedMs = 0;
             int sleepDelayMs;
 
             while (packet != null) {
@@ -569,12 +566,11 @@
                 }
                 
                 packet = this.getNextStreamPacket();
-                timeStreamingNanoSec += this.opusStream.packetDurationMs * TimeSpan.TicksPerMillisecond;
-                nowNanoSec = DateTime.UtcNow.Ticks;
-                timeElapsedNanoSec = nowNanoSec - tsBeginNanoSec;
-                sleepDelayMs = (int)((timeStreamingNanoSec - timeElapsedNanoSec) / TimeSpan.TicksPerMillisecond);
-                if (sleepDelayMs > streamAdvanceMs) {
-                    Thread.Sleep(sleepDelayMs - streamAdvanceMs);
+                timeStreamingMs += this.opusStream.packetDurationMs;
+                timeElapsedMs = (DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond) - tsBeginMs;
+                sleepDelayMs = (int)(timeStreamingMs - timeElapsedMs);
+                if (sleepDelayMs > 1) {
+                    Thread.Sleep(sleepDelayMs);
                 }
             }
             return true;
@@ -592,12 +588,7 @@
     {
         static void Main(string[] args)
         {
-            double _microSecPerTick = 1000000D / System.Diagnostics.Stopwatch.Frequency;
-            Console.WriteLine(_microSecPerTick);
-            Console.WriteLine(System.Diagnostics.Stopwatch.IsHighResolution);
-
             IConfigurationRoot config = null;
-
             try {
                 config = new ConfigurationBuilder().
                     SetBasePath(Directory.GetCurrentDirectory()).
