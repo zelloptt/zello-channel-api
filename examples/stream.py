@@ -6,7 +6,7 @@ import aiohttp
 import socket
 import configparser
 
-WS_ENDPOINT="wss://zello.io/ws"
+WS_ENDPOINT = "wss://zello.io/ws"
 
 ZelloWS = None
 ZelloStreamID = None
