@@ -7,41 +7,55 @@
     {
         static void Main(string[] args)
         {
-            try {
-            Directory.SetCurrentDirectory(
-                Directory.GetParent(Directory.GetCurrentDirectory()).FullName);
-            } catch {
+            try
+            {
+                Directory.SetCurrentDirectory(
+                    Directory.GetParent(Directory.GetCurrentDirectory()).FullName);
+            }
+            catch
+            {
                 Console.WriteLine("Failed setting working directory");
                 return;
             }
 
             ZelloMediaStream zelloMediaStream = null;
-            try {
+            try
+            {
                 zelloMediaStream = new ZelloMediaStream("stream.conf");
 
-                if (!zelloMediaStream.Connect()) {
+                if (!zelloMediaStream.Connect())
+                {
                     Console.WriteLine("Failed to connect");
                     return;
                 }
-                if (!zelloMediaStream.Authenticate()) {
+                if (!zelloMediaStream.Authenticate())
+                {
                     Console.WriteLine("Failed to authenticate");
                     return;
                 }
-                if (!zelloMediaStream.StartStream()) {
+                if (!zelloMediaStream.StartStream())
+                {
                     Console.WriteLine("Failed to start streaming");
                     return;
                 }
-                if (!zelloMediaStream.SendAudio()) {
+                if (!zelloMediaStream.SendAudio())
+                {
                     Console.WriteLine("Error during sending audio");
                 }
-                if (!zelloMediaStream.StopStream()) {
+                if (!zelloMediaStream.StopStream())
+                {
                     Console.WriteLine("Failed to send stop stream request");
                 }
-            } catch (Exception e){
+            }
+            catch (Exception e)
+            {
                 Console.WriteLine("Got an error: " + e.Message);
                 return;
-            } finally {
-                if (zelloMediaStream != null) {
+            }
+            finally
+            {
+                if (zelloMediaStream != null)
+                {
                     zelloMediaStream.Dispose();
                 }
             }

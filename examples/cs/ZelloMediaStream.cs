@@ -21,7 +21,7 @@
         const string Url = "wss://zello.io/ws";
         const int TimeoutMS = 5000;
 
-        public class ResponseJson 
+        public class ResponseJson
         {
             public string command { get; set; }
             public string status { get; set; }
@@ -30,8 +30,10 @@
             public UInt32 stream_id { get; set; }
         };
 
-        public ZelloMediaStream(string configFileName) {
-            if (!checkConfiguration(configFileName)) {
+        public ZelloMediaStream(string configFileName)
+        {
+            if (!CheckConfiguration(configFileName))
+            {
                 throw new Exception("Invalid configuration");
             }
             this.WebSocket = new ClientWebSocket();
@@ -43,22 +45,29 @@
             this.OpusStream = new OpusFileStream(this.Configuration["media:filename"]);
         }
 
-        public void Dispose() {
-            if (this.OpusStream != null) {
+        public void Dispose()
+        {
+            if (this.OpusStream != null)
+            {
                 this.OpusStream.Dispose();
             }
-            if (this.WebSocket.State == WebSocketState.Open) {
+            if (this.WebSocket.State == WebSocketState.Open)
+            {
                 this.StopStream();
                 NetworkingCancelation.Cancel(false);
             }
         }
 
-        private bool checkConfiguration(string configFileName) {
-            try {
+        private bool CheckConfiguration(string configFileName)
+        {
+            try
+            {
                 this.Configuration = new ConfigurationBuilder().
                     SetBasePath(Directory.GetCurrentDirectory()).
                     AddIniFile(configFileName).Build();
-            } catch (Exception e) {
+            }
+            catch (Exception e)
+            {
                 throw new Exception("Failed to open a config file. " + e.Message);
             }
             return this.Configuration.GetSection("zello:username").Exists() &&
@@ -68,77 +77,100 @@
                 this.Configuration.GetSection("media:filename").Exists();
         }
 
-        private bool sendJson(dynamic json) {
-            try {
+        private bool SendJson(dynamic json)
+        {
+            try
+            {
                 byte[] cmd = System.Text.Encoding.UTF8.GetBytes(JsonSerializer.Serialize(json));
                 var task = this.WebSocket.SendAsync(cmd, WebSocketMessageType.Text, true, this.NetworkingCancelation.Token);
-                if (task.Wait(ZelloMediaStream.TimeoutMS, this.NetworkingCancelation.Token)) {
+                if (task.Wait(ZelloMediaStream.TimeoutMS, this.NetworkingCancelation.Token))
+                {
                     return true;
                 }
-            } catch {}
+            }
+            catch {}
             Console.WriteLine("Failed to send json data to Zello server");
             return false;
         }
 
-        private dynamic receiveJson() {
+        private dynamic ReceiveJson()
+        {
             Array.Clear(this.RcvBuffer, 0, this.RcvBuffer.Length);
-            try {
+            try
+            {
                 var task = this.WebSocket.ReceiveAsync(this.RcvBuffer, this.NetworkingCancelation.Token);
-                if (task.Wait(ZelloMediaStream.TimeoutMS, this.NetworkingCancelation.Token)) {
+                if (task.Wait(ZelloMediaStream.TimeoutMS, this.NetworkingCancelation.Token))
+                {
                     string responseStr = System.Text.Encoding.UTF8.GetString(this.RcvBuffer).TrimEnd('\0');
                     ResponseJson responseJson = JsonSerializer.Deserialize<ResponseJson>(responseStr);
                     return responseJson;
                 }
-            } catch {}
+            }
+            catch {}
             Console.WriteLine("Failed to get json data from Zello server");
             return null;
         }
 
-        public bool Connect() {
-            try {
+        public bool Connect()
+        {
+            try
+            {
                 var endpoint = new Uri(ZelloMediaStream.Url);
                 var task = this.WebSocket.ConnectAsync(endpoint, this.NetworkingCancelation.Token);
-                if (task.Wait(ZelloMediaStream.TimeoutMS, this.NetworkingCancelation.Token)) {
+                if (task.Wait(ZelloMediaStream.TimeoutMS, this.NetworkingCancelation.Token))
+                {
                     return true;
                 }
-            } catch {}
+            }
+            catch {}
             Console.WriteLine("Failed to connect to Zello server");
             return false;
         }
 
-        public bool Authenticate() {
+        public bool Authenticate()
+        {
             bool isAuthorized = false;
             bool isChannelAvailable = false;
-            bool isSent = this.sendJson(new {
-                    seq = 1,
-                    command = "logon",
-                    username = this.Configuration["zello:username"],
-                    password = this.Configuration["zello:password"],
-                    auth_token = this.Configuration["zello:token"],
-                    channel = this.Configuration["zello:channel"]
-                });
+            bool isSent = this.SendJson(new
+            {
+                seq = 1,
+                command = "logon",
+                username = this.Configuration["zello:username"],
+                password = this.Configuration["zello:password"],
+                auth_token = this.Configuration["zello:token"],
+                channel = this.Configuration["zello:channel"]
+            });
 
-            if (!isSent) {
+            if (!isSent)
+            {
                 return false;
             }
-     
-            while (!isAuthorized || !isChannelAvailable) {
-                ResponseJson responseJson = this.receiveJson();
-                if (responseJson == null) {
+
+            while (!isAuthorized || !isChannelAvailable)
+            {
+                ResponseJson responseJson = this.ReceiveJson();
+                if (responseJson == null)
+                {
                     return false;
                 }
-                if (!String.IsNullOrEmpty(responseJson.refresh_token)) {
+                if (!String.IsNullOrEmpty(responseJson.refresh_token))
+                {
                     isAuthorized = true;
-                } else if (responseJson.command == "on_channel_status" && responseJson.status == "online") {
+                }
+                else if (responseJson.command == "on_channel_status" && responseJson.status == "online")
+                {
                     isChannelAvailable = true;
-                } else {
+                }
+                else
+                {
                     return false;
                 }
             }
             return true;
         }
 
-        public bool StartStream() {
+        public bool StartStream()
+        {
             byte[] codecHeaderRaw = new byte[4];
             byte packetDurationMs = (byte)this.OpusStream.PacketDurationMs;
             byte framesPerPacket = (byte)this.OpusStream.FramesPerPacket;
@@ -150,7 +182,8 @@
             codecHeaderRaw[2] = (byte)this.OpusStream.FramesPerPacket;
             codecHeaderRaw[3] = packetDurationMs;
             string codecHeader = Convert.ToBase64String(codecHeaderRaw);
-            bool isSent = this.sendJson(new {
+            bool isSent = this.SendJson(new
+            {
                 seq = 2,
                 command = "start_stream",
                 type = "audio",
@@ -159,24 +192,28 @@
                 packet_duration = packetDurationMs,
             });
 
-            if (!isSent) {
+            if (!isSent)
+            {
                 return false;
             }
 
-            ResponseJson responseJson = this.receiveJson();
-            if (responseJson != null && responseJson.success && responseJson.stream_id != 0) {
+            ResponseJson responseJson = this.ReceiveJson();
+            if (responseJson != null && responseJson.success && responseJson.stream_id != 0)
+            {
                 this.StreamId = responseJson.stream_id;
                 return true;
             }
-            return false;            
+            return false;
         }
 
-        private byte[] getNextStreamPacket() {
+        private byte[] GetNextStreamPacket()
+        {
             byte[] opusData = this.OpusStream.GetNextOpusPacket();
             byte[] streamIdRaw = new byte[4];
             byte[] packetIdRaw = new byte[4];
 
-            if (opusData == null) {
+            if (opusData == null)
+            {
                 return null;
             }
             this.PacketId++;
@@ -188,42 +225,52 @@
             streamIdRaw.CopyTo(streamPacket, 1);
             packetIdRaw.CopyTo(streamPacket, 5);
             opusData.CopyTo(streamPacket, 9);
-            return streamPacket;            
+            return streamPacket;
         }
 
-        public bool SendAudio() {
-            try {
+        public bool SendAudio()
+        {
+            try
+            {
                 // Listen on the opened websocket, connection may be closed otherwise.
                 this.WebSocket.ReceiveAsync(RcvBuffer, this.NetworkingCancelation.Token);
-            } catch (Exception e) {
+            }
+            catch (Exception e)
+            {
                 Console.WriteLine("Unable to listen on websocket: " + e.Message);
                 return false;
             }
 
-            byte[] packet = this.getNextStreamPacket();
+            byte[] packet = this.GetNextStreamPacket();
             long tsBeginMs = DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond;
             long timeStreamingMs = 0;
             long timeElapsedMs = 0;
             int sleepDelayMs;
 
-            while (packet != null) {
-                try {
+            while (packet != null)
+            {
+                try
+                {
                     var task = this.WebSocket.SendAsync(packet, WebSocketMessageType.Binary, true,
                         this.NetworkingCancelation.Token);
-                    if (!task.Wait(this.OpusStream.PacketDurationMs, this.NetworkingCancelation.Token)) {
+                    if (!task.Wait(this.OpusStream.PacketDurationMs, this.NetworkingCancelation.Token))
+                    {
                         Console.WriteLine("Timeout");
                         continue;
                     }
-                } catch (Exception e) {
+                }
+                catch (Exception e)
+                {
                     Console.WriteLine("Got an error while sending audio: " + e.Message);
                     return false;
                 }
-                
-                packet = this.getNextStreamPacket();
+
+                packet = this.GetNextStreamPacket();
                 timeStreamingMs += this.OpusStream.PacketDurationMs;
                 timeElapsedMs = (DateTime.UtcNow.Ticks / TimeSpan.TicksPerMillisecond) - tsBeginMs;
                 sleepDelayMs = (int)(timeStreamingMs - timeElapsedMs);
-                if (sleepDelayMs > 1) {
+                if (sleepDelayMs > 1)
+                {
                     Thread.Sleep(sleepDelayMs);
                 }
             }
@@ -231,7 +278,8 @@
         }
 
         public bool StopStream() {
-            return this.sendJson(new {
+            return this.SendJson(new
+            {
                 command = "stop_stream",
                 stream_id = this.StreamId,
             });

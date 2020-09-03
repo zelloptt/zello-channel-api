@@ -6,63 +6,80 @@
 
     // https://tools.ietf.org/html/rfc7845
     // https://tools.ietf.org/html/rfc3533
-    class OpusFileStream : IZelloOpusStream 
+    class OpusFileStream : IZelloOpusStream
     {
 	    Stream OpusFile;
         byte[] SegmentSizes;
-        byte SegmentIdx;
+        byte SegmentIndex;
         byte SegmentsCount;
         UInt32 SequenceNumber;
         int OpusHeadersCount;
+        List<byte[]> SavedPackets;
         public UInt32 SampleRate { get; private set; }
         public int PacketDurationMs { get; private set; }
         public int FramesPerPacket { get; private set; }
-        List<byte[]> SavedPackets;
 
-        public OpusFileStream(string filename) {
-            try {
+        public OpusFileStream(string filename)
+        {
+            try
+            {
                 this.OpusFile = File.OpenRead(filename);
-            } catch (Exception e) {
+            }
+            catch (Exception e)
+            {
                 throw new Exception("Failed opening " + filename, e);
             }
             this.SegmentSizes = new byte[255];
             this.SavedPackets = new List<byte[]>();
-            if (!this.fillOpusConfig()) {
-                throw new Exception("Failed to fill Opus configuration");    
+            if (!this.FillOpusConfig())
+            {
+                throw new Exception("Failed to fill Opus configuration");
             }
         }
 
-        public void Dispose() {
-            if (this.OpusFile == null) {
+        public void Dispose()
+        {
+            if (this.OpusFile == null)
+            {
                 return;
             }
             this.OpusFile.Dispose();
         }
 
-        private bool getNextOggPacketStart() {
+        private bool GetNextOggPacketStart()
+        {
             // Each Ogg page starts with magic bytes "OggS"
             // Stream may be corrupted, so find a first valid magic
             int verifiedBytes = 0;
             byte[] magic = System.Text.Encoding.UTF8.GetBytes("OggS");
             byte[] onebyte = new byte[1];
-            try {
-                while (this.OpusFile.Read(onebyte, 0, 1) == 1) {
-                    if (onebyte[0] == magic[verifiedBytes]) {
+            try
+            {
+                while (this.OpusFile.Read(onebyte, 0, 1) == 1)
+                {
+                    if (onebyte[0] == magic[verifiedBytes])
+                    {
                         verifiedBytes++;
-                        if (verifiedBytes == 4) {
+                        if (verifiedBytes == 4)
+                        {
                             return true;
                         }
-                    } else {
+                    }
+                    else
+                    {
                         verifiedBytes = 0;
                     }
                 }
-            } catch (Exception e) {
+            }
+            catch (Exception e)
+            {
                 throw new Exception("Failed reading media while looking for next Ogg packet", e);
             }
             return false;
         }
 
-        private bool parseOggPacketHeader() {
+        private bool ParseOggPacketHeader()
+        {
             // The Ogg page has the following format:
             //  0               1               2               3                Byte
             //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1| Bit
@@ -84,15 +101,20 @@
             // | ...                                                           | 28-
             // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
             byte[] header = new byte[23];
-            try {
-                if (this.OpusFile.Read(header, 0, header.Length) != header.Length) {
+            try
+            {
+                if (this.OpusFile.Read(header, 0, header.Length) != header.Length)
+                {
                     return false;
                 }
-            } catch (Exception e) {
+            }
+            catch (Exception e)
+            {
                 throw new Exception("Failed reading media while parsing Ogg packet header", e);
             }
 
-            if (!BitConverter.IsLittleEndian) {
+            if (!BitConverter.IsLittleEndian)
+            {
                 Array.Reverse(header, 2, 8);
                 Array.Reverse(header, 10, 4);
                 Array.Reverse(header, 14, 4);
@@ -106,21 +128,27 @@
             this.SequenceNumber = BitConverter.ToUInt32(header, 14);
             UInt32 checksum = BitConverter.ToUInt32(header, 18);
             this.SegmentsCount = header[22];
-            this.SegmentIdx = 0;
-            if (this.SegmentsCount > 0) {
+            this.SegmentIndex = 0;
+            if (this.SegmentsCount > 0)
+            {
                 this.SegmentSizes = new byte[this.SegmentsCount];
-                try {
-                    if (this.OpusFile.Read(this.SegmentSizes, 0, this.SegmentsCount) != this.SegmentsCount) {
+                try
+                {
+                    if (this.OpusFile.Read(this.SegmentSizes, 0, this.SegmentsCount) != this.SegmentsCount)
+                    {
                         return false;
                     }
-                } catch (Exception e) {
+                }
+                catch (Exception e)
+                {
                     throw new Exception("Failed reading media while fetching Ogg page segment table", e);
                 }
             }
             return true;
         }
 
-        private (byte[], bool) getOggSegmentData() {
+        private (byte[], bool) GetOggSegmentData()
+        {
             bool isContinueNeeded = false;
             byte[] data = new byte[0];
 
@@ -128,14 +156,19 @@
             // The length of 255 indicates the data requires continuing from the next
             // segment. The data from the last segment may still require continuing.
             // Return the bool isContinueNeeded to accumulate such lacing data.
-            while (this.SegmentIdx < this.SegmentsCount) {
-                byte segmentSize = this.SegmentSizes[this.SegmentIdx];
+            while (this.SegmentIndex < this.SegmentsCount)
+            {
+                byte segmentSize = this.SegmentSizes[this.SegmentIndex];
                 byte[] segment = new byte[segmentSize];
-                try {
-                    if (this.OpusFile.Read(segment, 0, segmentSize) != segmentSize) {
+                try
+                {
+                    if (this.OpusFile.Read(segment, 0, segmentSize) != segmentSize)
+                    {
                         break;
                     }
-                } catch (Exception e) {
+                }
+                catch (Exception e)
+                {
                     throw new Exception("Failed reading media while fetching Ogg page segment", e);
                 }
 
@@ -144,15 +177,17 @@
                 segment.CopyTo(newdata, data.Length);
                 data = newdata;
                 isContinueNeeded = (segmentSize == 255);
-                this.SegmentIdx++;
-                if (!isContinueNeeded) {
+                this.SegmentIndex++;
+                if (!isContinueNeeded)
+                {
                     break;
                 }
             }
             return (data, isContinueNeeded);
         }
 
-        private bool parseOpusHeadHeader(byte[] data) {
+        private bool ParseOpusHeadHeader(byte[] data)
+        {
             // OpusHead header format:
             //  0               1               2               3                Byte
             //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1| Bit
@@ -170,15 +205,18 @@
             // :               Optional Channel Mapping Table...               :
             // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
             byte[] magic = System.Text.Encoding.UTF8.GetBytes("OpusHead");
-            for (int i = 0; i < magic.Length; i++) {
-                if (magic[i] != data[i]) {
+            for (int i = 0; i < magic.Length; i++)
+            {
+                if (magic[i] != data[i])
+                {
                     return false;
                 }
             }
 
             byte version = data[8];
             byte channels = data[9];
-            if (!BitConverter.IsLittleEndian) {
+            if (!BitConverter.IsLittleEndian)
+            {
                 Array.Reverse(data, 10, 2);
                 Array.Reverse(data, 12, 4);
             }
@@ -192,7 +230,8 @@
             return true;
         }
 
-        private bool parseOpusTagsHeader(byte[] data) {
+        private bool ParseOpusTagsHeader(byte[] data)
+        {
             //  0               1               2               3                Byte
             //  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1| Bit
             // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -213,15 +252,18 @@
             // |                 User Comment #1 String Length                 |
             // +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
             byte[] magic = System.Text.Encoding.UTF8.GetBytes("OpusTags");
-            for (int i = 0; i < magic.Length; i++) {
-                if (magic[i] != data[i]) {
+            for (int i = 0; i < magic.Length; i++)
+            {
+                if (magic[i] != data[i])
+                {
                     return false;
                 }
             }
             return true;
         }
 
-        private (int, int) parseOpusToc(byte[] data) {
+        private (int, int) ParseOpusToc(byte[] data)
+        {
             // https://tools.ietf.org/html/rfc6716#section-3.1
             // Each Opus packet starts with the Table Of Content Byte:
             // |0 1 2 3 4 5 6 7| Bit
@@ -230,11 +272,16 @@
             // +-+-+-+-+-+-+-+-+
             byte tocC = (byte)(data[0] & 0x03);
             int frames;
-            if (tocC == 0) {
+            if (tocC == 0)
+            {
                 frames = 1;
-            } else if (tocC == 1 || tocC == 2) {
+            }
+            else if (tocC == 1 || tocC == 2)
+            {
                 frames = 2;
-            } else {
+            }
+            else
+            {
                 // API requires predefined number of frames per packet
                 Console.WriteLine("An arbitrary number of frames in the packet - possible audio arifacts");
                 frames = 1;
@@ -251,8 +298,10 @@
             };
 
             byte config = (byte)((data[0] >> 3) & 0x1f);
-            for (int i = 0; i < configsMS.Count; i++) {
-                if (Array.Exists(configsMS[i], conf => (conf == config))) {
+            for (int i = 0; i < configsMS.Count; i++)
+            {
+                if (Array.Exists(configsMS[i], conf => (conf == config)))
+                {
                     // The packet duration 2.5ms is not supported
                     return (frames, (int)durations[i]);
                 }
@@ -260,35 +309,42 @@
             return (frames, 20);
         }
 
-        private bool allHeadersParsed() {
+        private bool AllHeadersParsed()
+        {
             // There are three mandatory headers. Don't send data until the headers are parsed.
             return (this.OpusHeadersCount >= 3);
         }
 
-        public byte[] GetNextOpusPacket() {
+        public byte[] GetNextOpusPacket()
+        {
             byte[] segmentData;
             byte[] data = new byte[0];
             bool isContinueNeeded = false;
 
             // The Table Of Contents byte has been read from the first audio data segment
             // stored in the SavedPackets list.
-            if (this.allHeadersParsed() && this.SavedPackets.Count > 0) {
+            if (this.AllHeadersParsed() && this.SavedPackets.Count > 0)
+            {
                 data = this.SavedPackets[0];
                 this.SavedPackets.RemoveAt(0);
                 return data;
             }
 
-            while (true) {
+            while (true)
+            {
                 // Move to the next Ogg packet if the current one has been read completely
-                if (this.SegmentsCount == 0 || this.SegmentIdx >= this.SegmentsCount) {
+                if (this.SegmentsCount == 0 || this.SegmentIndex >= this.SegmentsCount)
+                {
                     UInt32 lastSeqNum = this.SequenceNumber;
 
-                    if (!this.getNextOggPacketStart() || !this.parseOggPacketHeader()) {
+                    if (!this.GetNextOggPacketStart() || !this.ParseOggPacketHeader())
+                    {
                         return null;
                     }
 
                     // Drop current Ogg packet if continuation sequence is broken
-                    if (isContinueNeeded && (lastSeqNum + 1) != this.SequenceNumber) {
+                    if (isContinueNeeded && (lastSeqNum + 1) != this.SequenceNumber)
+                    {
                         isContinueNeeded = false;
                         this.SegmentsCount = 0;
                         data = new byte[0];
@@ -298,59 +354,73 @@
                 }
 
                 // Get another chunk of data from the parsed Ogg page
-                (segmentData, isContinueNeeded) = this.getOggSegmentData();
+                (segmentData, isContinueNeeded) = this.GetOggSegmentData();
                 byte[] newdata = new byte[data.Length + segmentData.Length];
                 data.CopyTo(newdata, 0);
                 segmentData.CopyTo(newdata, data.Length);
                 data = newdata;
 
                 // The last data chunk may require continuing in the next Ogg page
-                if (isContinueNeeded) {
+                if (isContinueNeeded)
+                {
                     continue;
                 }
 
                 // Do not send Opus headers
-                if (!this.allHeadersParsed()) {
-                    this.parseOpusHeaders(data);
+                if (!this.AllHeadersParsed())
+                {
+                    this.ParseOpusHeaders(data);
                     data = new byte[0];
                     continue;
                 }
 
                 // Verify the Opus TOC is the same as we initially declared
-                (int frames, int duration) = this.parseOpusToc(data);
-                if (this.FramesPerPacket != frames || this.PacketDurationMs != duration) {
+                (int frames, int duration) = this.ParseOpusToc(data);
+                if (this.FramesPerPacket != frames || this.PacketDurationMs != duration)
+                {
                     data = new byte[0];
                     Console.WriteLine("Skipping frame - TOC differs");
                     continue;
                 }
                 break;
-            }    
-            return data;        
+            }
+            return data;
         }
-        
-        private void parseOpusHeaders(byte[] data) {
+
+        private void ParseOpusHeaders(byte[] data)
+        {
             // Header #1: OpusHead
             // Header #2: OpusTags
             // Header #3: Table Of Contents byte from the first Opus packet
-            if (this.OpusHeadersCount < 1) {
-                if (this.parseOpusHeadHeader(data)) {
+            if (this.OpusHeadersCount < 1)
+            {
+                if (this.ParseOpusHeadHeader(data))
+                {
                     this.OpusHeadersCount++;
                 }
-            } else if (this.OpusHeadersCount < 2) {
-                if (this.parseOpusTagsHeader(data)) {
+            }
+            else if (this.OpusHeadersCount < 2)
+            {
+                if (this.ParseOpusTagsHeader(data))
+                {
                     this.OpusHeadersCount++;
                 }
-            } else if (this.OpusHeadersCount < 3) {
-                (this.FramesPerPacket, this.PacketDurationMs) = this.parseOpusToc(data);
+            }
+            else if (this.OpusHeadersCount < 3)
+            {
+                (this.FramesPerPacket, this.PacketDurationMs) = this.ParseOpusToc(data);
                 this.OpusHeadersCount++;
                 this.SavedPackets.Add(data);
             }
         }
-    
-        private bool fillOpusConfig() {
-            while (!this.allHeadersParsed()) {
+
+        private bool FillOpusConfig()
+        {
+            while (!this.AllHeadersParsed())
+            {
                 byte[] packet = this.GetNextOpusPacket();
-                if (packet == null) {
+                if (packet == null)
+                {
                     return false;
                 }
             }
