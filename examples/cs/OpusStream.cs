@@ -6,9 +6,9 @@
 
     // https://tools.ietf.org/html/rfc7845
     // https://tools.ietf.org/html/rfc3533
-    class OpusFileStream : IDisposable {
+    class OpusFileStream : IZelloOpusStream {
 
-        Stream opusFile;
+	Stream opusFile;
         byte[] segmentSizes;
         byte segmentIdx;
         byte segmentsCount;
@@ -233,14 +233,15 @@
             // | config  |s| c |
             // +-+-+-+-+-+-+-+-+
             byte tocC = (byte)(data[0] & 0x03);
+            int frames;
             if (tocC == 0) {
-                framesPerPacket = 1;
+                frames = 1;
             } else if (tocC == 1 || tocC == 2) {
-                framesPerPacket = 2;
+                frames = 2;
             } else {
                 // API requires predefined number of frames per packet
                 Console.WriteLine("An arbitrary number of frames in the packet - possible audio arifacts");
-                framesPerPacket = 1;
+                frames = 1;
             }
 
             float[] durations = { 2.5F, 5, 10, 20, 40, 60 };
@@ -257,10 +258,10 @@
             for (int i = 0; i < configsMS.Count; i++) {
                 if (Array.Exists(configsMS[i], conf => (conf == config))) {
                     // The packet duration 2.5ms is not supported
-                    return (framesPerPacket, (int)durations[i]);
+                    return (frames, (int)durations[i]);
                 }
             }
-            return (framesPerPacket, 20);
+            return (frames, 20);
         }
 
         private bool allHeadersParsed() {
