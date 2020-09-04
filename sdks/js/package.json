@@ -21,7 +21,7 @@
     "handlebars": "^4.3.0",
     "handlebars-loader": "^1.7.0",
     "jsdoc": "^3.6.3",
-    "node-sass": "^4.12.0",
+    "node-sass": "^4.13.1",
     "q": "^1.5.1",
     "raw-loader": "^0.5.1",
     "rename-output-webpack-plugin": "^1.0.1",
