@@ -277,7 +277,8 @@
             return true;
         }
 
-        public bool StopStream() {
+        public bool StopStream()
+        {
             return this.SendJson(new
             {
                 command = "stop_stream",
