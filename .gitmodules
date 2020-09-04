@@ -1,0 +1,3 @@
+[submodule "examples/cs/concentus.oggfile"]
+	path = examples/cs/concentus.oggfile
+	url = git@github.com:zelloptt/concentus.oggfile.git
