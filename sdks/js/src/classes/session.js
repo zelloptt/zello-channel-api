@@ -196,7 +196,7 @@ session.connect(function(err, result) {
     return dfd.promise;
   }
 
-  doLogon(refreshToken = '') {
+  doLogon(refreshToken = this.refreshToken) {
     let dfd = Promise.defer();
     let params = {
       'command': 'logon',
