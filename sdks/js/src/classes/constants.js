@@ -29,6 +29,9 @@ module.exports = {
 
   ERROR_TYPE_UNKNOWN_SERVER_ERROR: 'Unknown server error',
   ERROR_TYPE_CONFIGURATION: 'configuration',
+  ERROR_TYPE_NOT_AUTHORIZED: 'not authorized',
+  ERROR_TYPE_INVALID_PASSWORD: 'invalid password',
+  ERROR_TYPE_INVALID_USERNAME: 'invalid username',
 
   EVENT_ERROR: 'error',
   EVENT_CONNECT: 'connect',
