@@ -21,11 +21,16 @@ class Encoder extends Emitter {
     }
     this.encoderWorker = new window.Worker(URL.createObjectURL(blob));
     this.encoderWorker.addEventListener('message', (e) => {
-      if (e.data && e.data.message === 'close') {
+      if (!e.data) return;
+
+      if (e.data.message === 'close') {
         this.onClose();
-        return;
       }
-      if (!e.data || e.data.type !== 'opus' || !e.data.data) {
+      else if (e.data.message === 'done') {
+        this.emit(Constants.EVENT_ENCODER_DONE);
+      }
+
+      if (e.data.type !== 'opus' || !e.data.data) {
         return;
       }
       this.emit(Constants.EVENT_DATA_ENCODED, e.data.data);
