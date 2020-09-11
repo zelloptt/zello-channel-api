@@ -26,7 +26,7 @@ class IncomingMessage extends Emitter {
         encoding: '32bitFloat',
         channels: 1,
         sampleRate: IncomingMessage.detectSampleRate(this.codecDetails.rate),
-        flushingTime: this.codecDetails.frameSize * 10,
+        flushingTime: 240,
       },
       session.options,
       {messageData: messageData}
