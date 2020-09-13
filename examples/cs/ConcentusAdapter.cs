@@ -42,7 +42,7 @@ namespace OpusStream
             this.SampleRate = this.OpusOggReadStream.InputSampleRate;
             this.FirstPacket = this.OpusOggReadStream.RetrieveNextPacket();
             this.FramesPerPacket = OpusPacketInfo.GetNumFrames(this.FirstPacket, 0, this.FirstPacket.Length);
-            samplesPerPacket = OpusPacketInfo.GetNumSamples(this.FirstPacket, 0, this.FirstPacket.Length, 48000);
+            samplesPerPacket = OpusPacketInfo.GetNumSamples(this.FirstPacket, 0, this.FirstPacket.Length, (int)this.SampleRate);
             this.PacketDurationMs = (samplesPerPacket * 1000) / (int)this.SampleRate;
         }
 
