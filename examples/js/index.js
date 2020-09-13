@@ -107,7 +107,7 @@ function zelloStreamSendAudio(ws, opusStream, streamId, onCompleteCb) {
     const zelloStreamNextPacket = function() {
         opusStream.getNextOpusPacket(null, false, function(data) {
             if (!data) {
-                console.log("No more audio packets");
+                console.log("Audio stream is over");
                 return onCompleteCb(true);
             }
 
@@ -156,12 +156,14 @@ function zelloStreamReadyCb(opusStream, username, password, token, channel) {
                 console.error("Failed to authorize");
                 ws.close();
             } else {
+                console.log("User " + username + " has been authenticated on " + channel + " channel");
                 zelloStartStream(ws, opusStream, function(streamId) {
                     if (!streamId) {
                         console.error("Failed to start Zello stream");
                         ws.close();
                     } else {
                         zelloStreamId = streamId;
+                        console.log("Started streaming " + opusStream.filename);
                         zelloStreamSendAudio(ws, opusStream, streamId, function(success) {
                             if (!success) {
                                 console.error("Failed to stream audio");

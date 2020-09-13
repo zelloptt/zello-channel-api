@@ -68,8 +68,10 @@ async def zello_stream_audio_to_channel(username, password, token, channel, opus
             async with session.ws_connect(WS_ENDPOINT) as ws:
                 ZelloWS = ws
                 await authenticate(ws, username, password, token, channel)
+                print(f"User {username} has been authenticated on {channel} channel")
                 stream_id = await zello_stream_start(ws, opus_stream)
                 ZelloStreamID = stream_id
+                print(f"Started streaming {opusfile}")
                 await zello_stream_send_audio(session, ws, stream_id, opus_stream)
                 await zello_stream_stop(ws, stream_id)
     except (NameError, aiohttp.client_exceptions.ClientError, IOError) as error:
@@ -161,7 +163,7 @@ async def zello_stream_send_audio(session, ws, stream_id, opus_stream):
         data = opus_stream.get_next_opus_packet()
 
         if not data:
-            print("No more audio packets")
+            print("Audio stream is over")
             break
 
         if session.closed:

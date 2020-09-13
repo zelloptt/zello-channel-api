@@ -166,6 +166,8 @@
                     return false;
                 }
             }
+            Console.WriteLine("User " + this.Configuration["zello:username"] +
+                " has been authenticated on " + this.Configuration["zello:channel"] + " channel");
             return true;
         }
 
@@ -201,6 +203,7 @@
             if (responseJson != null && responseJson.success && responseJson.stream_id != 0)
             {
                 this.StreamId = responseJson.stream_id;
+                Console.WriteLine("Started streaming " + this.OpusStream.FileName);
                 return true;
             }
             return false;
@@ -274,6 +277,7 @@
                     Thread.Sleep(sleepDelayMs);
                 }
             }
+            Console.WriteLine("Audio stream is over");
             return true;
         }
 

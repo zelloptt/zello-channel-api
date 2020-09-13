@@ -4,6 +4,7 @@ namespace OpusStream
 
     interface IZelloOpusStream : IDisposable
     {
+        string FileName { get; }
         UInt32 SampleRate { get; }
         int PacketDurationMs { get; }
         int FramesPerPacket { get; }

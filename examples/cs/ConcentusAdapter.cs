@@ -11,6 +11,7 @@ namespace OpusStream
         private OpusOggReadStream OpusOggReadStream;
         private OpusDecoder Decoder;
         private byte[] FirstPacket;
+        public string FileName { get; }
         public UInt32 SampleRate { get; }
         public int PacketDurationMs { get; }
         public int FramesPerPacket { get; }
@@ -28,6 +29,7 @@ namespace OpusStream
         {
             int samplesPerPacket;
 
+            this.FileName = filename;
             this.OpusFile = new FileStream(filename, FileMode.Open);
             this.Decoder = new OpusDecoder(48000, 1);
             this.OpusOggReadStream = new OpusOggReadStream(this.Decoder, this.OpusFile);

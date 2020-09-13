@@ -15,12 +15,14 @@
         UInt32 SequenceNumber;
         int OpusHeadersCount;
         List<byte[]> SavedPackets;
+        public string FileName {get; private set; }
         public UInt32 SampleRate { get; private set; }
         public int PacketDurationMs { get; private set; }
         public int FramesPerPacket { get; private set; }
 
         public OpusFileStream(string filename)
         {
+            this.FileName = filename;
             try
             {
                 this.OpusFile = File.OpenRead(filename);
@@ -223,10 +225,6 @@
 
             UInt16 preskip = BitConverter.ToUInt16(data, 10);
             this.SampleRate = BitConverter.ToUInt32(data, 12);
-            Console.WriteLine("Opus version = " + version);
-            Console.WriteLine("Channel count = " + channels);
-            Console.WriteLine("Pre-skip = " + preskip);
-            Console.WriteLine("Sample rate = " + this.SampleRate);
             return true;
         }
 

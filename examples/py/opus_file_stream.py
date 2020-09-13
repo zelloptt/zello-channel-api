@@ -110,10 +110,6 @@ class OpusFileStream:
         channels = data[9]
         preskip = int.from_bytes(data[10:12], "little")
         self.sample_rate = int.from_bytes(data[12:15], "little")
-        print(f"Opus version = {version}")
-        print(f"Channel count = {channels}")
-        print(f"Pre-skip = {preskip}")
-        print(f"Sample rate = {self.sample_rate}")
         return True
 
 

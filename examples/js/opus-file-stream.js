@@ -10,6 +10,7 @@ class OpusFileStream {
                 console.error(err.message);
                 return onCompleteCb(null);
             }
+            this.filename = filename;
             this.opusfile = fd;
             this.segmentSizes = new Uint8Array(255);
             this.segmentIndex = 0;
@@ -167,10 +168,6 @@ class OpusFileStream {
         const channels = buf[9];
         const preskip = buf.readIntLE(10, 2)
         this.sampleRate = buf.readIntLE(12, 4)
-        console.log(`Opus version = ${version}`);
-        console.log(`Channel count = ${channels}`);
-        console.log(`Pre-skip = ${preskip}`);
-        console.log(`Sample rate = ${this.sampleRate}`);
         return true;
     }
 
