@@ -9,7 +9,7 @@
     class OpusFileStream : IZelloOpusStream
     {
         Stream OpusFile;
-	byte[] SegmentSizes;
+        byte[] SegmentSizes;
         byte SegmentIndex;
         byte SegmentsCount;
         UInt32 SequenceNumber;
