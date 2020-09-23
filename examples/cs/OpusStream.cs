@@ -8,8 +8,8 @@
     // https://tools.ietf.org/html/rfc3533
     class OpusFileStream : IZelloOpusStream
     {
-	    Stream OpusFile;
-        byte[] SegmentSizes;
+        Stream OpusFile;
+	byte[] SegmentSizes;
         byte SegmentIndex;
         byte SegmentsCount;
         UInt32 SequenceNumber;
@@ -41,11 +41,10 @@
 
         public void Dispose()
         {
-            if (this.OpusFile == null)
+            if (this.OpusFile != null)
             {
-                return;
+                this.OpusFile.Dispose();
             }
-            this.OpusFile.Dispose();
         }
 
         private bool GetNextOggPacketStart()

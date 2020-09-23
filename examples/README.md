@@ -1,4 +1,4 @@
-# Examples of using Zello Channel API
+# Examples of using the Zello Channel API
 
 There are example applications for the following platforms:
 
@@ -6,7 +6,7 @@ There are example applications for the following platforms:
 * .NET Core 3.1
 * Node.js 6
 
-Each application streams an audio file to Zello channel as regular voice message using common Zello account.
+Each application streams an audio file to a Zello channel as a regular voice message using a common Zello account.
 
 The audio file must be in Ogg format encoded with the [Opus codec](https://tools.ietf.org/html/rfc7845).
 
@@ -33,12 +33,12 @@ Download the precompiled [binaries](https://archive.mozilla.org/pub/opus/win32/o
 
 The input format can be Wave, AIFF, FLAC, Ogg/FLAC, or raw PCM.
 
-Use appropriate converter for other media formats.
+Use an appropriate converter for other media formats.
 
 
 ## Encode the audio file using Opus codec
 
-Do not use frame size less than 20 milliseconds.
+Do not use a frame size less than 20 milliseconds.
 
 For the audio source file `media.wav` the command looks like:
 ```
@@ -101,9 +101,9 @@ dotnet build
 dotnet run
 ```
 
-# Applications architecture
+# Application architecture
 
-The `data` field in `stream data` defined in [Zello Channel API specification](../API.md) must be an audio encoded with [Opus codec](https://tools.ietf.org/html/rfc6716).
+The `data` field in `stream data` defined in the [Zello Channel API specification](../API.md) must be audio encoded with the [Opus codec](https://tools.ietf.org/html/rfc6716).
 
 A media container such as Ogg, Matroska, WebM, MPEG-TS or MP4 has to be used for storing an Opus audio.
 

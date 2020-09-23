@@ -7,6 +7,7 @@ namespace OpusStream
 
     class OpusFileStream : IZelloOpusStream
     {
+        private const int DefaultSampleRate = 48000;
         private FileStream OpusFile;
         private OpusOggReadStream OpusOggReadStream;
         private OpusDecoder Decoder;
@@ -31,7 +32,7 @@ namespace OpusStream
 
             this.FileName = filename;
             this.OpusFile = new FileStream(filename, FileMode.Open);
-            this.Decoder = new OpusDecoder(48000, 1);
+            this.Decoder = new OpusDecoder(DefaultSampleRate, 1);
             this.OpusOggReadStream = new OpusOggReadStream(this.Decoder, this.OpusFile);
 
             if (!this.OpusOggReadStream.HasNextPacket)
