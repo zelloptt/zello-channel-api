@@ -14,7 +14,7 @@ class TokenManager {
    */
   static base64UrlEncode(data) {
     var encoded = Buffer.from(data).toString('base64');
-    return encoded.replace('+', '-').replace('/', '_').replace(/=+$/, '');
+    return encoded.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   };
 
   static createJwt(issuer, privateKey) {
@@ -32,13 +32,14 @@ class TokenManager {
       exp: parseInt(new Date().getTime() / 1000, 10) + tokenExpirationSeconds
     };
 
-    const pkg = base64UrlEncode(JSON.stringify(header)) + "." + base64UrlEncode(JSON.stringify(payload));
+    const pkg = TokenManager.base64UrlEncode(JSON.stringify(header)) + "." +
+      TokenManager.base64UrlEncode(JSON.stringify(payload));
 
     const sign = crypto.createSign('RSA-SHA256');
     sign.update(pkg);
     const signature = sign.sign(privateKey);
 
-    return pkg + "." + base64UrlEncode(signature);
+    return pkg + "." + TokenManager.base64UrlEncode(signature);
   }
 }
 
