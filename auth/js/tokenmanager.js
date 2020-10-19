@@ -4,17 +4,17 @@ const tokenExpirationSeconds = 120;
 
 class TokenManager {
   /**
-   * Encode data to base64 format.
-   * Replace '+' and '/' symbols with '-' and '_' respectively.
-   * Remove trailing '='.
+   * Encodes data to an URL-safe base64 format by taking the standard base64 output,
+   * replacing '+' and '/' symbols with '-' and '_' respectively,
+   * then removing any trailing '=' symbols.
+   *
    * @param data - A string or buffer to encode
-   * @returns an URL-safe base64 encoded string
+   * @returns The URL-safe base64 encoded form of the data
    * @link https://tools.ietf.org/html/rfc4648#section-5
    */
   static base64UrlEncode(data) {
-    Buffer.from
-     var encoded = Buffer.from(data).toString('base64');
-     return encoded.replace('+', '-').replace('/', '_').replace(/=+$/, '');
+    var encoded = Buffer.from(data).toString('base64');
+    return encoded.replace('+', '-').replace('/', '_').replace(/=+$/, '');
   };
 
   static createJwt(issuer, privateKey) {
