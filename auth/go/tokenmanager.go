@@ -51,12 +51,12 @@ func (t *TokenManager) CreateJwt() (string, error) {
 
 	headerJson, _ := json.Marshal(&header)
 	payloadJson, _ := json.Marshal(&payload)
-	pkg := base64.StdEncoding.EncodeToString(headerJson) + "." + base64.StdEncoding.EncodeToString(payloadJson)
+	pkg := base64.RawURLEncoding.EncodeToString(headerJson) + "." + base64.RawURLEncoding.EncodeToString(payloadJson)
 
 	if signature, err := t.sign([]byte(pkg), key); err != nil {
 		return "", err
 	} else {
-		return pkg + "." + base64.StdEncoding.EncodeToString(signature), nil
+		return pkg + "." + base64.RawURLEncoding.EncodeToString(signature), nil
 	}
 }
 
