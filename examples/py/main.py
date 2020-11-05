@@ -7,6 +7,7 @@ import aiohttp
 import socket
 import configparser
 import opus_file_stream
+import logging
 
 WS_ENDPOINT = "wss://zello.io/ws"
 
@@ -15,6 +16,9 @@ ZelloStreamID = None
 
 
 def main():
+    logging.basicConfig(level=logging.DEBUG,
+        format='%(asctime)s.%(msecs)03d %(levelname)s:\t%(message)s',
+        datefmt='%H:%M:%S')
     global ZelloWS, ZelloStreamID
 
     try:
@@ -68,15 +72,23 @@ async def zello_stream_audio_to_channel(username, password, token, channel, opus
             async with session.ws_connect(WS_ENDPOINT) as ws:
                 ZelloWS = ws
                 await authenticate(ws, username, password, token, channel)
-                print(f"User {username} has been authenticated on {channel} channel")
+                logging.debug("User has been authenticated on channel")
                 stream_id = await zello_stream_start(ws, opus_stream)
                 ZelloStreamID = stream_id
-                print(f"Started streaming {opusfile}")
+                logging.debug("Started streaming %s", opusfile)
                 await zello_stream_send_audio(session, ws, stream_id, opus_stream)
                 await zello_stream_stop(ws, stream_id)
     except (NameError, aiohttp.client_exceptions.ClientError, IOError) as error:
-            print(error)
+            logging.debug(error)
 
+def log_response(data):
+    logging.debug("Got response with:%s%s%s%s%s",
+        (" \"refresh_token\"") if "refresh_token" in data else "",
+        (" \"command\": \"" + str(data["command"]) + "\"") if "command" in data else "",
+        (" \"status\": \"" + str(data["status"]) + "\"") if "status" in data else "",
+        (" \"success\": \"" + str(data["success"]) + "\"") if "success" in data else "",
+        (" \"stream_id\": \"" + str(data["stream_id"]) + "\"") if "stream_id" in data else ""
+    )
 
 async def authenticate(ws, username, password, token, channel):
     # https://github.com/zelloptt/zello-channel-api/blob/master/AUTH.md
@@ -88,12 +100,14 @@ async def authenticate(ws, username, password, token, channel):
         "password": password,
         "channel": channel
     }))
+    logging.debug("Logon request is sent")
 
     is_authorized = False
     is_channel_available = False
     async for msg in ws:
         if msg.type == aiohttp.WSMsgType.TEXT:
             data = json.loads(msg.data)
+            log_response(data)
             if "refresh_token" in data:
                 is_authorized = True
             elif "command" in data and "status" in data and data["command"] == "on_channel_status":
@@ -123,10 +137,13 @@ async def zello_stream_start(ws, opus_stream):
         "codec_header": codec_header,
         "packet_duration": packet_duration
         }))
+    logging.debug("\"start_stream\" request is sent. \"codec_header\": \"%s\", \"packet_duration\": %d",
+        codec_header, packet_duration)
 
     async for msg in ws:
         if msg.type == aiohttp.WSMsgType.TEXT:
             data = json.loads(msg.data)
+            log_response(data)
             if "success" in data and "stream_id" in data and data["success"]:
                 return data["stream_id"]
             else:
@@ -140,6 +157,7 @@ async def zello_stream_stop(ws, stream_id):
         "command": "stop_stream",
         "stream_id": stream_id
         }))
+    logging.debug("stop_stream request is sent")
 
 
 async def send_audio_packet(ws, packet):
