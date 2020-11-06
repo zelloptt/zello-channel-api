@@ -21,11 +21,16 @@ function zelloAuthorize(ws, opusStream, username, password, token, channel, onCo
     var isAuthorized = false, isChannelAvailable = false;
     var authTimeout = setTimeout(onCompleteCb, authTimeoutMs, false);
     ws.onmessage = function(event) {
-        let json = JSON.parse(event.data);
-        if (json.refresh_token) {
-            isAuthorized = true;
-        } else if (json.command === "on_channel_status" && json.status === "online") {
-            isChannelAvailable = true;
+        try {
+            let json = JSON.parse(event.data);
+            if (json.refresh_token) {
+                isAuthorized = true;
+            } else if (json.command === "on_channel_status" && json.status === "online") {
+                isChannelAvailable = true;
+            }
+        } catch (e) {
+            // Not a JSON - ignore the message
+            return;
         }
         if (isAuthorized && isChannelAvailable) {
             clearTimeout(authTimeout);
@@ -54,13 +59,23 @@ function zelloStartStream(ws, opusStream, onCompleteCb) {
         "packet_duration": opusStream.packetDurationMs,
     }));
 
+    const startTimeoutMs = 2000;
+    var startTimeout = setTimeout(onCompleteCb, startTimeoutMs, null);
     ws.onmessage = function(event) {
-        let json = JSON.parse(event.data);
-        if (json && json.success && json.stream_id) {
-            return onCompleteCb(json.stream_id);
+        try {
+            let json = JSON.parse(event.data);
+            if (json.success && json.stream_id) {
+                clearTimeout(startTimeout);
+                return onCompleteCb(json.stream_id);
+            } else if (json.error) {
+                console.log("Got an error: " + json.error);
+                clearTimeout(startTimeout);
+                return onCompleteCb(null);
+            }
+        } catch (e) {
+            // Not a JSON - ignore the message
+            return;
         }
-        console.error("Failed to create Zello audio stream");
-        return onCompleteCb(null);
     }
 }
 
