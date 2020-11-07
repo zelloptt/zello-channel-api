@@ -76,7 +76,7 @@ async def zello_stream_audio_to_channel(username, password, token, channel, opus
                 await zello_stream_send_audio(session, ws, stream_id, opus_stream)
                 await asyncio.wait_for(zello_stream_stop(ws, stream_id), WS_TIMEOUT_SEC)
     except (NameError, aiohttp.client_exceptions.ClientError, IOError) as error:
-            print(error)
+        print(error)
     except asyncio.TimeoutError:
         print("Communication timeout")
 
@@ -142,6 +142,7 @@ async def zello_stream_start(ws, opus_stream):
 
 
 async def zello_stream_stop(ws, stream_id):
+
     await ws.send_str(json.dumps({
         "command": "stop_stream",
         "stream_id": stream_id
