@@ -142,7 +142,6 @@ async def zello_stream_start(ws, opus_stream):
 
 
 async def zello_stream_stop(ws, stream_id):
-
     await ws.send_str(json.dumps({
         "command": "stop_stream",
         "stream_id": stream_id
