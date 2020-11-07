@@ -18,8 +18,8 @@ function zelloAuthorize(ws, opusStream, username, password, token, channel, onCo
     }));
 
     const authTimeoutMs = 2000;
-    var isAuthorized = false, isChannelAvailable = false;
-    var authTimeout = setTimeout(onCompleteCb, authTimeoutMs, false);
+    let isAuthorized = false, isChannelAvailable = false;
+    let authTimeout = setTimeout(onCompleteCb, authTimeoutMs, false);
     ws.onmessage = function(event) {
         try {
             let json = JSON.parse(event.data);
@@ -40,7 +40,7 @@ function zelloAuthorize(ws, opusStream, username, password, token, channel, onCo
 }
 
 function zelloStartStream(ws, opusStream, onCompleteCb) {
-    var codecHeaderRaw = new Uint8Array(4);
+    let codecHeaderRaw = new Uint8Array(4);
     codecHeaderRaw[2] = opusStream.framesPerPacket;
     codecHeaderRaw[3] = opusStream.packetDurationMs;
 
@@ -48,7 +48,7 @@ function zelloStartStream(ws, opusStream, onCompleteCb) {
     // https://github.com/zelloptt/zello-channel-api/blob/409378acd06257bcd07e3f89e4fbc885a0cc6663/sdks/js/src/classes/utils.js#L63
     codecHeaderRaw[0] = parseInt(opusStream.sampleRate & 0xff, 10);
     codecHeaderRaw[1] = parseInt(opusStream.sampleRate / 0x100, 10) & 0xff;
-    var codecHeader = Buffer.from(codecHeaderRaw).toString('base64');
+    let codecHeader = Buffer.from(codecHeaderRaw).toString('base64');
 
     ws.send(JSON.stringify({
         "command": "start_stream",
@@ -60,7 +60,7 @@ function zelloStartStream(ws, opusStream, onCompleteCb) {
     }));
 
     const startTimeoutMs = 2000;
-    var startTimeout = setTimeout(onCompleteCb, startTimeoutMs, null);
+    let startTimeout = setTimeout(onCompleteCb, startTimeoutMs, null);
     ws.onmessage = function(event) {
         try {
             let json = JSON.parse(event.data);
@@ -86,10 +86,10 @@ function getCurrentTimeMs() {
 
 function zelloGenerateAudioPacket(data, streamId, packetId) {
     // https://github.com/zelloptt/zello-channel-api/blob/master/API.md#stream-data
-    var packet = new Uint8Array(data.length + 9);
+    let packet = new Uint8Array(data.length + 9);
     packet[0] = 1;
 
-    var id = streamId;
+    let id = streamId;
     for (let i = 4; i > 0; i--) {
         packet[i] = parseInt(id & 0xff, 10);
         id = parseInt(id / 0x100, 10);
@@ -117,8 +117,8 @@ function zelloSendAudioPacket(ws, packet, startTsMs, timeStreamingMs, onComplete
 
 function zelloStreamSendAudio(ws, opusStream, streamId, onCompleteCb) {
     const startTsMs = getCurrentTimeMs();
-    var timeStreamingMs = 0;
-    var packetId = 0;
+    let timeStreamingMs = 0;
+    let packetId = 0;
     const zelloStreamNextPacket = function() {
         opusStream.getNextOpusPacket(null, false, function(data) {
             if (!data) {
@@ -149,7 +149,13 @@ function zelloStopStream(ws, streamId) {
 }
 
 function zelloStreamReadyCb(opusStream, username, password, token, channel) {
-    var ws = new WebSocket("wss://zello.io/ws");
+    let ws = new WebSocket("wss://zello.io/ws");
+
+    ws.onerror = function() {
+        console.error("Websocket error");
+        ws.close()
+    };
+
     ws.onclose = function() {
         if (!zelloSocket) {
             console.error("Failed to connect to server");
@@ -167,12 +173,14 @@ function zelloStreamReadyCb(opusStream, username, password, token, channel) {
         zelloSocket = ws;
 
         zelloAuthorize(ws, opusStream, username, password, token, channel, function(success) {
+            ws.onmessage = null;
             if (!success) {
                 console.error("Failed to authorize");
                 ws.close();
             } else {
                 console.log("User " + username + " has been authenticated on " + channel + " channel");
                 zelloStartStream(ws, opusStream, function(streamId) {
+                    ws.onmessage = null;
                     if (!streamId) {
                         console.error("Failed to start Zello stream");
                         ws.close();
