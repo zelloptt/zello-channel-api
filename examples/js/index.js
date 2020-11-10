@@ -17,15 +17,20 @@ function zelloAuthorize(ws, opusStream, username, password, token, channel, onCo
         channel: channel,
     }));
 
+    let isAuthorized = false, isChannelAvailable = false;
     const authTimeoutMs = 2000;
-    var isAuthorized = false, isChannelAvailable = false;
-    var authTimeout = setTimeout(onCompleteCb, authTimeoutMs, false);
+    const authTimeout = setTimeout(onCompleteCb, authTimeoutMs, false);
     ws.onmessage = function(event) {
-        let json = JSON.parse(event.data);
-        if (json.refresh_token) {
-            isAuthorized = true;
-        } else if (json.command === "on_channel_status" && json.status === "online") {
-            isChannelAvailable = true;
+        try {
+            const json = JSON.parse(event.data);
+            if (json.refresh_token) {
+                isAuthorized = true;
+            } else if (json.command === "on_channel_status" && json.status === "online") {
+                isChannelAvailable = true;
+            }
+        } catch (e) {
+            // Not a JSON - ignore the message
+            return;
         }
         if (isAuthorized && isChannelAvailable) {
             clearTimeout(authTimeout);
@@ -35,7 +40,7 @@ function zelloAuthorize(ws, opusStream, username, password, token, channel, onCo
 }
 
 function zelloStartStream(ws, opusStream, onCompleteCb) {
-    var codecHeaderRaw = new Uint8Array(4);
+    let codecHeaderRaw = new Uint8Array(4);
     codecHeaderRaw[2] = opusStream.framesPerPacket;
     codecHeaderRaw[3] = opusStream.packetDurationMs;
 
@@ -43,7 +48,7 @@ function zelloStartStream(ws, opusStream, onCompleteCb) {
     // https://github.com/zelloptt/zello-channel-api/blob/409378acd06257bcd07e3f89e4fbc885a0cc6663/sdks/js/src/classes/utils.js#L63
     codecHeaderRaw[0] = parseInt(opusStream.sampleRate & 0xff, 10);
     codecHeaderRaw[1] = parseInt(opusStream.sampleRate / 0x100, 10) & 0xff;
-    var codecHeader = Buffer.from(codecHeaderRaw).toString('base64');
+    const codecHeader = Buffer.from(codecHeaderRaw).toString('base64');
 
     ws.send(JSON.stringify({
         "command": "start_stream",
@@ -54,13 +59,23 @@ function zelloStartStream(ws, opusStream, onCompleteCb) {
         "packet_duration": opusStream.packetDurationMs,
     }));
 
+    const startTimeoutMs = 2000;
+    const startTimeout = setTimeout(onCompleteCb, startTimeoutMs, null);
     ws.onmessage = function(event) {
-        let json = JSON.parse(event.data);
-        if (json && json.success && json.stream_id) {
-            return onCompleteCb(json.stream_id);
+        try {
+            const json = JSON.parse(event.data);
+            if (json.success && json.stream_id) {
+                clearTimeout(startTimeout);
+                return onCompleteCb(json.stream_id);
+            } else if (json.error) {
+                console.log("Got an error: " + json.error);
+                clearTimeout(startTimeout);
+                return onCompleteCb(null);
+            }
+        } catch (e) {
+            // Not a JSON - ignore the message
+            return;
         }
-        console.error("Failed to create Zello audio stream");
-        return onCompleteCb(null);
     }
 }
 
@@ -71,10 +86,10 @@ function getCurrentTimeMs() {
 
 function zelloGenerateAudioPacket(data, streamId, packetId) {
     // https://github.com/zelloptt/zello-channel-api/blob/master/API.md#stream-data
-    var packet = new Uint8Array(data.length + 9);
+    let packet = new Uint8Array(data.length + 9);
     packet[0] = 1;
 
-    var id = streamId;
+    let id = streamId;
     for (let i = 4; i > 0; i--) {
         packet[i] = parseInt(id & 0xff, 10);
         id = parseInt(id / 0x100, 10);
@@ -102,8 +117,8 @@ function zelloSendAudioPacket(ws, packet, startTsMs, timeStreamingMs, onComplete
 
 function zelloStreamSendAudio(ws, opusStream, streamId, onCompleteCb) {
     const startTsMs = getCurrentTimeMs();
-    var timeStreamingMs = 0;
-    var packetId = 0;
+    let timeStreamingMs = 0;
+    let packetId = 0;
     const zelloStreamNextPacket = function() {
         opusStream.getNextOpusPacket(null, false, function(data) {
             if (!data) {
@@ -111,7 +126,7 @@ function zelloStreamSendAudio(ws, opusStream, streamId, onCompleteCb) {
                 return onCompleteCb(true);
             }
 
-            let packet = zelloGenerateAudioPacket(data, streamId, packetId);
+            const packet = zelloGenerateAudioPacket(data, streamId, packetId);
             timeStreamingMs += opusStream.packetDurationMs;
             packetId++;
             zelloSendAudioPacket(ws, packet, startTsMs, timeStreamingMs, function() {
@@ -134,7 +149,13 @@ function zelloStopStream(ws, streamId) {
 }
 
 function zelloStreamReadyCb(opusStream, username, password, token, channel) {
-    var ws = new WebSocket("wss://zello.io/ws");
+    const ws = new WebSocket("wss://zello.io/ws");
+
+    ws.onerror = function() {
+        console.error("Websocket error");
+        ws.close()
+    };
+
     ws.onclose = function() {
         if (!zelloSocket) {
             console.error("Failed to connect to server");
@@ -152,12 +173,14 @@ function zelloStreamReadyCb(opusStream, username, password, token, channel) {
         zelloSocket = ws;
 
         zelloAuthorize(ws, opusStream, username, password, token, channel, function(success) {
+            ws.onmessage = null;
             if (!success) {
                 console.error("Failed to authorize");
                 ws.close();
             } else {
                 console.log("User " + username + " has been authenticated on " + channel + " channel");
                 zelloStartStream(ws, opusStream, function(streamId) {
+                    ws.onmessage = null;
                     if (!streamId) {
                         console.error("Failed to start Zello stream");
                         ws.close();
@@ -170,6 +193,7 @@ function zelloStreamReadyCb(opusStream, username, password, token, channel) {
                             }
                             zelloStopStream(ws, streamId);
                             ws.close();
+                            process.exit();
                         });
                     }
                 });

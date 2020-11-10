@@ -9,6 +9,7 @@ import configparser
 import opus_file_stream
 
 WS_ENDPOINT = "wss://zello.io/ws"
+WS_TIMEOUT_SEC = 2
 
 ZelloWS = None
 ZelloStreamID = None
@@ -67,16 +68,17 @@ async def zello_stream_audio_to_channel(username, password, token, channel, opus
         async with aiohttp.ClientSession(connector = conn) as session:
             async with session.ws_connect(WS_ENDPOINT) as ws:
                 ZelloWS = ws
-                await authenticate(ws, username, password, token, channel)
+                await asyncio.wait_for(authenticate(ws, username, password, token, channel), WS_TIMEOUT_SEC)
                 print(f"User {username} has been authenticated on {channel} channel")
-                stream_id = await zello_stream_start(ws, opus_stream)
+                stream_id = await asyncio.wait_for(zello_stream_start(ws, opus_stream), WS_TIMEOUT_SEC)
                 ZelloStreamID = stream_id
                 print(f"Started streaming {opusfile}")
                 await zello_stream_send_audio(session, ws, stream_id, opus_stream)
-                await zello_stream_stop(ws, stream_id)
+                await asyncio.wait_for(zello_stream_stop(ws, stream_id), WS_TIMEOUT_SEC)
     except (NameError, aiohttp.client_exceptions.ClientError, IOError) as error:
-            print(error)
-
+        print(error)
+    except asyncio.TimeoutError:
+        print("Communication timeout")
 
 async def authenticate(ws, username, password, token, channel):
     # https://github.com/zelloptt/zello-channel-api/blob/master/AUTH.md
@@ -129,8 +131,12 @@ async def zello_stream_start(ws, opus_stream):
             data = json.loads(msg.data)
             if "success" in data and "stream_id" in data and data["success"]:
                 return data["stream_id"]
-            else:
+            elif "error" in data:
+                print("Got an error:", data["error"])
                 break
+            else:
+                # Ignore the messages we are not interested in
+                continue
 
     raise NameError('Failed to create Zello audio stream')
 

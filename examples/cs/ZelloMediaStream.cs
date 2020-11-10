@@ -4,6 +4,7 @@
     using System.IO;
     using System.Net.WebSockets;
     using System.Threading;
+    using System.Threading.Tasks;
     using System.Text.Json;
     using System.Buffers.Binary;
     using Microsoft.Extensions.Configuration;
@@ -19,13 +20,14 @@
         private UInt32 PacketId;
         byte[] RcvBuffer;
         const string Url = "wss://zello.io/ws";
-        const int TimeoutMS = 5000;
+        const int TimeoutMS = 2000;
 
         public class ResponseJson
         {
             public string command { get; set; }
             public string status { get; set; }
             public string refresh_token { get; set; }
+            public string error { get; set; }
             public bool success { get; set; }
             public UInt32 stream_id { get; set; }
         };
@@ -93,17 +95,39 @@
             return false;
         }
 
-        private dynamic ReceiveJson()
+        private async Task<ResponseJson> ReceiveJsonAsync()
         {
-            Array.Clear(this.RcvBuffer, 0, this.RcvBuffer.Length);
-            try
+            while (true)
             {
-                var task = this.WebSocket.ReceiveAsync(this.RcvBuffer, this.NetworkingCancelation.Token);
-                if (task.Wait(ZelloMediaStream.TimeoutMS, this.NetworkingCancelation.Token))
+                Array.Clear(this.RcvBuffer, 0, this.RcvBuffer.Length);
+                await this.WebSocket.ReceiveAsync(this.RcvBuffer, this.NetworkingCancelation.Token);
+                try
                 {
                     string responseStr = System.Text.Encoding.UTF8.GetString(this.RcvBuffer).TrimEnd('\0');
                     ResponseJson responseJson = JsonSerializer.Deserialize<ResponseJson>(responseStr);
                     return responseJson;
+                }
+                catch
+                {
+                    // Received not a JSON - keep listening
+                    continue;
+                }
+            }
+        }
+
+        private ResponseJson ReceiveJson()
+        {
+            try
+            {
+                var task = this.ReceiveJsonAsync();
+                if (task.Wait(ZelloMediaStream.TimeoutMS, this.NetworkingCancelation.Token))
+                {
+                    return task.Result;
+                }
+                else
+                {
+                    Console.WriteLine("Communication timeout");
+                    return null;
                 }
             }
             catch {}
@@ -161,10 +185,6 @@
                 {
                     isChannelAvailable = true;
                 }
-                else
-                {
-                    return false;
-                }
             }
             Console.WriteLine("User " + this.Configuration["zello:username"] +
                 " has been authenticated on " + this.Configuration["zello:channel"] + " channel");
@@ -200,11 +220,20 @@
             }
 
             ResponseJson responseJson = this.ReceiveJson();
-            if (responseJson != null && responseJson.success && responseJson.stream_id != 0)
+            while (responseJson != null)
             {
-                this.StreamId = responseJson.stream_id;
-                Console.WriteLine("Started streaming " + this.OpusStream.FileName);
-                return true;
+                if (responseJson.success && responseJson.stream_id != 0)
+                {
+                    this.StreamId = responseJson.stream_id;
+                    Console.WriteLine("Started streaming " + this.OpusStream.FileName);
+                    return true;
+                }
+                else if (!String.IsNullOrEmpty(responseJson.error))
+                {
+                    Console.WriteLine("Got an error: " + responseJson.error);
+                    return false;
+                }
+                responseJson = this.ReceiveJson();
             }
             return false;
         }
