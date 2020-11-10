@@ -115,7 +115,7 @@
             }
         }
 
-        private dynamic ReceiveJson()
+        private ResponseJson ReceiveJson()
         {
             try
             {
