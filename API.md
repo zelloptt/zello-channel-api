@@ -97,8 +97,17 @@ or
   "error": "error code"
 }
 ```
-Successful response includes `refresh_token` which can be use to quickly reconnect if WebSocket connection is broken due to brief network interruption. 
+
+A successful response includes `refresh_token` which can be used to quickly reconnect if the WebSocket connection is broken due to brief network interruption. 
 `images_supported` flag indicates channel will accept images. `texting_supported` flag indicates if channel will accept text messages. `locations_supported` flag indicates if channel will accept locations.
+
+#### Response error codes
+
+| Value | Description
+|---|---
+| `not enough params` | The request is missing required parameters, such as token or username/password
+| `not authorized` | The logon fails due to invalid credentials
+| `internal server error` | There are any unexpected server side failures; an immediate retry may or may not succeed
 
 ## Streaming voice messages
 
