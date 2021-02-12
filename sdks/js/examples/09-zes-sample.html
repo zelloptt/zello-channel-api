@@ -1,0 +1,546 @@
+<html>
+<head>
+    <script></script>
+    <style>
+        * {
+            font-family: Calibri;
+        }
+
+        a:not(href) {
+            cursor: pointer;
+            border-bottom: 1px solid blue;
+            color: blue;
+        }
+
+        body {
+            display: flex;
+        }
+
+        button#button {
+            width: 100px;
+            height: 100px;
+            border-radius: 100px;
+            outline: unset;
+            font-size: 60px;
+        }
+
+        .disabled {
+            opacity: 0.2;
+            pointer-events: none;
+        }
+
+        #messages {
+            display: block;
+            width: 50%;
+            min-height: 300px;
+            border: 1px solid darkorange;
+            margin-right: 20px;
+            padding: 10px;
+            height: calc(90vh);
+            overflow: auto;
+        }
+
+        #messages p {
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        #messages p.info {
+            color: #b2b2b2;
+        }
+
+        #messages p.ok {
+            color: green;
+        }
+
+        #messages p.error {
+            color: darkred;
+        }
+
+        #messages p:nth-child(2n-1) {
+            background-color: #fbf6ff;
+        }
+
+        .message-text {
+            max-width: 500px;
+            overflow-wrap: break-word;
+            width: 500px;
+            display: inline-block;
+        }
+
+        #drop-image-placeholder,
+        #paste-bin {
+            width: 300px;
+            height: 100px;
+            border: 3px solid silver;
+            padding: 10px;
+        }
+
+        #drop-image-placeholder.drag {
+            border: 3px dotted silver;
+            opacity: 0.5;
+        }
+
+        #text-message {
+            width: 200px;
+            height: 50px;
+        }
+
+        #tabs h3 {
+            display: inline-block;
+            cursor: pointer;
+            color: silver;
+            border-bottom: 1px dotted;
+            margin-right: 10px;
+        }
+
+        #tabs h3.active {
+            color: black;
+        }
+
+        #tabs-contents section {
+            display: none;
+        }
+
+        #tabs-contents section.active {
+            display: block;
+        }
+
+    </style>
+    <script src="https://zello.io/sdks/js/latest/zcc.sdk.js"></script>
+    <script>
+
+      var session = null;
+      var outgoingMessage = null;
+      var imageDropHandlerReady = false;
+      var currentOutgoingImage = null;
+
+      function showIncomingDataChunks() {
+        return document.getElementById('show-incoming-decoded-data-chunks').checked;
+      }
+
+      function noPreviewForImages() {
+        return document.getElementById('no-preview').checked;
+      }
+
+      function sendImageHandler() {
+        if (!currentOutgoingImage) {
+          return false;
+        }
+        currentOutgoingImage.send();
+        document.getElementById('send-image').className = 'disabled';
+        document.getElementById('preview-image').src = '';
+        return false;
+      }
+
+
+      function handleOutgoingImage(outgoingImage) {
+        document.getElementById('send-image')
+          .removeEventListener('click', sendImageHandler);
+        document.getElementById('send-image')
+          .addEventListener('click', sendImageHandler);
+        document.getElementById('send-image').className = 'disabled';
+        currentOutgoingImage = outgoingImage;
+        if (noPreviewForImages()) {
+            return;
+        }
+        currentOutgoingImage.once('thumbnail_preview_data', function(data) {
+            document.getElementById('preview-image').src = URL.createObjectURL(data);
+        });
+        currentOutgoingImage.once('image_preview_data', function(data) {
+          document.getElementById('preview-full-image').href = URL.createObjectURL(data);
+          document.getElementById('send-image').className = '';
+        });
+      }
+      
+      function setUpCameraImage() {
+        document.getElementById('take-camera-picture').addEventListener('click', function(e) {
+          if (!session) {
+            return false;
+          }
+          var params = {
+            preview: !noPreviewForImages()
+          };
+          var forUsername = document.getElementById('for').value;
+          if (forUsername) {
+            params.for = forUsername;
+          }
+          var outgoingImage = session.sendImage(params);
+          handleOutgoingImage(outgoingImage);
+        });
+      }
+
+      function setUpDragImage() {
+
+        var target = document.getElementById('drop-image-placeholder');
+
+        target.addEventListener("dragover", function(e) {
+          e.preventDefault();
+        }, false);
+
+        target.addEventListener("dragenter", function(e) {
+          console.log('dragenter');
+          target.className = 'drag';
+        }, false);
+
+        target.addEventListener("dragleave", function(e) {
+          console.log('dragleave');
+          target.className = '';
+        }, false);
+
+        target.addEventListener("drop", function(e) {
+          target.className = '';
+          e.preventDefault();
+          if (!session || !e.dataTransfer.files[0]) {
+            return false;
+          }
+          var file = e.dataTransfer.files[0];
+          var type = file.type.toLowerCase();
+          if (!type.match(/^image\//)) {
+            return false;
+          }
+
+          var params = {
+            file: file,
+            preview: !noPreviewForImages()
+          };
+          var forUsername = document.getElementById('for').value;
+          if (forUsername) {
+            params.for = forUsername;
+          }
+          var outgoingImage = session.sendImage(params);
+          handleOutgoingImage(outgoingImage);
+        }, false);
+      }
+
+      function setUpImageHandlers() {
+        if (imageDropHandlerReady) {
+          return;
+        }
+        setUpDragImage();
+        setUpCameraImage();
+        imageDropHandlerReady = true;
+      }
+
+      function setUpLocationHandler() {
+        document.getElementById('send-location-button').onclick = function() {
+          if (!navigator.geolocation) {
+            return false;
+          }
+          navigator.geolocation.getCurrentPosition(function(position) {
+            var options = {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+              accuracy: position.coords.accuracy,
+              formatted_address: document.getElementById('rgl').value
+            };
+            var forUsername = document.getElementById('for').value;
+            if (forUsername) {
+              options.for = forUsername;
+            }
+            session.sendLocation(options);
+          });
+          return false;
+        };
+      }
+
+      function setUpTextMessageHandler() {
+        document.getElementById('send-text-button').onclick = function() {
+          var options = {
+            text: document.getElementById('text-message').value
+          };
+          var forUsername = document.getElementById('for').value;
+          if (forUsername) {
+            options.for = forUsername;
+          }
+          outgoingMessage = session.sendTextMessage(options);
+          return false;
+        };
+      }
+
+      function setUpVoiceHandler() {
+        document.getElementById('button').onmousedown = function() {
+          console.warn('Press button', Date.now());
+          if (!!document.getElementById('button').className.match(/disabled/)) {
+            return false;
+          }
+          var options = {};
+          var forUsername = document.getElementById('for').value;
+          if (forUsername) {
+            options.for = forUsername;
+          }
+          outgoingMessage = session.startVoiceMessage(options);
+        };
+
+        document.getElementById('button').onmouseup = function() {
+          outgoingMessage.stop();
+        };
+
+        document.getElementById('button').onclick = function() {
+          return false;
+        };
+
+      }
+
+      function start() {
+        if (
+          !window.localStorage ||
+          !window.localStorage.network ||
+          !window.localStorage.username ||
+          !window.localStorage.password ||
+          !window.localStorage.token ||
+          !window.localStorage.channel
+        ) {
+          return;
+        }
+        connect(
+          window.localStorage.network,
+          window.localStorage.username,
+          window.localStorage.password,
+          window.localStorage.token,
+          window.localStorage.channel
+        );
+        document.getElementById('messages').innerHTML = '';
+      }
+
+      function appendLog(message, type) {
+        if (!type) {
+          type = 'info';
+        }
+        var current = document.getElementById('messages').innerHTML;
+        document.getElementById('messages').innerHTML =
+          `<p class="${type}"><span>${(new Date()).toLocaleTimeString()}</span> ${message}</p>` + current;
+      }
+
+      function login() {
+        window.localStorage.network = document.getElementById('network').value;
+        window.localStorage.username = document.getElementById('username').value;
+        window.localStorage.password = document.getElementById('password').value;
+        window.localStorage.token = document.getElementById('token').value;
+        window.localStorage.channel = document.getElementById('channel').value;
+        start();
+        return false;
+      }
+
+      function updateStatusActions(status) {
+        if (status.status === 'online') {
+          document.getElementById('button').className = '';
+          document.getElementById('status-actions').className = '';
+          return;
+        }
+        document.getElementById('button').className = 'disabled';
+        document.getElementById('status-actions').className = 'disabled';
+      }
+
+      function escapeHtml(string) {
+        return string.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+      }
+
+      function switchTabs(el) {
+        var tabs = document.getElementsByClassName('tab-header');
+        for (var i = 0; i < tabs.length; i++) {
+          tabs[i].className = 'tab-header';
+        }
+        var panes = document.getElementsByClassName('tab-contents');
+        for (var i = 0; i < panes.length; i++) {
+          panes[i].className = 'tab-contents';
+        }
+        el.className = 'tab-header active';
+        document.getElementById(el.getAttribute('tab') + '-tab').className = 'tab-contents active';
+      }
+
+      function connect(network, username, password, token, channel) {
+
+        document.getElementById('network').value = window.localStorage.network;
+        document.getElementById('username').value = window.localStorage.username;
+        document.getElementById('password').value = window.localStorage.password;
+        document.getElementById('token').value = window.localStorage.token;
+        document.getElementById('channel').value = window.localStorage.channel;
+
+        ZCC.Sdk.init({
+          player: true,
+          widget: false
+        }).then(function() {
+
+          session = new ZCC.Session({
+            serverUrl: network,
+            channel: channel,
+            authToken: token,
+            listen_only: true,
+            username: username,
+            password: password
+          });
+
+          session.on('session_start_connect', function() {
+            appendLog(`<b>session_start_connect</b>`);
+          });
+
+          session.connect().catch((err) => {
+            console.trace(err);
+          });
+
+          session.on('status', function(status) {
+            updateStatusActions(status);
+            appendLog(`<b>status</b> from <b>${status.channel}</b> channel changed to: <b>${status.status}</b> users online: ${status.users_online}`,
+              'ok'
+            );
+            setUpImageHandlers();
+            setUpVoiceHandler();
+            setUpTextMessageHandler();
+            setUpLocationHandler();
+          });
+
+          session.on('session_connect', function() {
+            appendLog(`<b>session_connect</b>`);
+          });
+
+          session.on('error', function(error) {
+            appendLog(`<b>error</b>: ${error}`, 'error');
+          });
+
+          session.on('session_fail_connect', function() {
+            appendLog(`<b>session_fail_connect</b>`, 'error');
+          });
+
+          session.on('session_disconnect', function() {
+            appendLog(`<b>session_disconnect</b>`, 'error');
+          });
+
+          session.on('session_connection_lost', function(error) {
+            appendLog(`<b>session_connection_lost</b>: ${error}`, 'error');
+          });
+
+          session.on('incoming_voice_data_decoded', function(pcmData, incomingMessage) {
+            if (!showIncomingDataChunks()) {
+              return;
+            }
+            appendLog(`<b>incoming_voice_data_decoded</b> id: <b>${incomingMessage.instanceId}</b>, data: ${pcmData.length} bytes`);
+          });
+
+          session.on('incoming_voice_will_start', function(incomingMessage) {
+            appendLog(`<b>incoming_voice_will_start</b> id: <b>${incomingMessage.instanceId}</b>`, 'ok');
+          });
+
+          session.on('incoming_voice_did_stop', function(message) {
+            appendLog(`<b>incoming_voice_did_stop</b>: <b>${message.instanceId}</b> stopped`, 'ok');
+          });
+
+          session.on('incoming_text_message', function(message) {
+            appendLog(`<b>text_message</b> from user ${message.from} (${message.text.length} bytes): <b class="message-text">${escapeHtml(message.text)}</b>`, 'ok');
+          });
+
+          session.on('incoming_location', function(location) {
+            appendLog(`<b>location</b>: <a href="https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}">${location.formatted_address}</a> from user ${location.from} with accuracy ${location.accuracy}`, 'ok');
+          });
+
+          var convertImageBinary = function(data) {
+            return data.reduce(function(d, byte) {
+              return d + String.fromCharCode(byte);
+            }, '')
+          };
+
+          session.on('incoming_image', function(incomingImage) {
+            var image = incomingImage.messageData;
+            var elementId = 'image-' + incomingImage.instanceId;
+            var imageWidth = image.width ? image.width : 0;
+            var imageHeight = image.height ? image.height : 0;
+            appendLog(`<b>image</b>: from <b>${image.from}</b>, source: <b>${image.source}</b>, type: <b>${image.type}</b>, dimensions: <b>${imageWidth}x${imageHeight}</b>`, 'ok');
+            incomingImage.on('thumbnail_data', function(data) {
+              var imageBinary = convertImageBinary(data);
+              appendLog(`<img id="${elementId}" width="200" src="data:image/${image.type};base64,${btoa(imageBinary)}" />`);
+            });
+            incomingImage.on('image_data', function(data) {
+              var imageBinary = convertImageBinary(data);
+              document.getElementById(elementId).src = `data:image/${image.type};base64,${btoa(imageBinary)}`;
+            });
+          });
+        }).catch(function(err) {
+          console.trace(err);
+        })
+      }
+
+    </script>
+</head>
+<body onload="start()">
+
+<div id="messages">
+    not logged in.
+</div>
+
+<form id="sign-in" onsubmit="login()">
+    <p>
+        <input type="text" placeholder="Network name" id="network"/>
+    </p>
+    <p>
+        <input type="text" placeholder="Username" id="username"/>
+    </p>
+    <p>
+        <input type="password" placeholder="Password" id="password"/>
+    </p>
+    <p>
+        <input type="text" placeholder="Channel" id="channel"/>
+    </p>
+    <p>
+        <textarea cols="30" rows="10" placeholder="Auth token" id="token"></textarea>
+    </p>
+    <p>
+        <input type="submit" value="Sign In">
+    </p>
+
+    <div id="status-actions" class="disabled">
+        <div id="tabs">
+            <h3 class="tab-header active" tab="send-voice" onclick="switchTabs(this);">Send voice message</h3>
+            <h3 class="tab-header" tab="send-text" onclick="switchTabs(this);">Send text message</h3>
+            <h3 class="tab-header" tab="send-image" onclick="switchTabs(this);">Send image</h3>
+            <h3 class="tab-header" tab="send-location" onclick="switchTabs(this);">Send location</h3>
+            <h3 class="tab-header" tab="settings" onclick="switchTabs(this);">Settings</h3>
+        </div>
+
+        <input type="text" placeholder="For username (optional)" id="for"/>
+
+        <div id="tabs-contents">
+            <section id="send-voice-tab" class="tab-contents active">
+
+                <p>
+                    <button id="button" class="disabled">&#127897;</button>
+                </p>
+            </section>
+            <section id="send-text-tab" class="tab-contents">
+
+                <p>
+                    <textarea id="text-message">Hello Zello!</textarea>
+                </p>
+                <p>
+                    <button id="send-text-button">send</button>
+                </p>
+            </section>
+            <section id="send-image-tab" class="tab-contents">
+                <p id="drop-image-placeholder">
+                    1. Drag and drop image file here
+                </p>
+                <p>
+                    2. Or <a id="take-camera-picture">capture an image using your camera</a>
+                </p>
+                <p>
+                    Preview:<br/>
+                    <a id="preview-full-image" target="_blank"><img id="preview-image"/></a>
+                    <br/>
+                    <a id="send-image" class="disabled">send</a>
+                </p>
+            </section>
+            <section id="send-location-tab" class="tab-contents">
+                <p>
+                    <input type="text" placeholder="RGL (optional)" id="rgl"/>
+                    <button id="send-location-button">send location</button>
+                </p>
+            </section>
+            <section id="settings-tab" class="tab-contents">
+                <label>Show incoming decoded audio data: <input type="checkbox" id="show-incoming-decoded-data-chunks"/></label><br/>
+                <label>Send images without previewing: <input type="checkbox" id="no-preview"/></label>
+            </section>
+        </div>
+    </div>
+</form>
+
+</body>
+</html>
