@@ -55,7 +55,6 @@ class Session extends Emitter {
     if (
       !initialOptions ||
       !initialOptions.serverUrl ||
-      !initialOptions.authToken ||
       !initialOptions.channel ||
       (initialOptions.username && !initialOptions.password)
     ) {
