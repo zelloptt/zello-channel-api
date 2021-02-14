@@ -55,9 +55,9 @@ class Session extends Emitter {
     if (
       !initialOptions ||
       !initialOptions.serverUrl ||
-      !initialOptions.authToken ||
       !initialOptions.channel ||
-      (initialOptions.username && !initialOptions.password)
+      (initialOptions.username && !initialOptions.password) ||
+      (!initialOptions.authToken && !initialOptions.username)
     ) {
       throw new Error(Constants.ERROR_NOT_ENOUGH_PARAMS);
     }
