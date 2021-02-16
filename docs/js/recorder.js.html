@@ -41,7 +41,8 @@ class Recorder {
     this.options = Object.assign({
       bufferLength: 4096,
       monitorGain: 0,
-      recordingGain: 1
+      recordingGain: 1,
+      mediaConstraints: { audio: true }
     }, options);
     this.encoder = encoder;
     this.state = "inactive";
@@ -77,6 +78,13 @@ class Recorder {
     }
   }
 
+  disconnectNodes() {
+    this.monitorGainNode.disconnect();
+    this.scriptProcessorNode.disconnect();
+    this.recordingGainNode.disconnect();
+    this.sourceNode.disconnect();
+  }
+
   getSampleRate() {
     return this.audioContext.sampleRate;
   }
@@ -100,12 +108,14 @@ class Recorder {
     return this.audioContext;
   }
 
-  initAudioGraph() {
+  initAudioGraph(fromInputDeviceChange = false) {
 
     // First buffer can contain old data. Don't encode it.
-    this.encodeBuffers = () => {
-      delete this.encodeBuffers;
-    };
+    if (!fromInputDeviceChange) {
+      this.encodeBuffers = () => {
+        delete this.encodeBuffers;
+      }; 
+    }
 
     this.scriptProcessorNode = this.audioContext.createScriptProcessor(
       this.options.bufferLength,
@@ -130,7 +140,7 @@ class Recorder {
     if (this.stream &amp;&amp; this.sourceNode) {
       return global.Promise.resolve(this.sourceNode);
     }
-    return global.navigator.mediaDevices.getUserMedia({audio: true}).then((stream) => {
+    return global.navigator.mediaDevices.getUserMedia(this.options.mediaConstraints).then((stream) => {
       this.stream = stream;
       return this.audioContext.createMediaStreamSource(stream);
     });
@@ -164,9 +174,25 @@ class Recorder {
     }
   }
 
+  changeInputDevice(deviceId) {
+    if (this.state !== "recording") {
+      return;
+    }
+    this.options.mediaConstraints.audio = {deviceId: {exact: deviceId}};
+    this.disconnectNodes();
+    this.clearStream();
+    this.initAudioContext();
+    this.initAudioGraph(true);
+    this.initSourceNode().then((sourceNode) => {
+      this.sourceNode = sourceNode;
+      this.sourceNode.connect(this.monitorGainNode);
+      this.sourceNode.connect(this.recordingGainNode);
+    });
+  }
+
   init() {
     if (this.state !== "inactive") {
-      return;
+      return global.Promise.reject("Recording is not inactive");
     }
 
     this.initAudioContext();
@@ -222,13 +248,13 @@ module.exports = Recorder;</code></pre>
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="IncomingImage.html">IncomingImage</a></li><li><a href="IncomingMessage.html">IncomingMessage</a></li><li><a href="OutgoingImage.html">OutgoingImage</a></li><li><a href="OutgoingMessage.html">OutgoingMessage</a></li><li><a href="Sdk.html">Sdk</a></li><li><a href="Session.html">Session</a></li></ul><h3>Events</h3><ul><li><a href="Decoder.html#event:decode">decode</a></li><li><a href="IncomingImage.html#event:image">image</a></li><li><a href="IncomingImage.html#event:image_thumbnail">image_thumbnail</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="OutgoingImage.html#event:image_preview_data">image_preview_data</a></li><li><a href="OutgoingImage.html#event:thumbnail_preview_data">thumbnail_preview_data</a></li><li><a href="OutgoingMessage.html#event:data">data</a></li><li><a href="OutgoingMessage.html#event:data_encoded">data_encoded</a></li><li><a href="Session.html#event:error">error</a></li><li><a href="Session.html#event:incoming_image">incoming_image</a></li><li><a href="Session.html#event:incoming_location">incoming_location</a></li><li><a href="Session.html#event:incoming_text_message">incoming_text_message</a></li><li><a href="Session.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="Session.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="Session.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="Session.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="Session.html#event:incoming_voice_will_start">incoming_voice_will_start</a></li><li><a href="Session.html#event:session_connect">session_connect</a></li><li><a href="Session.html#event:session_connection_lost">session_connection_lost</a></li><li><a href="Session.html#event:session_disconnect">session_disconnect</a></li><li><a href="Session.html#event:session_fail_connect">session_fail_connect</a></li><li><a href="Session.html#event:session_start_connect">session_start_connect</a></li><li><a href="Session.html#event:status">status</a></li></ul><h3>Interfaces</h3><ul><li><a href="Decoder.html">Decoder</a></li><li><a href="Encoder.html">Encoder</a></li><li><a href="Player.html">Player</a></li><li><a href="Recorder.html">Recorder</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="IncomingImage.html">IncomingImage</a></li><li><a href="IncomingMessage.html">IncomingMessage</a></li><li><a href="OutgoingImage.html">OutgoingImage</a></li><li><a href="OutgoingMessage.html">OutgoingMessage</a></li><li><a href="Sdk.html">Sdk</a></li><li><a href="Session.html">Session</a></li></ul><h3>Interfaces</h3><ul><li><a href="Decoder.html">Decoder</a></li><li><a href="Encoder.html">Encoder</a></li><li><a href="Player.html">Player</a></li><li><a href="Recorder.html">Recorder</a></li></ul><h3>Events</h3><ul><li><a href="Decoder.html#event:decode">decode</a></li><li><a href="IncomingImage.html#event:image">image</a></li><li><a href="IncomingImage.html#event:image_thumbnail">image_thumbnail</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="OutgoingImage.html#event:image_preview_data">image_preview_data</a></li><li><a href="OutgoingImage.html#event:thumbnail_preview_data">thumbnail_preview_data</a></li><li><a href="OutgoingMessage.html#event:data">data</a></li><li><a href="OutgoingMessage.html#event:data_encoded">data_encoded</a></li><li><a href="Session.html#event:error">error</a></li><li><a href="Session.html#event:incoming_image">incoming_image</a></li><li><a href="Session.html#event:incoming_location">incoming_location</a></li><li><a href="Session.html#event:incoming_text_message">incoming_text_message</a></li><li><a href="Session.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="Session.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="Session.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="Session.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="Session.html#event:incoming_voice_will_start">incoming_voice_will_start</a></li><li><a href="Session.html#event:session_connect">session_connect</a></li><li><a href="Session.html#event:session_connection_lost">session_connection_lost</a></li><li><a href="Session.html#event:session_disconnect">session_disconnect</a></li><li><a href="Session.html#event:session_fail_connect">session_fail_connect</a></li><li><a href="Session.html#event:session_start_connect">session_start_connect</a></li><li><a href="Session.html#event:status">status</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Mon Apr 15 2019 15:19:30 GMT-0500 (CDT)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.3</a> on Tue Feb 16 2021 17:17:40 GMT-0600 (Central Standard Time)
 </footer>
 
 <script> prettyPrint(); </script>
