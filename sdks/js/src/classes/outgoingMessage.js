@@ -46,16 +46,26 @@ class OutgoingMessage extends Emitter {
       return;
     }
     this.options.encoder.prototype.ondata = (data) => {
-      let packet = Utils.buildBinaryPacket(1, this.currentMessageId, ++this.currentPacketId, data);
-      /**
-       * Outgoing message packet encoded and ready to be sent to zello server. Session is following this event and sends data automatically
-       *
-       * @event OutgoingMessage#data_encoded
-       * @param {Uint8Array} packet encoded opus packet with headers
-       */
-      this.emit(Constants.EVENT_DATA_ENCODED, packet);
+      if (Array.isArray(data)) {
+        data.forEach((frame) =>
+          this.processEncodedData(frame)
+        );
+        return;
+      }
+      this.processEncodedData(data);
     };
     this.encoder = new this.options.encoder;
+  }
+
+  processEncodedData(data) {
+    let packet = Utils.buildBinaryPacket(1, this.currentMessageId, ++this.currentPacketId, data);
+    /**
+     * Outgoing message packet encoded and ready to be sent to zello server. Session is following this event and sends data automatically
+     *
+     * @event OutgoingMessage#data_encoded
+     * @param {Uint8Array} packet encoded opus packet with headers
+     */
+    this.emit(Constants.EVENT_DATA_ENCODED, packet);
   }
 
   initRecorder() {
