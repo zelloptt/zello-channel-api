@@ -28,7 +28,7 @@
 
 <header>
     
-        <h2><span class="attribs"><span class="type-signature"></span></span>Session<span class="signature">(options)</span><span class="type-signature"></span></h2>
+        <h2><span class="attribs"><span class="type-signature"></span></span>Session<span class="signature">(options)</span><span class="type-signature"> &rarr; {ZCC.Session}</span></h2>
         
             <div class="class-description">Session class to start session with zello server and interact with it using <a href="">zello channel api</a></div>
         
@@ -45,7 +45,7 @@
     
 
     
-    <h4 class="name" id="Session"><span class="type-signature"></span>new Session<span class="signature">(options)</span><span class="type-signature"></span></h4>
+    <h4 class="name" id="Session"><span class="type-signature"></span>new Session<span class="signature">(options)</span><span class="type-signature"> &rarr; {ZCC.Session}</span></h4>
     
 
     
@@ -142,7 +142,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line20">line 20</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line25">line 25</a>
     </li></ul></dd>
     
 
@@ -165,6 +165,30 @@
 
 
 
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    <code>ZCC.Session</code> instance
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">ZCC.Session</span>
+
+
+    </dd>
+</dl>
+
+    
 
 
 
@@ -354,6 +378,8 @@
 
 
 
+
+
 <h5>Returns:</h5>
 
         
@@ -470,6 +496,8 @@ session.connect(function(err, result) {
 
     
 </dl>
+
+
 
 
 
@@ -704,6 +732,8 @@ session.connect(function(err, result) {
 
     
 </dl>
+
+
 
 
 
@@ -1012,6 +1042,8 @@ session.connect(function(err, result) {
 
 
 
+
+
 <h5>Returns:</h5>
 
         
@@ -1166,6 +1198,8 @@ Options can also include <code>recorder</code> and <code>encoder</code> override
 
     
 </dl>
+
+
 
 
 
@@ -1366,6 +1400,8 @@ var outgoingMessage = session.startVoiceMessage({
 
 
 
+
+
         
             
 
@@ -1483,6 +1519,8 @@ var outgoingMessage = session.startVoiceMessage({
 
     
 </dl>
+
+
 
 
 
@@ -1631,6 +1669,8 @@ var outgoingMessage = session.startVoiceMessage({
 
 
 
+
+
         
             
 
@@ -1743,6 +1783,8 @@ var outgoingMessage = session.startVoiceMessage({
 
     
 </dl>
+
+
 
 
 
@@ -1994,6 +2036,8 @@ var outgoingMessage = session.startVoiceMessage({
 
 
 
+
+
         
             
 
@@ -2152,6 +2196,8 @@ var outgoingMessage = session.startVoiceMessage({
 
 
 
+
+
         
             
 
@@ -2269,6 +2315,8 @@ var outgoingMessage = session.startVoiceMessage({
 
     
 </dl>
+
+
 
 
 
@@ -2422,6 +2470,8 @@ var outgoingMessage = session.startVoiceMessage({
 
 
 
+
+
         
             
 
@@ -2557,6 +2607,8 @@ var outgoingMessage = session.startVoiceMessage({
 
 
 
+
+
         
             
 
@@ -2625,6 +2677,8 @@ var outgoingMessage = session.startVoiceMessage({
 
     
 </dl>
+
+
 
 
 
@@ -2778,6 +2832,8 @@ var outgoingMessage = session.startVoiceMessage({
 
 
 
+
+
         
             
 
@@ -2895,6 +2951,8 @@ var outgoingMessage = session.startVoiceMessage({
 
     
 </dl>
+
+
 
 
 
@@ -3048,6 +3106,8 @@ var outgoingMessage = session.startVoiceMessage({
 
 
 
+
+
         
             
 
@@ -3116,6 +3176,8 @@ var outgoingMessage = session.startVoiceMessage({
 
     
 </dl>
+
+
 
 
 
@@ -3367,6 +3429,8 @@ var outgoingMessage = session.startVoiceMessage({
 
 
 
+
+
         
     
 </article>
@@ -3379,13 +3443,13 @@ var outgoingMessage = session.startVoiceMessage({
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="IncomingImage.html">IncomingImage</a></li><li><a href="IncomingMessage.html">IncomingMessage</a></li><li><a href="OutgoingImage.html">OutgoingImage</a></li><li><a href="OutgoingMessage.html">OutgoingMessage</a></li><li><a href="Sdk.html">Sdk</a></li><li><a href="Session.html">Session</a></li></ul><h3>Events</h3><ul><li><a href="Decoder.html#event:decode">decode</a></li><li><a href="IncomingImage.html#event:image">image</a></li><li><a href="IncomingImage.html#event:image_thumbnail">image_thumbnail</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="OutgoingImage.html#event:image_preview_data">image_preview_data</a></li><li><a href="OutgoingImage.html#event:thumbnail_preview_data">thumbnail_preview_data</a></li><li><a href="OutgoingMessage.html#event:data">data</a></li><li><a href="OutgoingMessage.html#event:data_encoded">data_encoded</a></li><li><a href="Session.html#event:error">error</a></li><li><a href="Session.html#event:incoming_image">incoming_image</a></li><li><a href="Session.html#event:incoming_location">incoming_location</a></li><li><a href="Session.html#event:incoming_text_message">incoming_text_message</a></li><li><a href="Session.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="Session.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="Session.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="Session.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="Session.html#event:incoming_voice_will_start">incoming_voice_will_start</a></li><li><a href="Session.html#event:session_connect">session_connect</a></li><li><a href="Session.html#event:session_connection_lost">session_connection_lost</a></li><li><a href="Session.html#event:session_disconnect">session_disconnect</a></li><li><a href="Session.html#event:session_fail_connect">session_fail_connect</a></li><li><a href="Session.html#event:session_start_connect">session_start_connect</a></li><li><a href="Session.html#event:status">status</a></li></ul><h3>Interfaces</h3><ul><li><a href="Decoder.html">Decoder</a></li><li><a href="Encoder.html">Encoder</a></li><li><a href="Player.html">Player</a></li><li><a href="Recorder.html">Recorder</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="IncomingImage.html">IncomingImage</a></li><li><a href="IncomingMessage.html">IncomingMessage</a></li><li><a href="OutgoingImage.html">OutgoingImage</a></li><li><a href="OutgoingMessage.html">OutgoingMessage</a></li><li><a href="Sdk.html">Sdk</a></li><li><a href="Session.html">Session</a></li></ul><h3>Interfaces</h3><ul><li><a href="Decoder.html">Decoder</a></li><li><a href="Encoder.html">Encoder</a></li><li><a href="Player.html">Player</a></li><li><a href="Recorder.html">Recorder</a></li></ul><h3>Events</h3><ul><li><a href="Decoder.html#event:decode">decode</a></li><li><a href="IncomingImage.html#event:image">image</a></li><li><a href="IncomingImage.html#event:image_thumbnail">image_thumbnail</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="OutgoingImage.html#event:image_preview_data">image_preview_data</a></li><li><a href="OutgoingImage.html#event:thumbnail_preview_data">thumbnail_preview_data</a></li><li><a href="OutgoingMessage.html#event:data">data</a></li><li><a href="OutgoingMessage.html#event:data_encoded">data_encoded</a></li><li><a href="Session.html#event:error">error</a></li><li><a href="Session.html#event:incoming_image">incoming_image</a></li><li><a href="Session.html#event:incoming_location">incoming_location</a></li><li><a href="Session.html#event:incoming_text_message">incoming_text_message</a></li><li><a href="Session.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="Session.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="Session.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="Session.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="Session.html#event:incoming_voice_will_start">incoming_voice_will_start</a></li><li><a href="Session.html#event:session_connect">session_connect</a></li><li><a href="Session.html#event:session_connection_lost">session_connection_lost</a></li><li><a href="Session.html#event:session_disconnect">session_disconnect</a></li><li><a href="Session.html#event:session_fail_connect">session_fail_connect</a></li><li><a href="Session.html#event:session_start_connect">session_start_connect</a></li><li><a href="Session.html#event:status">status</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.5</a> on Mon Apr 15 2019 15:19:30 GMT-0500 (CDT)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.3</a> on Tue Feb 16 2021 17:17:40 GMT-0600 (Central Standard Time)
 </footer>
 
 <script> prettyPrint(); </script>
