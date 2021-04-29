@@ -1,11 +1,11 @@
 buildscript {
-    ext.kotlin_version = '1.3.61'
+    ext.kotlin_version = '1.4.32'
     repositories {
         google()
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.5.3'
+        classpath 'com.android.tools.build:gradle:4.1.3'
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
@@ -19,6 +19,11 @@ allprojects {
 //			content {
 //				includeGroup "com.zello"
 //			}
+//		}
+
+		// staging repository for testing sdk updates pre-release
+//		maven {
+//			url "https://s01.oss.sonatype.org/content/repositories/staging/"
 //		}
 
         jcenter()
