@@ -1,0 +1,147 @@
+<html>
+<head>
+    <script src="https://zello.io/sdks/js/latest/zcc.sdk.js"></script>
+    <style>
+        .status {
+            font-size: 50px;
+            color: silver;
+        }
+
+        .status.online {
+            color: green;
+        }
+
+        button {
+            width: 200px;
+            height: 200px;
+            border-radius: 100px;
+            outline: unset;
+            font-size: 30px;
+            font-weight: bolder;
+        }
+
+    </style>
+    <script>
+
+      function updateStatus(id, status, usersOnline) {
+        var caption = '• ' + 'Channel #' + (id + 1) + ": ";
+        var ptt_btn = document.getElementById('button_ptt_' + id);
+        var connect_btn = document.getElementById('button_connect');
+        var el = document.getElementById('status_' + id);
+
+        el.className = 'status ' + status;
+        connect_btn.removeAttribute('disabled');
+        if (status === 'offline') {
+          el.innerHTML = caption + ' offline';
+          ptt_btn.setAttribute('disabled', true);
+          connect_btn.innerHTML = "Connect";
+        } else {
+          el.innerHTML = caption + usersOnline + ' users online';
+          ptt_btn.removeAttribute('disabled');
+          connect_btn.innerHTML = "Disconnect";
+        }
+      }
+
+
+      var outgoingMessage = null;
+      var connectionState;
+
+
+      function start() {
+
+        updateStatus(0, 'offline');
+        updateStatus(1, 'offline');
+
+        ZCC.Sdk.init({
+          player: true,
+          recorder: true,
+          encoder: true,
+          widget: false
+        }).then(function() {
+          var sessions = [
+            {
+              isConnected: false,
+              session: new ZCC.Session({
+                serverUrl: '',
+                channel: '',
+                authToken: '',
+                username: '',
+                password: ''
+              })
+            },
+            {
+              isConnected: false,
+              session: new ZCC.Session({
+                serverUrl: '',
+                channel: '',
+                authToken: '',
+                username: '',
+                password: ''
+              })
+            }
+          ];
+          var connect_btn = document.getElementById('button_connect');
+
+          connect_btn.onclick = function() {
+            if (connectionState === 'connected') {
+              sessions.forEach((s, id) => {
+                s.isConnected = false;
+                s.session.disconnect();
+                updateStatus(id, 'offline');
+              });
+              connectionState = 'disconnected'
+              return;
+            }
+
+            connectionState = 'connecting';
+            connect_btn.innerHTML = "Connecting";
+            connect_btn.setAttribute('disabled', true);
+
+            sessions.forEach((s, id) => {
+              if (s.isConnected) {
+                return;
+              }
+              s.session.connect(function(err, result) {
+                if (err) {
+                  updateStatus(id, 'offline');
+                  s.isConnected = false;
+                  return
+                }
+                connectionState = 'connected';
+                s.isConnected = true;
+
+                document.getElementById('button_ptt_' + id).onmousedown = function() {
+                  outgoingMessage = s.session.startVoiceMessage();
+                };
+
+                document.getElementById('button_ptt_' + id).onmouseup = function() {
+                  outgoingMessage.stop();
+                };
+              });
+            });
+          };
+          
+          sessions.forEach((s, id) => {
+            s.session.on('status', status => updateStatus(id, status.status, status.users_online));
+            s.session.on('on_error', status => updateStatus(id, offline));
+          });
+
+        }).catch(function(err) {
+          console.trace(err);
+        })
+      }
+    </script>
+</head>
+<body onload="start()">
+<p>This example works over <code>https://</code> only</p>
+<p>
+  <span id="status_0" class="status offline"></span>
+  <br/>
+  <span id="status_1" class="status offline"></span>
+  <br/>
+  <button id="button_connect"></button>
+</p>
+<button id="button_ptt_0" disabled>PTT 1</button>
+<button id="button_ptt_1" disabled>PTT 2</button>
+</body>
+</html>
