@@ -1,0 +1,87 @@
+<html>
+<head>
+    <script src="https://zello.io/sdks/js/latest/zcc.sdk.js"></script>
+    <style>
+        .status {
+            font-size: 50px;
+            color: silver;
+        }
+
+        .status.online {
+            color: green;
+        }
+
+        button {
+            width: 200px;
+            height: 200px;
+            border-radius: 100px;
+            outline: unset;
+        }
+
+    </style>
+    <script>
+
+      function updateStatus(status, usersOnline) {
+        var el = document.getElementById('status');
+        el.className = 'status ' + status;
+        if (status === 'offline') {
+          el.innerHTML = '• offline';
+        } else {
+          el.innerHTML = '•' + usersOnline + ' users online';
+          document.getElementById('button').removeAttribute('disabled');
+        }
+      }
+
+
+      var outgoingMessage = null;
+
+      function connect() {
+
+        updateStatus('offline');
+
+        ZCC.Sdk.init({
+          player: true,
+          recorder: true,
+          encoder: true,
+          widget: false
+        }).then(function() {
+          var session = new ZCC.Session({
+            serverUrl: '',
+            channel: '',
+            authToken: '',
+            username: '',
+            password: ''
+          });
+
+          session.connect(function() {
+            document.getElementById('button').onmousedown = function() {
+              outgoingMessage = session.startVoiceMessage();
+            };
+
+            document.getElementById('button').onmouseup = function() {
+              outgoingMessage.stop();
+            };
+
+
+          }).catch(function(err) {
+            console.trace(err);
+          });
+
+          session.on('status', function(status) {
+            updateStatus(status.status, status.users_online);
+          });
+
+        }).catch(function(err) {
+          console.trace(err);
+        })
+      }
+    </script>
+</head>
+<body onload="connect()">
+<p>This example works over <code>https://</code> only</p>
+<p>
+    <span id="status" class="status offline"></span>
+</p>
+<button id="button" disabled>&#127897;</button>
+</body>
+</html>
