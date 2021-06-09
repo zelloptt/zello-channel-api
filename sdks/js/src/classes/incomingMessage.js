@@ -18,6 +18,7 @@ class IncomingMessage extends Emitter {
 
   constructor(messageData, session) {
     super();
+    this.streamId = messageData.stream_id;
     this.codecDetails = Utils.parseCodedHeader(messageData.codec_header);
     this.messageDidStart = false;
     let library = Utils.getLoadedLibrary();
@@ -120,20 +121,23 @@ class IncomingMessage extends Emitter {
     if (!this.options.decoder) {
       return;
     }
-    this.options.decoder.prototype.ondata = (pcmData) => {
+    this.decoder = new this.options.decoder(this.options);
+    this.decoder.ondata = (pcmData) => {
+      console.log(Date.now(), this.streamId);
       /**
        * Incoming voice message packet decoded
        * @event IncomingMessage#incoming_voice_data_decoded
        * @param {Float32Array} pcmData decoded pcm packet
        */
-      this.emit(Constants.EVENT_INCOMING_VOICE_DATA_DECODED, pcmData);
-      this.session.onIncomingVoiceDecoded(pcmData, this);
-    };
-    this.decoder = new this.options.decoder(this.options);
+      setTimeout(() => {
+        this.emit(Constants.EVENT_INCOMING_VOICE_DATA_DECODED, pcmData);
+        this.session.onIncomingVoiceDecoded(pcmData, this);
+      }, 0);
+    }
   }
 
   initPlayer(sampleRate) {
-    if (IncomingMessage.PersistentPlayer) {
+    if (IncomingMessage.PersistentPlayer && !this.options.noPersistentPlayer) {
       this.player = IncomingMessage.PersistentPlayer;
       this.player.setSampleRate(sampleRate);
       return;

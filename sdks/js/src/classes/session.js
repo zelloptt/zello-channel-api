@@ -14,7 +14,8 @@ const Utils = require('./utils');
   authToken: [authToken],
   maxConnectAttempts: 5,
   connectRetryTimeoutMs: 1000,
-  autoSendAudio: true
+  autoSendAudio: true,
+  noPersistentPlayer: false
 );
  **/
 class Session extends Emitter {
@@ -29,7 +30,8 @@ class Session extends Emitter {
     this.options = Object.assign({}, library.Sdk.initOptions, {
       maxConnectAttempts: 5,
       connectRetryTimeoutMs: 1000,
-      autoSendAudio: true
+      autoSendAudio: true,
+      noPersistentPlayer: false
     }, options);
     this.callbacks = {};
     this.wsConnection = null;
