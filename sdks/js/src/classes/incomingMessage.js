@@ -123,16 +123,13 @@ class IncomingMessage extends Emitter {
     }
     this.decoder = new this.options.decoder(this.options);
     this.decoder.ondata = (pcmData) => {
-      console.log(Date.now(), this.streamId);
       /**
        * Incoming voice message packet decoded
        * @event IncomingMessage#incoming_voice_data_decoded
        * @param {Float32Array} pcmData decoded pcm packet
        */
-      setTimeout(() => {
-        this.emit(Constants.EVENT_INCOMING_VOICE_DATA_DECODED, pcmData);
-        this.session.onIncomingVoiceDecoded(pcmData, this);
-      }, 0);
+      this.emit(Constants.EVENT_INCOMING_VOICE_DATA_DECODED, pcmData);
+      this.session.onIncomingVoiceDecoded(pcmData, this);
     }
   }
 
@@ -146,6 +143,9 @@ class IncomingMessage extends Emitter {
       return;
     }
     this.player = new this.options.player(this.options);
+    if (this.options.noPersistentPlayer) {
+      return;
+    }
     IncomingMessage.PersistentPlayer = this.player;
   }
 }
