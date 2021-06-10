@@ -41,7 +41,7 @@ class IncomingMessage extends Emitter {
       this.options.player = library.Player;
     }
 
-    this.initPlayer(this.options.sampleRate);
+    this.initPlayer();
     this.initDecoder();
     this.initSessionHandlers();
 
@@ -133,10 +133,10 @@ class IncomingMessage extends Emitter {
     }
   }
 
-  initPlayer(sampleRate) {
+  initPlayer() {
     if (IncomingMessage.PersistentPlayer && !this.options.noPersistentPlayer) {
       this.player = IncomingMessage.PersistentPlayer;
-      this.player.setSampleRate(sampleRate);
+      this.player.setSampleRate(this.options.sampleRate);
       return;
     }
     if (!this.options.player) {
