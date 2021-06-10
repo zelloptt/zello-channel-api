@@ -18,6 +18,7 @@ class IncomingMessage extends Emitter {
 
   constructor(messageData, session) {
     super();
+    this.streamId = messageData.stream_id;
     this.codecDetails = Utils.parseCodedHeader(messageData.codec_header);
     this.messageDidStart = false;
     let library = Utils.getLoadedLibrary();
@@ -40,7 +41,7 @@ class IncomingMessage extends Emitter {
       this.options.player = library.Player;
     }
 
-    this.initPlayer(this.options.sampleRate);
+    this.initPlayer();
     this.initDecoder();
     this.initSessionHandlers();
 
@@ -120,7 +121,8 @@ class IncomingMessage extends Emitter {
     if (!this.options.decoder) {
       return;
     }
-    this.options.decoder.prototype.ondata = (pcmData) => {
+    this.decoder = new this.options.decoder(this.options);
+    this.decoder.ondata = (pcmData) => {
       /**
        * Incoming voice message packet decoded
        * @event IncomingMessage#incoming_voice_data_decoded
@@ -128,20 +130,22 @@ class IncomingMessage extends Emitter {
        */
       this.emit(Constants.EVENT_INCOMING_VOICE_DATA_DECODED, pcmData);
       this.session.onIncomingVoiceDecoded(pcmData, this);
-    };
-    this.decoder = new this.options.decoder(this.options);
+    }
   }
 
-  initPlayer(sampleRate) {
-    if (IncomingMessage.PersistentPlayer) {
+  initPlayer() {
+    if (IncomingMessage.PersistentPlayer && !this.options.noPersistentPlayer) {
       this.player = IncomingMessage.PersistentPlayer;
-      this.player.setSampleRate(sampleRate);
+      this.player.setSampleRate(this.options.sampleRate);
       return;
     }
     if (!this.options.player) {
       return;
     }
     this.player = new this.options.player(this.options);
+    if (this.options.noPersistentPlayer) {
+      return;
+    }
     IncomingMessage.PersistentPlayer = this.player;
   }
 }
