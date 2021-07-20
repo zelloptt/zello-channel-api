@@ -144,7 +144,7 @@ Starts a new stream to the channel. The successful response includes `stream_id`
 |2 | `frames_per_packet` | Number of frames per packet (1 or 2)
 |3 | `frame_size_ms` | Audio frame size in milliseconds
 
-Example: value of `gD4BPA==` in base64 decodes to `{0x80, 0x3e, 0x01, 0x3c}` which represents 16000 Hz sample rate, 1 frame per packet, 60 ms frame size. See [example implemenetation](https://github.com/zelloptt/zello-channel-api/blob/409378acd06257bcd07e3f89e4fbc885a0cc6663/sdks/js/src/classes/utils.js#L60L67). 
+Example: value of `gD4BPA==` in base64 decodes to `{0x80, 0x3e, 0x01, 0x3c}` which represents 16000 Hz sample rate, 1 frame per packet, 60 ms frame size. See [example implementation](https://github.com/zelloptt/zello-channel-api/blob/409378acd06257bcd07e3f89e4fbc885a0cc6663/sdks/js/src/classes/utils.js#L60L67). 
 
 #### Request:
 
