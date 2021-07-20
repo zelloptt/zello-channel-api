@@ -16,26 +16,29 @@ To access the API you need to generate a valid access token, based on [JWT](http
 | Service | WebSocket URL
 |---|---
 | Consumer Zello | wss://zello.io/ws
-| ZelloWork | wss://zellowork.io/ws/`network name`
+| Zello Work | wss://zellowork.io/ws/`network name`
 | Zello Enterprise Server | wss://`your server domain`/ws
 
 Note that the protocol only supports secure connections over TLS.
 
 ## Authentication
 
-The API supports two types of accounts for both Zello and ZelloWork:
+The API supports two types of accounts:
 
 Anonymous accounts:
 
 * No need to provide username or password
 * Can access unrestricted channels in listen only mode
+* Only supported with consumer Zello
+* A valid [auth token](AUTH.md) is required
 
 Named accounts:
 
 * Must include a valid username and password
 * Have full access to authorized channels
+* Supported for both Zello Work and consumer Zello
+* A valid [auth token](AUTH.md) is required for consumer Zello but optional for Zello Work
 
-In both cases you need to provide a valid [auth token](AUTH.md).
 
 ## WebSocket commands protocol
 
@@ -61,9 +64,9 @@ Authenticates the client and connects to a channel. This must be the first comma
 |---|---|---
 | `command` | string | `logon`
 | `seq` | integer | Command sequence number
-| `auth_token` | string | (optional) API authentication token. If omitted `refresh_token` is required. See [Authentication](#authentication)
-| `refresh_token` | string | (optional) API refresh token. If omitted `auth_token ` is required. See [Authentication](#authentication)
-| `username` | string | (optional) Username to logon with. If not provided the client will connect anonymously.
+| `auth_token` | string | (optional) API authentication token. If omitted `refresh_token` is required when connecting to consumer Zello. See [Authentication](#authentication)
+| `refresh_token` | string | (optional) API refresh token. If omitted `auth_token ` is required when connecting to consumer Zello. See [Authentication](#authentication)
+| `username` | string | (optional) Username to logon with. If not provided the client will connect anonymously. See [Authentication](#authentication)
 | `password` | string | (optional) Password to logon with. Required if username is provided.
 | `channel` | string | The name of the channel to connect to. 
 | `listen_only` | boolean | (optional) Set to `true` to connect in listen-only mode.
@@ -125,10 +128,23 @@ Starts a new stream to the channel. The successful response includes `stream_id`
 | `seq` | integer | Command sequence number
 | `type` | string | Stream type. Only `audio` is currently supported
 | `codec` | string | The name of audio codec used. Required for `audio` streams. Must be `opus`.
-| `codec_header` | string | base64-encoded codec header buffer. Required for `opus` streams.
+| `codec_header` | string | base64-encoded string, representing audio encoding parameters. Required for `audio` streams. See [below](#codec_header-attribute)
 | `packet_duration` | integer | Audio packet duration in milliseconds. Values between 2.5 ms and 60 ms are supported.
 | `for` | string | Optional username to send message to. Other users in the channel won't be receiving this message
 
+##### `codec_header` attribute
+
+`codec_header` is base64-encoded 4 byte array, which represents audio encoding attributes used for the message being sent: 
+
+`{sample_rate_hz(16LE), frames_per_packet(8), frame_size_ms(8)}`
+
+| Byte | Value| Description
+|---|---|---
+|0 & 1 | `sample_rate_hz` | 16 bit little-endian value of audio sample rate in Hz
+|2 | `frames_per_packet` | Number of frames per packet (1 or 2)
+|3 | `frame_size_ms` | Audio frame size in milliseconds
+
+Example: value of `gD4BPA==` in base64 decodes to `{0x80, 0x3e, 0x01, 0x3c}` which represents 16000 Hz sample rate, 1 frame per packet, 60 ms frame size. See [example implemenetation](https://github.com/zelloptt/zello-channel-api/blob/409378acd06257bcd07e3f89e4fbc885a0cc6663/sdks/js/src/classes/utils.js#L60L67). 
 
 #### Request:
 
@@ -189,7 +205,7 @@ Stops outgoing stream. Send this command after you sent the last data packet.
 ```
 
 ### Stream data
-The same packet structure is used for any streamed data (e.g. audio) travelling both ways. The packet ID field is only used with the audio packets sent from the server to a client. Fields are stored in network byte order.
+The same binary packet structure is used for any streamed data (e.g. audio) travelling both ways. The `packet_id` field is populated with the packet number for the audio packets sent from the server to a client. When streaming data to the server the `packet_id` value is ignored and should be filled with zeroes.  Fields are stored in network byte order.
 
 `{type(8) = 0x01, stream_id(32), packet_id(32), data[]}`
 
@@ -524,7 +540,7 @@ Indicates incoming shared location from the channel.
 ## Supported features
 
 
-|Feature|Consumer Zello|ZelloWork
+|Feature|Consumer Zello|Zello Work
 |---|---|---
 |Access channels using authorized user credentials | Supported | Supported
 |Access channels anonymously in listen only mode | Supported | Not supported
@@ -533,4 +549,5 @@ Indicates incoming shared location from the channel.
 |Create and access ad hoc channels anonymously | Planned | Planned
 |Send and receive images | Supported | Supported
 |Send and receive text messages | Supported | Supported
-|Moderate Zello consumer channels | Planned | n/a
+|Send and receive locations | Supported | Supported
+|Send and receive emergency alerts | - | Planned
