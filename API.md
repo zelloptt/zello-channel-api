@@ -56,7 +56,9 @@ A sequence number is required only if a response is expected. Both server and cl
 
 ### `logon`
 
-Authenticates the client and connects to a channel. This must be the first command the client sends after establishing WebSocket connection. To stop the session and disconnect from the channel simply close the connection.
+Authenticates the client and connects to channels. This must be the first command the client sends after establishing WebSocket connection. To stop the session and disconnect from the channels simply close the connection.
+
+Connecting to multiple channels (up to 100) is currently supported for Zello Work only.
 
 #### Attributes
 
@@ -68,7 +70,7 @@ Authenticates the client and connects to a channel. This must be the first comma
 | `refresh_token` | string | (optional) API refresh token. If omitted `auth_token ` is required when connecting to consumer Zello. See [Authentication](#authentication)
 | `username` | string | (optional) Username to logon with. If not provided the client will connect anonymously. See [Authentication](#authentication)
 | `password` | string | (optional) Password to logon with. Required if username is provided.
-| `channel` | string | The name of the channel to connect to. 
+| `channels` | array of strings | The list of names of the channels to connect to. 
 | `listen_only` | boolean | (optional) Set to `true` to connect in listen-only mode.
 
 #### Request:
@@ -80,7 +82,7 @@ Authenticates the client and connects to a channel. This must be the first comma
   "auth_token": "[json web token]",
   "username": "sherlock",
   "password": "secret",
-  "channel": "Baker Street 221B"
+  "channels": ["Baker Street 221B", "Reichenbach Falls"]
 }
 ``` 
 #### Response:
@@ -111,6 +113,8 @@ A successful response includes `refresh_token` which can be used to quickly reco
 | `not enough params` | The request is missing required parameters, such as token or username/password
 | `not authorized` | The logon fails due to invalid credentials
 | `internal server error` | There are any unexpected server side failures; an immediate retry may or may not succeed
+| `channels limit exceeded` | The list of channels supplied is longer than supported by the API. 
+
 
 ## Streaming voice messages
 
@@ -126,6 +130,7 @@ Starts a new stream to the channel. The successful response includes `stream_id`
 |---|---|---
 | `command` | string | `start_stream `
 | `seq` | integer | Command sequence number
+| `channel` | string | The channel to send the message to
 | `type` | string | Stream type. Only `audio` is currently supported
 | `codec` | string | The name of audio codec used. Required for `audio` streams. Must be `opus`.
 | `codec_header` | string | base64-encoded string, representing audio encoding parameters. Required for `audio` streams. See [below](#codec_header-attribute)
@@ -152,6 +157,7 @@ Example: value of `gD4BPA==` in base64 decodes to `{0x80, 0x3e, 0x01, 0x3c}` whi
 {
   "command": "start_stream",
   "seq": 2,
+  "channel": "Baker Street 221B",
   "type": "audio",
   "codec": "opus",
   "codec_header": "gD4BPA==",
@@ -165,11 +171,12 @@ or
 {
   "command": "start_stream",
   "seq": 2,
+  "channel": "Baker Street 221B",
   "type": "audio",
   "codec": "opus",
   "codec_header": "gD4BPA==",
   "packet_duration": 20,
-  "for": "Driver 2"
+  "for": "mrs.hudson"
 }
 ```
 
@@ -192,6 +199,7 @@ Stops outgoing stream. Send this command after you sent the last data packet.
 | Name | Type | Value  / Description
 |---|---|---
 | `command` | string | `stop_stream `
+| `seq` | integer | Command sequence number
 | `stream_id ` | integer | Stream ID as returned in response to `start_stream` command
 
 
@@ -200,6 +208,7 @@ Stops outgoing stream. Send this command after you sent the last data packet.
 ```json
 {
   "command": "stop_stream",
+  "seq": 3,
   "stream_id": 22695
 }
 ```
@@ -221,6 +230,7 @@ Starts sending a new image to the channel. The successful response includes `ima
 |---|---|---
 | `command` | string | `send_image `
 | `seq` | integer | Command sequence number
+| `channel` | string | The channel to send the message to
 | `type` | string | Image type. Only `jpeg` is currently supported
 | `thumbnail_content_length` | integer | Image thumbnail content length in bytes
 | `content_length` | integer | Full image content length in bytes
@@ -233,8 +243,9 @@ Starts sending a new image to the channel. The successful response includes `ima
 #### Request: 
 ```json
 {
-  "seq": 2,
   "command": "send_image",
+  "seq": 2,
+  "channel": "Reichenbach Falls",
   "type": "jpeg",
   "source": "camera",
   "width": 1279,
@@ -271,15 +282,18 @@ Sends a new text message to the channel.
 |---|---|---
 | `command` | string | `send_text_message`
 | `seq` | integer | Command sequence number
+| `channel` | string | The channel to send the message to
 | `text` | string | Message text. 30 Kb maximum
 | `for` | string | Optional username to send text message to. Other users in the channel won't be receiving this text message
 
 #### Request:
 ```json
 {
-  "seq": 3,
   "command": "send_text_message",
-  "text": "Hello Zello!"
+  "seq": 3,
+  "channel": "Reichenbach Falls",
+  "text": "Where are you?",
+  "for": "holmes"
 }
 ```
 
@@ -301,11 +315,34 @@ Sends user's location to the channel.
 |---|---|---
 | `command` | string | `send_location`
 | `seq` | integer | Command sequence number
+| `channel` | string | The channel to send the message to
 | `latitude` | number | Shared location latitude
 | `longitude` | number | Shared location longitude
 | `accuracy` | number | Shared location accuracy in meters
 | `formatted_address` | string |  Shared location reverse geocoding result (street address)
 | `for` | string | Optional username to send location to. Other users in the channel won't be receiving this location data 
+
+#### Request:
+```json
+{
+  "command": "send_location",
+  "seq": 3,
+  "channel": "Reichenbach Falls",
+  "latitude": 46.714475,
+  "longitude": 8.1806319,
+  "accuracy": 10,
+  "formatted_address": "Hausenstrasse 34, 3860 Meiringen, Switzerland",
+  "for": "watson"
+}
+```
+
+#### Response:
+```json
+{
+  "seq": 3,
+  "success": true
+}
+```
 
 ## Events
 
