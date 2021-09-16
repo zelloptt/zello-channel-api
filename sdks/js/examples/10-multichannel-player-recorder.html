@@ -133,7 +133,9 @@
     </script>
 </head>
 <body onload="start()">
-<p>This example works over <code>https://</code> only</p>
+<p>To run this example, you must fill in the connection info on the HTML and refresh the page. Be sure to use a different user for each channel; the auth token may be the same for each channel.</p>
+<p>This example works over <code>http://</code> only if an insecure WebSocket connection is used (<code>ws://</code>).</p>
+<p>This example works over <code>https://</code> only if a secure WebSocket connection is used (<code>wss://</code>). Note: self-signed certificates are <b>not</b> allowed.</p>
 <p>
   <span id="status_0" class="status offline"></span>
   <br/>
