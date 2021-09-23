@@ -1,0 +1,180 @@
+<html>
+<head>
+    <!--
+      TODO: use "https://zello.io/sdks/js/latest/zcc.sdk.js" once the
+      SDK supporting dispatch calls is deployed
+    -->
+    <script src="http://127.0.0.1:8080/zcc.sdk.js"></script>
+    <style>
+        .status.offline {
+            color: white;
+            background-color: gray;
+        }
+        .status.online {
+            color: white;
+        }
+        .status.calling {
+            color: yellowgreen;
+        }
+        .status.wait {
+            color: yellow;
+        }
+        callButton {
+            width: 100%;
+            height: 500px;
+            font-size: 25px;
+            background-color: green;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 40px;
+            border-radius: 12px;
+            box-sizing: border-box;
+        }
+        cancelButton {
+            width: 100%;
+            height: 50px;
+            font-size: 30px;
+            color: orange;
+            background-color: transparent;
+            display: inline-block;
+            text-align: center;
+            padding: 40px;
+            box-sizing: border-box;
+        }
+        body {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            overflow: hidden;
+        }
+    </style>
+
+    <script>
+      // TODO: Change to the actual Zello Channel API Server URL
+      //       Take it from the kiosk page URI?
+      const zelloServerURL = '';
+
+      const disconnectedMessage = 'Offline';
+      const welcomeMessage = 'Touch to request assistance';
+      const findingMessage = 'Finding the store associate...';
+      const waitMessage = 'will be with you shortly. Please wait';
+      const defaultRequestMessage = 'A customer requires assistance';
+      const cancelButtonText = 'Cancel';
+
+      var outgoingCall = null;
+      var textMessage = defaultRequestMessage;
+
+      function updateStatus(state, dispatcherName) {
+        let callButton = document.getElementById('callButton');
+        let cancelButton = document.getElementById('cancelButton');
+        callButton.className = 'status ' + state;
+
+        cancelButton.style.display = "none";
+        if (state === 'offline') {
+          callButton.innerHTML = disconnectedMessage;
+          callButton.setAttribute('disabled', true);
+          return;
+        }
+        if (state === 'online') {
+          callButton.innerHTML = welcomeMessage;
+          callButton.removeAttribute('disabled');
+          return;
+        } 
+        callButton.setAttribute('disabled', true);
+        cancelButton.style.display = 'block';
+        if (state === 'calling') {
+          callButton.innerHTML = findingMessage;
+        }
+        else if (state === 'wait') {
+          callButton.innerHTML = dispatcherName + ' ' + waitMessage;
+        }
+      }
+
+      function init() {
+        document.oncontextmenu = new Function("return false");
+        let cancelButton = document.getElementById('cancelButton');
+        cancelButton.innerHTML = cancelButtonText;
+        updateStatus('offline');
+
+        const url = new URL(window.location.href);
+        const credentials = url.searchParams.get('credentials')?.split(":");
+        const channel = url.searchParams.get('channel');
+        const initialText = url.searchParams.get('initialText');
+        const username = credentials ? credentials[0] : null;
+        const password = credentials ? credentials[1] : null;
+
+        if (initialText) {
+          textMessage = initialText;
+        }
+        connect(channel, username, password);
+      }
+
+      function connect(channel, username, password) {
+        ZCC.Sdk.init({
+          player: false,
+          recorder: false,
+          encoder: false,
+          widget: false
+        }).then(function() {
+          var session = new ZCC.Session({
+            serverUrl: zelloServerURL,
+            channel,
+            username,
+            password
+          });
+          session.connect(function() {
+            updateStatus('online');
+            document.getElementById('callButton').onclick = function() {
+              if (outgoingCall) {
+                return;
+              }
+              session.sendTextMessage({text: textMessage});
+            };
+            document.getElementById('cancelButton').onclick = function() {
+              if (!outgoingCall || !outgoingCall.call_id) {
+                return;
+              }
+              session.endDispatchCall({call_id: outgoingCall.call_id});
+              outgoingCall = null;
+              updateStatus('online');
+            };
+            session.on('dispatch_call', function(call) {
+              console.log("dispatch_call:", call);
+              if (!outgoingCall && call.status === 'received') {
+                outgoingCall = call;
+                updateStatus('calling');
+              }
+              else if (outgoingCall && call.status === 'taken') {
+                outgoingCall = call;
+                updateStatus('wait', call.dispatcher_display_name);
+              }
+              else if (outgoingCall && call.status === 'ended') {
+                outgoingCall = null;
+                updateStatus('online');
+              }
+            });
+          }).catch(function(err) {
+            console.trace(err);
+          });
+          session.on('status', function(status) {
+            updateStatus(status.status);
+          });
+        }).catch(function(err) {
+          console.trace(err);
+        })
+      }
+    </script>
+</head>
+
+<body onload="init()">
+  <p>
+    <callButton id="callButton" disabled></callButton>
+    <br/>
+    <cancelButton id="cancelButton" disabled></cancelButton>
+    <br/>
+  </p>
+</body>
+</html>
