@@ -2,13 +2,13 @@
   <!--
     Pass URL-encoded parameters apiUrl, channel, username, password, initialText by the page URL.
     Use encodeURIComponent or equivalent in order to encode.
-    Example for the page exposed to 127.0.0.1:8081 using the following parameters:
+    Example for the page exposed to 127.0.0.1:8080 using the following parameters:
       - apiUrl = 'ws://192.168.1.100/ws/mesh'
       - channel = 'test'
       - username = 'user'
       - password = 'pass'
       - initialText = 'Visitor at bakery requires assistance'
-    http://127.0.0.1:8081/11-kiosk-poc?username=user&password=pass&apiUrl=ws%3A%2F%2F192.168.1.100%2Fws%2Fmesh%2F&channel=test&initialText=Visitor%20at%20bakery%20requires%20assistance 
+    http://127.0.0.1:8080/11-kiosk-poc?username=user&password=pass&apiUrl=ws%3A%2F%2F192.168.1.100%2Fws%2Fmesh%2F&channel=test&initialText=Visitor%20at%20bakery%20requires%20assistance 
   -->
 <head>
     <!--
@@ -16,7 +16,7 @@
       SDK supporting dispatch calls is deployed.
       Compile the JS SDK by yourself with the logic introduced in
       https://github.com/zelloptt/zello-channel-api/pull/157
-      and expose it to 127.0.0.1:8080
+      and expose it to 127.0.0.1:8081
       Make sure the WebSocket server is running with the following changes:
       -  https://github.com/zelloptt/zello-wss/pull/79
       -  https://github.com/zelloptt/zello-wss/pull/75
