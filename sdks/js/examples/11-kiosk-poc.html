@@ -1,10 +1,27 @@
 <html>
+  <!--
+    Pass URL-encoded parameters apiUrl, channel, username, password, initialText by the page URL.
+    Use encodeURIComponent or equivalent in order to encode.
+    Example for the page exposed to 127.0.0.1:8081 using the following parameters:
+      - apiUrl = 'ws://192.168.1.100/ws/mesh'
+      - channel = 'test'
+      - username = 'user'
+      - password = 'pass'
+      - initialText = 'Visitor at bakery requires assistance'
+    http://127.0.0.1:8081/11-kiosk-poc?username=user&password=pass&apiUrl=ws%3A%2F%2F192.168.1.100%2Fws%2Fmesh%2F&channel=test&initialText=Visitor%20at%20bakery%20requires%20assistance 
+  -->
 <head>
     <!--
-      TODO: use "https://zello.io/sdks/js/latest/zcc.sdk.js" once the
-      SDK supporting dispatch calls is deployed
+      TODO: Use "https://zello.io/sdks/js/latest/zcc.sdk.js" once the
+      SDK supporting dispatch calls is deployed.
+      Compile the JS SDK by yourself with the logic introduced in
+      https://github.com/zelloptt/zello-channel-api/pull/157
+      and expose it to 127.0.0.1:8080
+      Make sure the WebSocket server is running with the following changes:
+      -  https://github.com/zelloptt/zello-wss/pull/79
+      -  https://github.com/zelloptt/zello-wss/pull/75
     -->
-    <script src="http://127.0.0.1:8080/zcc.sdk.js"></script>
+    <script src="http://127.0.0.1:8081/zcc.sdk.js"></script>
     <style>
         .status.offline {
             color: white;
@@ -51,10 +68,6 @@
     </style>
 
     <script>
-      // TODO: Change to the actual Zello Channel API Server URL
-      //       Take it from the kiosk page URI?
-      const zelloServerURL = '';
-
       const disconnectedMessage = 'Offline';
       const welcomeMessage = 'Touch to request assistance';
       const findingMessage = 'Finding the store associate...';
@@ -98,19 +111,19 @@
         updateStatus('offline');
 
         const url = new URL(window.location.href);
-        const credentials = url.searchParams.get('credentials')?.split(":");
+        const apiUrl = url.searchParams.get('apiUrl');
         const channel = url.searchParams.get('channel');
         const initialText = url.searchParams.get('initialText');
-        const username = credentials ? credentials[0] : null;
-        const password = credentials ? credentials[1] : null;
+        const username = url.searchParams.get('username');
+        const password = url.searchParams.get('password');
 
         if (initialText) {
           textMessage = initialText;
         }
-        connect(channel, username, password);
+        connect(apiUrl, channel, username, password);
       }
 
-      function connect(channel, username, password) {
+      function connect(serverUrl, channel, username, password) {
         ZCC.Sdk.init({
           player: false,
           recorder: false,
@@ -118,7 +131,7 @@
           widget: false
         }).then(function() {
           var session = new ZCC.Session({
-            serverUrl: zelloServerURL,
+            serverUrl,
             channel,
             username,
             password
