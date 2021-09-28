@@ -351,15 +351,15 @@ session.connect(function(err, result) {
         break;
       case 'on_dispatch_call_status':
         /**
-         * The Session is receiving a dispatch call update
-         * @event Session#dispatch_call_updated
+         * Incoming dispatch call status change information
+         * @event Session#dispatch_call
          * @param json dispatch call status JSON object
          * @property {string} channel channel name.
          * @property {string} status updated status of the call - one of 'taken', 'received', 'ended'.
          * @property {number} call_id dispatch call unique identifier.
-         * @property {string} dispatcher user name of the dispatcher taken the call.
-         * @property {string} dispatcher_display_name display name of the dispatcher taken the call.
-         * @property {string} dispatcher_profile_picture an URL to a profile picture of the dispatcher taken the call.
+         * @property {string} dispatcher user name of the dispatcher who has taken the call.
+         * @property {string} dispatcher_display_name display name of the dispatcher who has taken the call.
+         * @property {string} dispatcher_profile_picture profile picture URL of the dispatcher who has taken the call.
          */
         this.emit(Constants.EVENT_DISPATCH_CALL, jsonData);
         break;
@@ -515,20 +515,19 @@ var outgoingMessage = session.startVoiceMessage({
   /**
    * Stops an ongoing dispatch call
    *
-   * @param {object} options options for outgoing text message.
-   * @property {Number} call_id the ID of the ongoing dispatch call to be over.
-   *
+   * @param {Number} call_id the ID of the ongoing dispatch call to be over.
    * @param {function} [userCallback] callback that is fired on dispatch call is over or failed to be stopped.
    * @return {promise} promise that resolves once session successfully stopped the dispatch call and rejects if
    *                   stopping the dispatch call is failed.
    * @example
    *
-   session.endDispatchCall({
-    call_id: 123456789
-   });
+   session.endDispatchCall(123456789);
    **/
-   endDispatchCall(options = {}, userCallback = null) {
-    options.channel = this.options.channel;
+   endDispatchCall(call_id, userCallback = null) {
+    const options = {
+      call_id,
+      channel: this.options.channel
+    };
     return this.sendCommandWithCallback(
       'end_dispatch_call',
       options,
