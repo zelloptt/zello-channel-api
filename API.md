@@ -200,7 +200,8 @@ Stops outgoing stream. Send this command after you sent the last data packet.
 |---|---|---
 | `command` | string | `stop_stream `
 | `seq` | integer | Command sequence number
-| `stream_id ` | integer | Stream ID as returned in response to `start_stream` command
+| `stream_id` | integer | Stream ID as returned in response to `start_stream` command
+| `channel` | string | The channel to send the message to
 
 
 #### Request:
@@ -209,7 +210,8 @@ Stops outgoing stream. Send this command after you sent the last data packet.
 {
   "command": "stop_stream",
   "seq": 3,
-  "stream_id": 22695
+  "stream_id": 22695,
+  "channel": "Baker Street 221B"
 }
 ```
 
