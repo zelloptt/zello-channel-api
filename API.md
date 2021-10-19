@@ -39,6 +39,8 @@ Named accounts:
 * Supported for both Zello Work and consumer Zello
 * A valid [auth token](AUTH.md) is required for consumer Zello but optional for Zello Work
 
+## Connection keepalive
+The API monitors connectivity by sending a [WebSocket Ping frame](https://datatracker.ietf.org/doc/html/rfc6455#section-5.5.2) to the client every 30 seconds. The WebSocket client must respond to the Ping frame with a Pong frame. If a client takes longer than 30 seconds to respond with a Pong frame, the API terminates the connection.
 
 ## WebSocket commands protocol
 
