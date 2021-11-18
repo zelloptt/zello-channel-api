@@ -515,7 +515,7 @@ var outgoingMessage = session.startVoiceMessage({
   /**
    * Stops an ongoing dispatch call
    *
-   * @param {Number} call_id the ID of the ongoing dispatch call to be over.
+   * @param {Number} callId the ID of the ongoing dispatch call to be over.
    * @param {function} [userCallback] callback that is fired on dispatch call is over or failed to be stopped.
    * @return {promise} promise that resolves once session successfully stopped the dispatch call and rejects if
    *                   stopping the dispatch call is failed.
@@ -523,9 +523,9 @@ var outgoingMessage = session.startVoiceMessage({
    *
    session.endDispatchCall(123456789);
    **/
-   endDispatchCall(call_id, userCallback = null) {
+   endDispatchCall(callId, userCallback = null) {
     const options = {
-      call_id,
+      call_id: callId,
       channel: this.options.channel
     };
     return this.sendCommandWithCallback(
