@@ -72,7 +72,7 @@ module.exports = {
   EVENT_IMAGE_PREVIEW_DATA: 'image_preview_data',
   EVENT_THUMBNAIL_PREVIEW_DATA: 'thumbnail_preview_data',
 
-  EVENT_DISPATCH_CALL: 'dispatch_call',
+  EVENT_DISPATCH_CALL_STATUS: 'dispatch_call_status',
 
   MAX_OUTGOING_IMAGE_SCALE_PX: 1280,
   OUTGOING_IMAGE_THUMBNAIL_SCALE_PX: 90,

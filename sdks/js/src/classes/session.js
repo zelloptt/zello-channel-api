@@ -352,7 +352,7 @@ session.connect(function(err, result) {
       case 'on_dispatch_call_status':
         /**
          * Incoming dispatch call status change information
-         * @event Session#dispatch_call
+         * @event Session#dispatch_call_status
          * @param json dispatch call status JSON object
          * @property {string} channel channel name.
          * @property {string} status updated status of the call - one of 'taken', 'received', 'ended'.
@@ -361,7 +361,7 @@ session.connect(function(err, result) {
          * @property {string} dispatcher_display_name display name of the dispatcher who has taken the call.
          * @property {string} dispatcher_profile_picture profile picture URL of the dispatcher who has taken the call.
          */
-        this.emit(Constants.EVENT_DISPATCH_CALL, jsonData);
+        this.emit(Constants.EVENT_DISPATCH_CALL_STATUS, jsonData);
         break;
     }
   }
