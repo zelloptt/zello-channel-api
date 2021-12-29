@@ -348,6 +348,21 @@ session.connect(function(err, result) {
          */
         const incomingImage = new library.IncomingImage(jsonData, this);
         this.emit(Constants.EVENT_INCOMING_IMAGE, incomingImage);
+        break;
+      case 'on_dispatch_call_status':
+        /**
+         * Incoming dispatch call status change information
+         * @event Session#dispatch_call_status
+         * @param json dispatch call status JSON object
+         * @property {string} channel channel name.
+         * @property {string} status updated status of the call - one of 'taken', 'received', 'ended'.
+         * @property {number} call_id dispatch call unique identifier.
+         * @property {string} dispatcher user name of the dispatcher who has taken the call.
+         * @property {string} dispatcher_display_name display name of the dispatcher who has taken the call.
+         * @property {string} dispatcher_profile_picture profile picture URL of the dispatcher who has taken the call.
+         */
+        this.emit(Constants.EVENT_DISPATCH_CALL_STATUS, jsonData);
+        break;
     }
   }
 
@@ -495,6 +510,29 @@ var outgoingMessage = session.startVoiceMessage({
 
   sendLocation(options = {}, userCallback = null) {
     return this.sendCommandWithCallback('send_location', options, userCallback)
+  }
+
+  /**
+   * Stops an ongoing dispatch call
+   *
+   * @param {Number} callId the ID of the ongoing dispatch call to be over.
+   * @param {function} [userCallback] callback that is fired on dispatch call is over or failed to be stopped.
+   * @return {promise} promise that resolves once session successfully stopped the dispatch call and rejects if
+   *                   stopping the dispatch call is failed.
+   * @example
+   *
+   session.endDispatchCall(123456789);
+   **/
+   endDispatchCall(callId, userCallback = null) {
+    const options = {
+      call_id: callId,
+      channel: this.options.channel
+    };
+    return this.sendCommandWithCallback(
+      'end_dispatch_call',
+      options,
+      userCallback
+    );
   }
 
   sendCommandWithCallback(command, options, userCallback = null) {
