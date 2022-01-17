@@ -1,7 +1,7 @@
 # Zello channels JavaScript SDK
 
 ## Usage
-See examples in `examples` folder and documentation in `/docs/js` folder
+See examples in [examples](./examples) folder and documentation in [docs/js](../../docs/js) folder
 
 ## Build from sources
 
@@ -29,7 +29,7 @@ git clone git@github.com:zelloptt/opus-recorder.git
 
 ### Rebuilding the recorder (optional)
 
-* Note: No need rebuilding the recorder if it was not changed.
+* Note: No need to rebuild the recorder if it was not changed.
 
 Follow installation instructions in README.md file ([Building from sources](https://github.com/zelloptt/opus-recorder#building-from-sources) section) to build from source.
 
