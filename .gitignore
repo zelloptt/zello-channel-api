@@ -1,6 +1,5 @@
 .idea
 sdks/js/node_modules/
-sdks/js/src/vendor/*
 build
 .externalNativeBuild
 .gradle

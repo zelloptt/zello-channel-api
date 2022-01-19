@@ -1,3 +1,12 @@
 [submodule "examples/cs/concentus.oggfile"]
 	path = examples/cs/concentus.oggfile
 	url = git@github.com:zelloptt/concentus.oggfile.git
+[submodule "sdks/js/src/vendor/opus-to-pcm"]
+	path = sdks/js/src/vendor/opus-to-pcm
+	url = git@github.com:zelloptt/opus-to-pcm.git
+[submodule "sdks/js/src/vendor/pcm-player"]
+	path = sdks/js/src/vendor/pcm-player
+	url = git@github.com:zelloptt/pcm-player.git
+[submodule "sdks/js/src/vendor/opus-recorder"]
+	path = sdks/js/src/vendor/opus-recorder
+	url = git@github.com:zelloptt/opus-recorder.git

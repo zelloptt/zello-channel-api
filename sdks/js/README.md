@@ -14,17 +14,8 @@ See examples in [examples](./examples) folder and documentation in [docs/js](../
 
 ### Install vendor dependencies
 
-1. opus-to-pcm
-2. pcm-player
-3. opus-recorder
-
-No need to install, just clone:
-
 ```bash
-cd src/vendor
-git clone git@github.com:zelloptt/opus-to-pcm.git
-git clone git@github.com:zelloptt/pcm-player.git
-git clone git@github.com:zelloptt/opus-recorder.git
+git submodule update --init --recursive
 ```
 
 ### Rebuilding the recorder (optional)
