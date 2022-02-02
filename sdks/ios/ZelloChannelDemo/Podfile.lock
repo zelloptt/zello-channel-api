@@ -1,20 +1,20 @@
 PODS:
-  - ZelloChannelKit (0.5.3):
-    - ZelloChannelKit/libopus (= 0.5.3)
-    - ZelloChannelKit/SocketRocket (= 0.5.3)
-  - ZelloChannelKit/libopus (0.5.3)
-  - ZelloChannelKit/SocketRocket (0.5.3)
+  - ZelloChannelKit (0.5.5):
+    - ZelloChannelKit/libopus (= 0.5.5)
+    - ZelloChannelKit/SocketRocket (= 0.5.5)
+  - ZelloChannelKit/libopus (0.5.5)
+  - ZelloChannelKit/SocketRocket (0.5.5)
 
 DEPENDENCIES:
-  - ZelloChannelKit (~> 0.5)
+  - ZelloChannelKit (~> 0.5.5)
 
 SPEC REPOS:
   trunk:
     - ZelloChannelKit
 
 SPEC CHECKSUMS:
-  ZelloChannelKit: d094cd517d8c59395c33e58bc5859c8495024ca7
+  ZelloChannelKit: 0ec3988b535f5ff686103415f743792809a259c5
 
-PODFILE CHECKSUM: 40f28ca99ec2d7ed97cfc842137cddc7f465a89a
+PODFILE CHECKSUM: 61ee92a6d294d8a1a0fa471f5218ce4853edaf00
 
-COCOAPODS: 1.8.1
+COCOAPODS: 1.11.2
