@@ -25,7 +25,7 @@ Use [Android Studio](https://developer.android.com/studio/) 3.5.3 or newer to de
 
 #### Configure your project
 
-Open your project in Android Studio or create a new one. Alternatively you can use a [demo](android/demo) included with the SDK to get started.
+Open your project in Android Studio or create a new one. Alternatively you can use the [demo](android/demo) included with the SDK to get started.
 
 Ensure that `jcenter()` is included in your `repositories` closure. Example:
 
@@ -58,10 +58,20 @@ The Zello Channels SDK for iOS was developed using Xcode 10.3 and has not been t
 
 #### Configure your project
 
-ZelloChannelKit is distributed as a cocoapod. If you are not already using Cocoapods in your project, follow [the instructions](https://cocoapods.org/) to download and set it up. Add the following line to your `Podfile`:
+Open your project in Xcode or create a new one.
+Alternatively you can use the [demo](ios/ZelloChannelDemo) included with the SDK to get started.
 
+ZelloChannelKit is distributed as a cocoapod. If you are not already using Cocoapods in your project, follow [the instructions](https://cocoapods.org/) to download and set it up.
+
+Make sure the following line is added to your `Podfile`:
 ```
-pod 'ZelloChannelKit', '~> 0.5'
+pod 'ZelloChannelKit', '~> 0.5.5'
+```
+Use the [Podfile of the demo application](ios/ZelloChannelDemo/Podfile) as an example.
+
+Install the pod with the following commands (assuming the current directory is a project root directory):
+```
+pod install
 ```
 
 ### Browser JavaScript

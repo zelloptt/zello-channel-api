@@ -6,7 +6,7 @@ target 'ZelloChannelDemo' do
   use_frameworks!
 
   # Pods for ZelloChannelDemo
-  pod 'ZelloChannelKit', '~> 0.5'
+  pod 'ZelloChannelKit', '~> 0.5.5'
 
   target 'ZelloChannelDemoTests' do
     inherit! :search_paths
