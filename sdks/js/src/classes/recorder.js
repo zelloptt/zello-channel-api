@@ -11,7 +11,11 @@ class Recorder {
       throw new Error("Recording is not supported in this browser");
     }
     this.options = Object.assign({
-      bufferLength: 4096,
+      // This is a tradeoff between latency and quality. If the buffer length is too low compared
+      // to CPU usage, the audio is robotic and glitched. A maximum value for this is a reasonable tradeoff
+      // to dramatically improve quality while under moderate stress. Do not change this default.
+      // https://developer.mozilla.org/en-US/docs/Web/API/BaseAudioContext/createScriptProcessor#parameters
+      bufferLength: 16384,
       monitorGain: 0,
       recordingGain: 1,
       mediaConstraints: { audio: true }
