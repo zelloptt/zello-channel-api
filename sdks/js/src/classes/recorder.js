@@ -11,11 +11,7 @@ class Recorder {
       throw new Error("Recording is not supported in this browser");
     }
     this.options = Object.assign({
-      // This is a tradeoff between latency and quality. If the buffer length is too low compared
-      // to CPU usage, the audio is robotic and glitched. A maximum value for this is a reasonable tradeoff
-      // to dramatically improve quality while under moderate stress. Do not change this default.
-      // https://developer.mozilla.org/en-US/docs/Web/API/BaseAudioContext/createScriptProcessor#parameters
-      bufferLength: 16384,
+      bufferLength: 0,
       monitorGain: 0,
       recordingGain: 1,
       mediaConstraints: { audio: true }
@@ -101,6 +97,9 @@ class Recorder {
     this.scriptProcessorNode.connect(this.audioContext.destination);
     this.scriptProcessorNode.onaudioprocess = (e) => {
       this.encodeBuffers(e.inputBuffer);
+      if (this.extraBuffers !== undefined && ++this.extraBuffersCount >= this.extraBuffers) {
+        this.stop();
+      }
     };
 
     this.monitorGainNode = this.audioContext.createGain();
@@ -198,6 +197,14 @@ class Recorder {
       // send to encoder
       this.encoder.postMessage({command: "done"});
     }
+  }
+
+  /**
+   * A delayed stop that allows for the processing of extraBuffers more audio buffers before stopping.
+   */
+  delayedStop(extraBuffers = 1) {
+    this.extraBuffers = extraBuffers;
+    this.extraBuffersCount = 0;
   }
 
   start() {}

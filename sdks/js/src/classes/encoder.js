@@ -21,15 +21,24 @@ class Encoder extends Emitter {
     }
     this.encoderWorker = new window.Worker(URL.createObjectURL(blob));
     this.encoderWorker.addEventListener('message', (e) => {
-      if (e.data && e.data.message === 'close') {
+      if (!e.data) {
+        return;
+      }
+      const data = e.data;
+      if (data.message === 'close') {
         this.onClose();
         return;
       }
-      if (!e.data || e.data.type !== 'opus' || !e.data.data) {
+      if (data.message === 'done') {
+        this.emit(Constants.EVENT_ENCODER_DONE);
+        this.ondone();
         return;
       }
-      this.emit(Constants.EVENT_DATA_ENCODED, e.data.data);
-      this.ondata(e.data.data);
+      if (data.type !== 'opus' || !data.data) {
+        return;
+      }
+      this.emit(Constants.EVENT_DATA_ENCODED, data.data);
+      this.ondata(data.data);
     });
   }
 
@@ -40,6 +49,8 @@ class Encoder extends Emitter {
    * @param {Uint8Array | array} data encoded opus data portion
    * **/
   ondata(data) {}
+
+  ondone() {}
 
   postMessage(message) {
     this.encoderWorker.postMessage(JSON.parse(JSON.stringify(message)));
