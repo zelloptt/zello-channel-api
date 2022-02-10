@@ -11,7 +11,7 @@ class Recorder {
       throw new Error("Recording is not supported in this browser");
     }
     this.options = Object.assign({
-      bufferLength: 4096,
+      bufferLength: 0,
       monitorGain: 0,
       recordingGain: 1,
       mediaConstraints: { audio: true }
@@ -97,6 +97,10 @@ class Recorder {
     this.scriptProcessorNode.connect(this.audioContext.destination);
     this.scriptProcessorNode.onaudioprocess = (e) => {
       this.encodeBuffers(e.inputBuffer);
+      if (this.bufferLimit !== undefined && ++this.buffersEncoded >= this.bufferLimit) {
+        this.clearStopTimeout()
+        this.stop();
+      }
     };
 
     this.monitorGainNode = this.audioContext.createGain();
@@ -193,6 +197,31 @@ class Recorder {
 
       // send to encoder
       this.encoder.postMessage({command: "done"});
+    }
+  }
+
+  /**
+   * A delayed stop that allows for the processing of bufferLimit more audio buffers before stopping.
+   */
+  stopAfter(bufferLimit) {
+    // Protection against multiple stopAfter calls
+    this.clearStopTimeout();
+    // Failsafe in case we don't receive additional encoded audio
+    this.stopTimeout = setTimeout(() => {
+      this.stop();
+    }, 1000); // ms. TODO Is there a way to calculate this value mathematically?
+    this.setBufferLimit(bufferLimit);
+  }
+
+  setBufferLimit(bufferLimit = 1) {
+    this.bufferLimit = bufferLimit;
+    this.buffersEncoded = 0;
+  }
+
+  clearStopTimeout() {
+    if (this.stopTimeout) {
+      clearTimeout(this.stopTimeout);
+      this.stopTimeout = undefined;
     }
   }
 
