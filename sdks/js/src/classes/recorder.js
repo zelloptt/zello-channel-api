@@ -98,6 +98,7 @@ class Recorder {
     this.scriptProcessorNode.onaudioprocess = (e) => {
       this.encodeBuffers(e.inputBuffer);
       if (this.bufferLimit !== undefined && ++this.buffersEncoded >= this.bufferLimit) {
+        this.clearStopTimeout()
         this.stop();
       }
     };
@@ -203,11 +204,8 @@ class Recorder {
    * A delayed stop that allows for the processing of bufferLimit more audio buffers before stopping.
    */
   stopAfter(bufferLimit) {
-    if (this.stopTimeout) {
-      // Protection against multiple stopAfter calls
-      clearTimeout(this.stopTimeout);
-      this.stopTimeout = undefined;
-    }
+    // Protection against multiple stopAfter calls
+    this.clearStopTimeout();
     // Failsafe in case we don't receive additional encoded audio
     this.stopTimeout = setTimeout(() => {
       this.stop();
@@ -218,6 +216,13 @@ class Recorder {
   setBufferLimit(bufferLimit = 1) {
     this.bufferLimit = bufferLimit;
     this.buffersEncoded = 0;
+  }
+
+  clearStopTimeout() {
+    if (this.stopTimeout) {
+      clearTimeout(this.stopTimeout);
+      this.stopTimeout = undefined;
+    }
   }
 
   start() {}
