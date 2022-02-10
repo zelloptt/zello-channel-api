@@ -50,6 +50,9 @@ class Encoder extends Emitter {
    * **/
   ondata(data) {}
 
+  /**
+   * Fired when the encoder has finished processing its final data frame.
+   */
   ondone() {}
 
   postMessage(message) {

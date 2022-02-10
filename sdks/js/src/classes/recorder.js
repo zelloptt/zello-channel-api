@@ -97,7 +97,7 @@ class Recorder {
     this.scriptProcessorNode.connect(this.audioContext.destination);
     this.scriptProcessorNode.onaudioprocess = (e) => {
       this.encodeBuffers(e.inputBuffer);
-      if (this.extraBuffers !== undefined && ++this.extraBuffersCount >= this.extraBuffers) {
+      if (this.bufferLimit !== undefined && ++this.buffersEncoded >= this.bufferLimit) {
         this.stop();
       }
     };
@@ -200,11 +200,24 @@ class Recorder {
   }
 
   /**
-   * A delayed stop that allows for the processing of extraBuffers more audio buffers before stopping.
+   * A delayed stop that allows for the processing of bufferLimit more audio buffers before stopping.
    */
-  delayedStop(extraBuffers = 1) {
-    this.extraBuffers = extraBuffers;
-    this.extraBuffersCount = 0;
+  stopAfter(bufferLimit) {
+    if (this.stopTimeout) {
+      // Protection against multiple stopAfter calls
+      clearTimeout(this.stopTimeout);
+      this.stopTimeout = undefined;
+    }
+    // Failsafe in case we don't receive additional encoded audio
+    this.stopTimeout = setTimeout(() => {
+      this.stop();
+    }, 1000); // ms. TODO Is there a way to calculate this value mathematically?
+    this.setBufferLimit(bufferLimit);
+  }
+
+  setBufferLimit(bufferLimit = 1) {
+    this.bufferLimit = bufferLimit;
+    this.buffersEncoded = 0;
   }
 
   start() {}
