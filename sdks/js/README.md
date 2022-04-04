@@ -1,52 +1,33 @@
 # Zello channels JavaScript SDK
 
 ## Usage
-See examples in `examples` folder and documentation in `/docs/js` folder
+See examples in [examples](./examples) folder and documentation in [docs/js](../../docs/js) folder
 
 ## Build from sources
 
-### install dependencies
+### Prerequisites
+
+`npm` version at least `v8.1.0`
+
+`node` version at least `v17.0.1`
+
+
+### Install vendor dependencies
+
 ```bash
-> npm install
+git submodule update --init --recursive
 ```
 
-### install vendor dependencies
+### Rebuilding the recorder (optional)
 
-#### opus-to-pcm
-No need to install, just clone
+* Note: No need to rebuild the recorder if it was not changed.
 
+Follow installation instructions in README.md file ([Building from sources](https://github.com/zelloptt/opus-recorder#building-from-sources) section) to build from source.
+
+### Build the SDK
 ```bash
-> cd src/vendor
-git clone git@github.com:zelloptt/opus-to-pcm.git
-``` 
-
-#### pcm-player
-No need to install, just clone
-
-```bash
-> cd src/vendor
-git clone git@github.com:zelloptt/pcm-player.git
+npm install
+npm run build
 ```
 
-#### opus-recorder
-##### Clone 
-```bash
-> cd src/vendor
-git clone git@github.com:zelloptt/opus-recorder.git
-cd opus-recorder
-```
-
-##### Follow installation instructions in README.md file ([Building from sources](https://github.com/megamk/opus-recorder#building-from-sources) section) to build from source
-
-##### Rebuild recorder
-```bash
-npm run make recorder
-```
-
-
-### build with webpack
-```bash
-./node_modules/.bin/webpack
-```
-
-Check `distr` directory for `*.js` files
+Check `dist` directory for `*.js` files
