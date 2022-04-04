@@ -164,7 +164,19 @@ outgoingMessage.then(function(result) {
       'packet_duration': this.options.encoderFrameSize
     };
     if (this.options.for) {
-      params.for = this.options.for
+      params.for = this.options.for;
+    }
+    if (this.options.talkPriority) {
+      switch (this.options.talkPriority) {
+        case Constants.TALK_PRIORITY_NORMAL:
+          params.talk_priority = Constants.TALK_PRIORITY_VALUE_NORMAL;
+          break;
+        case Constants.TALK_PRIORITY_LOW:
+          params.talk_priority = Constants.TALK_PRIORITY_VALUE_LOW;
+          break;
+        default:
+          params.talk_priority = this.options.talkPriority;
+      }
     }
     this.session.startStream(params).then((result) => {
       this.currentMessageId = result.stream_id;
