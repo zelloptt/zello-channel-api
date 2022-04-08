@@ -164,7 +164,10 @@ outgoingMessage.then(function(result) {
       'packet_duration': this.options.encoderFrameSize
     };
     if (this.options.for) {
-      params.for = this.options.for
+      params.for = this.options.for;
+    }
+    if (this.options.talkPriority !== undefined) {
+      params.talk_priority = this.options.talkPriority;
     }
     this.session.startStream(params).then((result) => {
       this.currentMessageId = result.stream_id;
@@ -172,6 +175,14 @@ outgoingMessage.then(function(result) {
     }).catch((err) => {
       throw new Error(err);
     })
+  }
+
+  static get talkPriorityLow() {
+    return Constants.TALK_PRIORITY_VALUE_LOW;
+  }
+
+  static get talkPriorityNormal() {
+    return Constants.TALK_PRIORITY_VALUE_NORMAL;
   }
 
 }
