@@ -166,7 +166,7 @@ outgoingMessage.then(function(result) {
     if (this.options.for) {
       params.for = this.options.for;
     }
-    if (this.options.talkPriority) {
+    if (this.options.talkPriority !== undefined) {
       params.talk_priority = this.options.talkPriority;
     }
     this.session.startStream(params).then((result) => {
