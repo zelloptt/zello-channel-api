@@ -429,6 +429,12 @@ var outgoingMessage = session.startVoiceMessage({
   recorder: CustomRecorder,
   encoder: CustomEncoder
 });
+
+// specify custom talk priority
+// standard values are talkPriorityNormal and talkPriorityLow
+var outgoingMessage = session.startVoiceMessage({
+  talkPriority: ZCC.OutgoingMessage.talkPriorityNormal
+});
  **/
   startVoiceMessage(options = {}) {
     const library = Utils.getLoadedLibrary();

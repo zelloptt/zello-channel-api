@@ -167,16 +167,7 @@ outgoingMessage.then(function(result) {
       params.for = this.options.for;
     }
     if (this.options.talkPriority) {
-      switch (this.options.talkPriority) {
-        case Constants.TALK_PRIORITY_NORMAL:
-          params.talk_priority = Constants.TALK_PRIORITY_VALUE_NORMAL;
-          break;
-        case Constants.TALK_PRIORITY_LOW:
-          params.talk_priority = Constants.TALK_PRIORITY_VALUE_LOW;
-          break;
-        default:
-          params.talk_priority = this.options.talkPriority;
-      }
+      params.talk_priority = this.options.talkPriority;
     }
     this.session.startStream(params).then((result) => {
       this.currentMessageId = result.stream_id;
@@ -184,6 +175,14 @@ outgoingMessage.then(function(result) {
     }).catch((err) => {
       throw new Error(err);
     })
+  }
+
+  static get talkPriorityLow() {
+    return Constants.TALK_PRIORITY_VALUE_LOW;
+  }
+
+  static get talkPriorityNormal() {
+    return Constants.TALK_PRIORITY_VALUE_NORMAL;
   }
 
 }
