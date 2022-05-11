@@ -117,19 +117,20 @@ ZCC.Sdk.init({
         userCallback.apply(userCallback);
       }
       if (shouldInitDefaultPlayer) {
-        Sdk.initDefaultPlayer();
+        Sdk.initDefaultPlayer(options);
       }
       dfd.resolve();
     });
     return dfd.promise;
   }
 
-  static initDefaultPlayer() {
+  static initDefaultPlayer(options) {
     let library = Utils.getLoadedLibrary();
-    library.IncomingMessage.PersistentPlayer = new library.Player({
+    const playerOptions = Object.assign({
       encoding: '32bitFloat',
       sampleRate: 48000
-    });
+    }, options);
+    library.IncomingMessage.PersistentPlayer = new library.Player(playerOptions);
   }
 
   static getMyUrl() {
