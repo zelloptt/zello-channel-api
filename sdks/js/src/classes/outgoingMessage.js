@@ -173,6 +173,12 @@ outgoingMessage.then(function(result) {
       this.currentMessageId = result.stream_id;
       this.startRecording();
     }).catch((err) => {
+      /* The default recorder is started on OutgoingMessage instance creation
+       * once recorder's init() method is called */
+      this.stopRecording();
+
+      /* TODO: There is no easy way to catch this async exception.
+       * Implement better error handling */
       throw new Error(err);
     })
   }
