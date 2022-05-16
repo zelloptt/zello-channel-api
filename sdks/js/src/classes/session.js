@@ -412,6 +412,7 @@ session.connect(function(err, result) {
    *
    * @param {object} options options for outgoing messages.
    * Options can also include <code>recorder</code> and <code>encoder</code> overrides.
+   * @param {function} [userCallback] callback called once the voice message has been started or failed to start.
    *
    * @return {ZCC.OutgoingMessage} OutgoingMessage object
    * @example
@@ -436,9 +437,9 @@ var outgoingMessage = session.startVoiceMessage({
   talkPriority: ZCC.OutgoingMessage.talkPriorityNormal
 });
  **/
-  startVoiceMessage(options = {}) {
+  startVoiceMessage(options = {}, userCallback = null) {
     const library = Utils.getLoadedLibrary();
-    this.activeOutgoingMessage = new library.OutgoingMessage(this, options);
+    this.activeOutgoingMessage = new library.OutgoingMessage(this, options, userCallback);
 
     this.activeOutgoingMessage.on(Constants.EVENT_DATA_ENCODED, (data) => {
       if (!this.activeOutgoingMessage.options.autoSendAudio) {
