@@ -7,7 +7,7 @@ const Utils = require('./utils');
  * @classdesc Outgoing audio message class. Instances are returned from <code>Session.startVoiceMessage</code> method
  **/
 class OutgoingMessage extends Emitter {
-  constructor(session, instanceOptions = {}) {
+  constructor(session, instanceOptions = {}, userCallback) {
     super();
     const library = Utils.getLoadedLibrary();
     this.options =
@@ -18,6 +18,7 @@ class OutgoingMessage extends Emitter {
         encoderSampleRate: 16000,
         encoderApplication: 2048
       }, session.options, instanceOptions);
+    this.userCallback = userCallback;
 
     if (this.options.recorder && !Utils.isFunction(this.options.recorder)) {
       this.options.recorder = library.Recorder;
@@ -169,18 +170,17 @@ outgoingMessage.then(function(result) {
     if (this.options.talkPriority !== undefined) {
       params.talk_priority = this.options.talkPriority;
     }
-    this.session.startStream(params).then((result) => {
-      this.currentMessageId = result.stream_id;
-      this.startRecording();
-    }).catch((err) => {
-      /* The default recorder is started on OutgoingMessage instance creation
-       * once recorder's init() method is called */
-      this.stopRecording();
-
-      /* TODO: There is no easy way to catch this async exception.
-       * Implement better error handling */
-      throw new Error(err);
-    })
+    this.session
+      .startStream(params, this.userCallback)
+      .then((result) => {
+        this.currentMessageId = result.stream_id;
+        this.startRecording();
+      })
+      .catch(() => {
+        /* The default recorder is started on OutgoingMessage instance creation
+         * once recorder's init() method is called */
+        this.stopRecording();
+      });
   }
 
   static get talkPriorityLow() {
