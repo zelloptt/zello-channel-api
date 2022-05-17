@@ -18,6 +18,7 @@ class OutgoingMessage extends Emitter {
         encoderSampleRate: 16000,
         encoderApplication: 2048
       }, session.options, instanceOptions);
+    this.userCallback = userCallback;
 
     if (this.options.recorder && !Utils.isFunction(this.options.recorder)) {
       this.options.recorder = library.Recorder;
@@ -32,12 +33,12 @@ class OutgoingMessage extends Emitter {
     this.currentPacketId = 0;
 
     this.initEncoder();
-    this.initRecorder(userCallback);
+    this.initRecorder();
 
     // start message explicitly if no recorder present.
     // if recorder is there it will start from Recorder.onready
     if (!this.recorder && this.options.autoStart) {
-      this.start(userCallback);
+      this.start();
     }
   }
 
@@ -68,7 +69,7 @@ class OutgoingMessage extends Emitter {
     this.emit(Constants.EVENT_DATA_ENCODED, packet);
   }
 
-  initRecorder(userCallback) {
+  initRecorder() {
     if (!this.options.recorder) {
       return;
     }
@@ -86,7 +87,7 @@ class OutgoingMessage extends Emitter {
     this.options.recorder.prototype.onready = () => {
       this.sendEncoderInitMessage();
       if (this.options.autoStart) {
-        this.start(userCallback);
+        this.start();
       }
     };
     this.recorder = new this.options.recorder(this.options, this.encoder);
@@ -156,7 +157,7 @@ outgoingMessage.then(function(result) {
  * if <code>options.autoStart</code> is <code>true</code> (default behaviour) then message is started automatically
  * when instance is created by <code>session.startVoiceMessage</code>
  * **/
-  start(userCallback) {
+  start() {
     let params = {
       'type': 'audio',
       'codec': 'opus',
@@ -170,7 +171,7 @@ outgoingMessage.then(function(result) {
       params.talk_priority = this.options.talkPriority;
     }
     this.session
-      .startStream(params, userCallback)
+      .startStream(params, this.userCallback)
       .then((result) => {
         this.currentMessageId = result.stream_id;
         this.startRecording();
