@@ -51,10 +51,10 @@ class Recorder {
   }
 
   disconnectNodes() {
+    this.sourceNode.disconnect();
+    this.recordingGainNode.disconnect();
     this.monitorGainNode.disconnect();
     this.scriptProcessorNode.disconnect();
-    this.recordingGainNode.disconnect();
-    this.sourceNode.disconnect();
   }
 
   getSampleRate() {
@@ -81,7 +81,6 @@ class Recorder {
   }
 
   initAudioGraph(fromInputDeviceChange = false) {
-
     // First buffer can contain old data. Don't encode it.
     if (!fromInputDeviceChange) {
       this.encodeBuffers = () => {
@@ -184,20 +183,19 @@ class Recorder {
   }
 
   stop() {
-    if (this.state !== "inactive") {
-      this.state = "inactive";
-      this.monitorGainNode.disconnect();
-      this.scriptProcessorNode.disconnect();
-      this.recordingGainNode.disconnect();
-      this.sourceNode.disconnect();
-
-      if (!this.options.leaveStreamOpen) {
-        this.clearStream();
-      }
-
-      // send to encoder
-      this.encoder.postMessage({command: "done"});
+    if (this.state === "inactive") {
+      return;
     }
+
+    this.state = "inactive";
+    this.disconnectNodes();
+
+    if (!this.options.leaveStreamOpen) {
+      this.clearStream();
+    }
+
+    // signal encoder
+    this.encoder.postMessage({command: "done"});
   }
 
   /**
