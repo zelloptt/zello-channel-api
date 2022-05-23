@@ -1,3 +1,9 @@
+const RecorderState = Object.freeze({
+  Inactive: "inactive",
+  Recording: "recording",
+  Paused: "paused"
+});
+
 /**
  * Recorder interface. Recorder is used by <code>OutgoingMessage</code> to record and send voice data
  * Custom recorder implementation should call method <code>onready</code> once recorder is initialized and method
@@ -17,7 +23,7 @@ class Recorder {
       mediaConstraints: { audio: true }
     }, options);
     this.encoder = encoder;
-    this.state = "inactive";
+    this.state = RecorderState.Inactive;
   }
 
   static getAudioContext() {
@@ -62,7 +68,7 @@ class Recorder {
   }
 
   encodeBuffers(inputBuffer) {
-    if (this.state !== "recording") {
+    if (this.state !== RecorderState.Recording) {
       return;
     }
     let buffers = [];
@@ -122,14 +128,14 @@ class Recorder {
   }
 
   pause() {
-    if (this.state === "recording") {
-      this.state = "paused";
+    if (this.state === RecorderState.Recording) {
+      this.state = RecorderState.Paused;
     }
   }
 
   resume() {
-    if (this.state === "paused") {
-      this.state = "recording";
+    if (this.state === RecorderState.Paused) {
+      this.state = RecorderState.Recording;
     }
   }
 
@@ -150,7 +156,7 @@ class Recorder {
   }
 
   changeInputDevice(deviceId) {
-    if (this.state !== "recording") {
+    if (this.state !== RecorderState.Recording) {
       return;
     }
     this.options.mediaConstraints.audio = {deviceId: {exact: deviceId}};
@@ -166,7 +172,7 @@ class Recorder {
   }
 
   init() {
-    if (this.state !== "inactive") {
+    if (this.state !== RecorderState.Inactive) {
       return global.Promise.reject("Recording is not inactive");
     }
 
@@ -174,7 +180,7 @@ class Recorder {
     this.initAudioGraph();
 
     return this.initSourceNode().then((sourceNode) => {
-      this.state = "recording";
+      this.state = RecorderState.Recording;
       this.sourceNode = sourceNode;
       this.sourceNode.connect(this.monitorGainNode);
       this.sourceNode.connect(this.recordingGainNode);
@@ -183,11 +189,11 @@ class Recorder {
   }
 
   stop() {
-    if (this.state === "inactive") {
+    if (this.state === RecorderState.Inactive) {
       return;
     }
 
-    this.state = "inactive";
+    this.state = RecorderState.Inactive;
     this.disconnectNodes();
 
     if (!this.options.leaveStreamOpen) {
