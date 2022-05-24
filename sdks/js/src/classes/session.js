@@ -323,9 +323,10 @@ session.connect(function(err, result) {
           /**
            * Failed to start an incoming voice message.
            * @event Session#incoming_voice_failed
+           * @param {ZCC.IncomingMessage} incomingMessage message instance
            * @param {String} err error description
            */
-          this.emit(Constants.EVENT_INCOMING_VOICE_FAILED, err);
+          this.emit(Constants.EVENT_INCOMING_VOICE_FAILED, incomingMessage, err);
         });
 
         break;

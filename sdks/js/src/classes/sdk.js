@@ -132,6 +132,8 @@ ZCC.Sdk.init({
     }, options);
     library.IncomingMessage.PersistentPlayer = new library.Player(playerOptions);
     library.IncomingMessage.PersistentPlayer.init().catch((err) => {
+      library.IncomingMessage.PersistentPlayer = undefined;
+      delete library.IncomingMessage.PersistentPlayer;
       console.error('Failed to init the default player:', err);
     });
   }

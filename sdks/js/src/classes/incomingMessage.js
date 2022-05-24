@@ -151,7 +151,17 @@ class IncomingMessage extends Emitter {
 
           if (Utils.isPromise(ret)) {
             // If the player has an asynchronous init() method - wait here until it's resolved
-            ret.then(() => resolve()).catch((err) => reject(err));
+            ret.then(() => resolve()).catch((err) => {
+              if (!this.options.noPersistentPlayer && IncomingMessage.PersistentPlayer) {
+                IncomingMessage.PersistentPlayer = undefined;
+                delete IncomingMessage.PersistentPlayer;
+              }
+              if (this.options.player && this.player) {
+                this.player = undefined;
+                delete this.player;
+              }
+              reject(err);
+            });
             return;
           }
         }
