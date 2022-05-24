@@ -319,7 +319,15 @@ session.connect(function(err, result) {
             Constants.EVENT_INCOMING_VOICE_WILL_START,
             incomingMessage
           );
-        }).catch((err) => console.error('Failed to init incoming message:', err));
+        }).catch((err) => {
+          /**
+           * Failed to start an incoming voice message.
+           * @event Session#incoming_voice_failed
+           * @param {String} err error description
+           */
+          this.emit(Constants.EVENT_INCOMING_VOICE_FAILED, err);
+        });
+
         break;
       case 'on_stream_stop':
         /**
