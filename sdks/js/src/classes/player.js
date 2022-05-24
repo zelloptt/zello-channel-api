@@ -13,5 +13,5 @@
  * @example
 player.feed(audioData);
  */
-const PCMPlayer = require('./../vendor/pcm-player/pcm-player');
+const PCMPlayer = require('./../vendor/pcm-player/pcm-player.min');
 module.exports = PCMPlayer;

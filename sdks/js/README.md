@@ -24,6 +24,16 @@ git submodule update --init --recursive
 
 Follow installation instructions in README.md file ([Building from sources](https://github.com/zelloptt/opus-recorder#building-from-sources) section) to build from source.
 
+### Rebuilding the player (optional)
+
+* Note: No need to rebuild the player if it was not changed.
+
+```bash
+cd src/vendor/pcm-player
+npm install
+npm run minify
+```
+
 ### Build the SDK
 ```bash
 npm install
