@@ -309,12 +309,17 @@ session.connect(function(err, result) {
       case 'on_stream_start':
         const incomingMessage = new library.IncomingMessage(jsonData, this);
         this.incomingMessages[jsonData.stream_id] = incomingMessage;
-        /**
-         * Incoming voice message is about to start.
-         * @event Session#incoming_voice_will_start
-         * @param {ZCC.IncomingMessage} incomingMessage message instance
-         */
-        this.emit(Constants.EVENT_INCOMING_VOICE_WILL_START, incomingMessage);
+        incomingMessage.init().then(() => {
+          /**
+           * Incoming voice message is about to start.
+           * @event Session#incoming_voice_will_start
+           * @param {ZCC.IncomingMessage} incomingMessage message instance
+           */
+          this.emit(
+            Constants.EVENT_INCOMING_VOICE_WILL_START,
+            incomingMessage
+          );
+        }).catch((err) => console.error('Failed to init incoming message:', err));
         break;
       case 'on_stream_stop':
         /**
