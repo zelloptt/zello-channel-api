@@ -47,10 +47,7 @@ class IncomingMessage extends Emitter {
   init() {
     return this.initPlayer().then(() => {
       this.initDecoder();
-      this.initSessionHandlers();
-      this.session.on([Constants.EVENT_INCOMING_VOICE_DATA, this.instanceId], this.incomingVoiceHandler);
-      this.session.on([Constants.EVENT_INCOMING_VOICE_DID_STOP, this.instanceId], this.incomingVoiceDidStopHandler);
-      this.on([Constants.EVENT_INCOMING_VOICE_DATA_DECODED, this.instanceId], this.decodedAudioHandler);
+      this.initEventHandlers();
     });
   }
 
@@ -64,7 +61,7 @@ class IncomingMessage extends Emitter {
     return 48000;
   }
 
-  initSessionHandlers() {
+  initEventHandlers() {
     this.decodedAudioHandler = (pcmData) => {
       if (this.player && Utils.isFunction(this.player.feed)) {
         this.player.feed(pcmData);
@@ -112,7 +109,20 @@ class IncomingMessage extends Emitter {
       if (this.decoder) {
         this.decode(parsedAudioPacket);
       }
-    }
+    };
+
+    this.session.on(
+      [Constants.EVENT_INCOMING_VOICE_DATA, this.instanceId],
+      this.incomingVoiceHandler
+    );
+    this.session.on(
+      [Constants.EVENT_INCOMING_VOICE_DID_STOP, this.instanceId],
+      this.incomingVoiceDidStopHandler
+    );
+    this.on(
+      [Constants.EVENT_INCOMING_VOICE_DATA_DECODED, this.instanceId],
+      this.decodedAudioHandler
+    );
   }
 
   decode(parsedAudioPacket) {
