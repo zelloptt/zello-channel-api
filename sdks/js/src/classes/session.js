@@ -322,6 +322,10 @@ session.connect(function(err, result) {
          * @event Session#incoming_voice_did_stop
          * @param {ZCC.IncomingMessage} incomingMessage incoming message instance
          */
+        if (!this.incomingMessages[jsonData.stream_id]) {
+          // The `on_stream_stop` event may be related for an outgoing message
+          break;
+        }
         this.emit(Constants.EVENT_INCOMING_VOICE_DID_STOP, this.incomingMessages[jsonData.stream_id]);
         break;
       case 'on_text_message':
