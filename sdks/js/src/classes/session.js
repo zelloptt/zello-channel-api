@@ -318,14 +318,19 @@ session.connect(function(err, result) {
         break;
       case 'on_stream_stop':
         /**
+         * Outgoing voice message stopped from the outside
+         * @event Session#outgoing_voice_did_stop
+         * @param {number} streamId unique identifier of the stream which has been stopped
+         */
+        if (!this.incomingMessages[jsonData.stream_id]) {
+          this.emit(Constants.EVENT_OUTGOING_VOICE_DID_STOP, jsonData.stream_id);
+          break;
+        }
+        /**
          * Incoming voice message stopped
          * @event Session#incoming_voice_did_stop
          * @param {ZCC.IncomingMessage} incomingMessage incoming message instance
          */
-        if (!this.incomingMessages[jsonData.stream_id]) {
-          // The `on_stream_stop` event may be related for an outgoing message
-          break;
-        }
         this.emit(Constants.EVENT_INCOMING_VOICE_DID_STOP, this.incomingMessages[jsonData.stream_id]);
         break;
       case 'on_text_message':
