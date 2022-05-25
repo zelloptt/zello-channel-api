@@ -1,7 +1,7 @@
 {
   "name": "zello-channels-js-sdk",
   "copyright": "Copyright © 2021 Zello Inc.",
-  "version": "0.9.0",
+  "version": "1.0.0",
   "description": "Zello channels JS SDK",
   "main": "index.js",
   "homepage": "https://zello.com/work",
