@@ -318,7 +318,7 @@ session.connect(function(err, result) {
         break;
       case 'on_stream_stop':
         /**
-         * Outgoing voice message stopped from the outside
+         * Outgoing voice message stopped by the server
          * @event Session#outgoing_voice_did_stop
          * @param {number} streamId unique identifier of the stream which has been stopped
          */
