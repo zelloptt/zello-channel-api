@@ -322,11 +322,11 @@ session.connect(function(err, result) {
         }).catch((err) => {
           /**
            * Failed to start an incoming voice message.
-           * @event Session#incoming_voice_failed
+           * @event Session#incoming_voice_fail_start
            * @param {ZCC.IncomingMessage} incomingMessage message instance
            * @param {String} err error description
            */
-          this.emit(Constants.EVENT_INCOMING_VOICE_FAILED, incomingMessage, err);
+          this.emit(Constants.EVENT_INCOMING_VOICE_FAIL_START, incomingMessage, err);
         });
 
         break;
