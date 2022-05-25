@@ -170,7 +170,7 @@ class IncomingMessage extends Emitter {
                 this.player = undefined;
                 delete this.player;
               }
-              reject(err);
+              reject('Player init failed' + (err ? ': ' + err.toString() : ''));
             });
             return;
           }
