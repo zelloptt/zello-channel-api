@@ -38,9 +38,9 @@ class Sdk {
    *                           (see <a href="">examples</a>).
    *
    * @param {function} [userCallback] User callback to fire when sdk parts required by this init call are loaded,
-   *                                  or any of them was failed to load.
+   *                                  or any of them failed to load.
    * @return {promise} Promise that resolves when sdk parts required by this init call are loaded,
-   *                   or rejects if any of the required components was failed to load.
+   *                   or rejects if any of the required components failed to load.
    *
    * @example
    *
@@ -134,7 +134,7 @@ ZCC.Sdk.init({
           continue;
         }
         if (typeof userCallback === 'function') {
-          userCallback.apply(userCallback, 'Unable to load ' + name);
+          userCallback.call(userCallback, 'Unable to load ' + name);
         }
         dfd.reject();
         return;

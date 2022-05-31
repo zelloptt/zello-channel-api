@@ -154,8 +154,8 @@ session.connect(function(err, result) {
          * @event Session#session_disconnect
          * @param {string} error Error description
          */
-        dfd.reject(err);
         this.emit(isReconnect ? Constants.EVENT_SESSION_DISCONNECT : Constants.EVENT_SESSION_FAIL_CONNECT, err);
+        dfd.reject(err);
       });
     return dfd.promise;
   }
@@ -173,8 +173,8 @@ session.connect(function(err, result) {
       this.wsMessageHandler(event.data);
     });
 
-    this.wsConnection.addEventListener('error', (err) => {
-      return dfd.reject(err);
+    this.wsConnection.addEventListener('error', () => {
+      return dfd.reject('WebSocket connection error');
     });
 
     this.wsConnection.addEventListener('close', (closeEvent) => {
