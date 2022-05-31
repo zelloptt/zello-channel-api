@@ -154,6 +154,7 @@ session.connect(function(err, result) {
          * @event Session#session_disconnect
          * @param {string} error Error description
          */
+        dfd.reject(err);
         this.emit(isReconnect ? Constants.EVENT_SESSION_DISCONNECT : Constants.EVENT_SESSION_FAIL_CONNECT, err);
       });
     return dfd.promise;
