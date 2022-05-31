@@ -36,7 +36,7 @@
     "raw-loader": "^0.5.1",
     "rename-output-webpack-plugin": "^1.0.1",
     "sass-loader": "^7.0.1",
-    "scriptjs": "^2.5.8",
+    "scriptjs": "^2.5.9",
     "string-to-arraybuffer": "^1.0.0",
     "style-loader": "^0.21.0",
     "uglifyjs-webpack-plugin": "^1.2.5",
