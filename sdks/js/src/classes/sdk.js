@@ -37,8 +37,10 @@ class Sdk {
    *                           or provide class function to be used as a custom player, decoder, recorder or encoder
    *                           (see <a href="">examples</a>).
    *
-   * @param {function} [userCallback] User callback to fire when sdk parts required by this init call are loaded
-   * @return {promise} Promise that resolves when sdk parts required by this init call are loaded
+   * @param {function} [userCallback] User callback to fire when sdk parts required by this init call are loaded,
+   *                                  or any of them was failed to load.
+   * @return {promise} Promise that resolves when sdk parts required by this init call are loaded,
+   *                   or rejects if any of the required components was failed to load.
    *
    * @example
    *
@@ -84,6 +86,14 @@ ZCC.Sdk.init({
       widget: false
     }, options);
 
+    let scriptsNames = [
+      'Session',
+      'Constants',
+      'IncomingImage',
+      'OutgoingImage',
+      'IncomingMessage',
+      'OutgoingMessage'
+    ];
     let scriptsToLoad = [
       url + 'zcc.session.js',
       url + 'zcc.constants.js',
@@ -96,23 +106,39 @@ ZCC.Sdk.init({
     let shouldInitDefaultPlayer = false;
     if (Sdk.initOptions.player && !Utils.isFunction(Sdk.initOptions.player)) {
       scriptsToLoad.push(url + 'zcc.player.js');
+      scriptsNames.push('Player');
       shouldInitDefaultPlayer = true;
     }
     if (Sdk.initOptions.decoder && !Utils.isFunction(Sdk.initOptions.decoder)) {
       scriptsToLoad.push(url + 'zcc.decoder.js');
+      scriptsNames.push('Decoder');
     }
     if (Sdk.initOptions.recorder && !Utils.isFunction(Sdk.initOptions.recorder)) {
       scriptsToLoad.push(url + 'zcc.recorder.js');
+      scriptsNames.push('Recorder');
     }
     if (Sdk.initOptions.encoder && !Utils.isFunction(Sdk.initOptions.encoder)) {
       scriptsToLoad.push(url + 'zcc.encoder.js');
+      scriptsNames.push('Encoder');
     }
     if (Sdk.initOptions.widget) {
       scriptsToLoad.push(url + 'zcc.widget.js');
+      scriptsNames.push('Widget');
     }
 
     $script(scriptsToLoad, 'bundle');
     $script.ready('bundle', () => {
+      const library = Utils.getLoadedLibrary();
+      for (const name of scriptsNames) {
+        if (library && library[name]) {
+          continue;
+        }
+        if (typeof userCallback === 'function') {
+          userCallback.apply(userCallback, 'Unable to load ' + name);
+        }
+        dfd.reject();
+        return;
+      }
       if (typeof userCallback === 'function') {
         userCallback.apply(userCallback);
       }
