@@ -17,7 +17,7 @@ To access the API you need to generate a valid access token, based on [JWT](http
 |---|---
 | Consumer Zello | wss://zello.io/ws
 | Zello Work | wss://zellowork.io/ws/`network name`
-| Zello Enterprise Server | wss://`your server domain`/ws
+| Zello Enterprise Server | wss://`your server domain`/ws/mesh
 
 Note that the protocol only supports secure connections over TLS.
 
