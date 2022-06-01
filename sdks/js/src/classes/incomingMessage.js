@@ -40,16 +40,15 @@ class IncomingMessage extends Emitter {
     if (this.options.player && !Utils.isFunction(this.options.player)) {
       this.options.player = library.Player;
     }
-
-    this.initPlayer();
-    this.initDecoder();
-    this.initSessionHandlers();
-
     this.session = session;
     this.instanceId = messageData.stream_id.toString();
-    this.session.on([Constants.EVENT_INCOMING_VOICE_DATA, this.instanceId], this.incomingVoiceHandler);
-    this.session.on([Constants.EVENT_INCOMING_VOICE_DID_STOP, this.instanceId], this.incomingVoiceDidStopHandler);
-    this.on([Constants.EVENT_INCOMING_VOICE_DATA_DECODED, this.instanceId], this.decodedAudioHandler);
+  }
+
+  init() {
+    return this.initPlayer().then(() => {
+      this.initDecoder();
+      this.initEventHandlers();
+    });
   }
 
 
@@ -62,7 +61,7 @@ class IncomingMessage extends Emitter {
     return 48000;
   }
 
-  initSessionHandlers() {
+  initEventHandlers() {
     this.decodedAudioHandler = (pcmData) => {
       if (this.player && Utils.isFunction(this.player.feed)) {
         this.player.feed(pcmData);
@@ -110,7 +109,20 @@ class IncomingMessage extends Emitter {
       if (this.decoder) {
         this.decode(parsedAudioPacket);
       }
-    }
+    };
+
+    this.session.on(
+      [Constants.EVENT_INCOMING_VOICE_DATA, this.instanceId],
+      this.incomingVoiceHandler
+    );
+    this.session.on(
+      [Constants.EVENT_INCOMING_VOICE_DID_STOP, this.instanceId],
+      this.incomingVoiceDidStopHandler
+    );
+    this.on(
+      [Constants.EVENT_INCOMING_VOICE_DATA_DECODED, this.instanceId],
+      this.decodedAudioHandler
+    );
   }
 
   decode(parsedAudioPacket) {
@@ -134,19 +146,38 @@ class IncomingMessage extends Emitter {
   }
 
   initPlayer() {
-    if (IncomingMessage.PersistentPlayer && !this.options.noPersistentPlayer) {
-      this.player = IncomingMessage.PersistentPlayer;
-      this.player.setSampleRate(this.options.sampleRate);
-      return;
-    }
-    if (!this.options.player) {
-      return;
-    }
-    this.player = new this.options.player(this.options);
-    if (this.options.noPersistentPlayer) {
-      return;
-    }
-    IncomingMessage.PersistentPlayer = this.player;
+    return new Promise((resolve, reject) => {
+      if (IncomingMessage.PersistentPlayer && !this.options.noPersistentPlayer) {
+        this.player = IncomingMessage.PersistentPlayer;
+        this.player.setSampleRate(this.options.sampleRate);
+      } else if (this.options.player) {
+        this.player = new this.options.player(this.options);
+        if (!this.options.noPersistentPlayer) {
+          IncomingMessage.PersistentPlayer = this.player;
+        }
+
+        if (Utils.isFunction(this.player.init)) {
+          const ret = this.player.init();
+
+          if (Utils.isPromise(ret)) {
+            // If the player has an asynchronous init() method - wait here until it's resolved
+            ret.then(() => resolve()).catch((err) => {
+              if (!this.options.noPersistentPlayer && IncomingMessage.PersistentPlayer) {
+                IncomingMessage.PersistentPlayer = undefined;
+                delete IncomingMessage.PersistentPlayer;
+              }
+              if (this.options.player && this.player) {
+                this.player = undefined;
+                delete this.player;
+              }
+              reject('Player init failed' + (err ? ': ' + err.toString() : ''));
+            });
+            return;
+          }
+        }
+      }
+      resolve();
+    });
   }
 }
 
