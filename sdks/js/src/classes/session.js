@@ -173,8 +173,8 @@ session.connect(function(err, result) {
       this.wsMessageHandler(event.data);
     });
 
-    this.wsConnection.addEventListener('error', () => {
-      return dfd.reject('WebSocket connection error');
+    this.wsConnection.addEventListener('error', (event) => {
+      return dfd.reject('WebSocket error: ' + event);
     });
 
     this.wsConnection.addEventListener('close', (closeEvent) => {
