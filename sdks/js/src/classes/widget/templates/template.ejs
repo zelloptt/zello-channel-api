@@ -2,20 +2,20 @@
     <div class="zcc-line zcc-border-bottom">
         <div class="zcc-cell">
             <div class="zcc-header-container zcc-js">
-                <%- include src/classes/widget/templates/header %>
-                <%- include src/classes/widget/templates/loader %>
+                <%- include header %>
+                <%- include loader %>
             </div>
             <div class="zcc-status-container zcc-js">
-                <%- include src/classes/widget/templates/status %>
+                <%- include status %>
             </div>
         </div>
     </div>
     <div class="zcc-line" <%= status %>>
         <div class="zcc-info-container zcc-cell zcc-js">
-            <%- include src/classes/widget/templates/info %>
+            <%- include info %>
         </div>
         <div class="zcc-buttons-container zcc-cell zcc-js">
-            <%- include src/classes/widget/templates/buttons %>
+            <%- include buttons %>
         </div>
     </div>
 </div>

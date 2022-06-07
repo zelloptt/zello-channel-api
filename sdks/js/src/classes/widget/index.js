@@ -1,6 +1,5 @@
 const Emitter = require('./../emitter');
 const Constants = require('./../constants');
-const Styles = require('./styles/styles.css');
 const DomUtils = require('./../domutils');
 const Utils = require('./../utils');
 
