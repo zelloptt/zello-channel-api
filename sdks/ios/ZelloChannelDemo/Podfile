@@ -1,20 +1,10 @@
 # Uncomment the next line to define a global platform for your project
-platform :ios, '9.3'
+platform :ios, '12.1'
 
 target 'ZelloChannelDemo' do
   # Comment the next line if you don't want to use dynamic frameworks
   use_frameworks!
 
   # Pods for ZelloChannelDemo
-  pod 'ZelloChannelKit', '~> 0.5.5'
-
-  target 'ZelloChannelDemoTests' do
-    inherit! :search_paths
-    # Pods for testing
-  end
-
-  target 'ZelloChannelDemoUITests' do
-    # Pods for testing
-  end
-
+  pod 'ZelloChannelKit', '~> 0.5.6'
 end
