@@ -135,6 +135,9 @@ class IncomingMessage extends Emitter {
     }
     this.decoder = new this.options.decoder(this.options);
     this.decoder.ondata = (pcmData) => {
+      if (!pcmData) {
+        return;
+      }
       /**
        * Incoming voice message packet decoded
        * @event IncomingMessage#incoming_voice_data_decoded
