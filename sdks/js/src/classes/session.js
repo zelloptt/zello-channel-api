@@ -58,7 +58,7 @@ class Session extends Emitter {
       !initialOptions ||
       !initialOptions.serverUrl ||
       !initialOptions.channel ||
-      (initialOptions.username && !initialOptions.password) ||
+      (initialOptions.username && !initialOptions.password && !initialOptions.token) ||
       (!initialOptions.authToken && !initialOptions.username)
     ) {
       throw new Error(Constants.ERROR_NOT_ENOUGH_PARAMS);
@@ -218,7 +218,11 @@ session.connect(function(err, result) {
 
     if (this.options.username) {
       params.username = this.options.username;
-      params.password = this.options.password;
+      if (this.options.token) {
+        params.token = this.options.token;
+      } else {
+        params.password = this.options.password;
+      }
     }
 
     let callback = (err, data) => {
