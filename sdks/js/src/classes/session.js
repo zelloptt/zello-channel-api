@@ -4,8 +4,8 @@ const Constants = require('./constants');
 const Utils = require('./utils');
 
 /**
- * @classdesc Session class to start a session with zello server and interact with it using
- * the <a href="">zello channel api</a>
+ * @classdesc Session class to start a session with the Zello server and interact with it using
+ * the <a href="https://github.com/zelloptt/zello-channel-api">Zello Channel API</a>
  * @example
  var session = new ZCC.Session({
   serverUrl: 'wss://zellowork.io/ws/[yournetworkname]',
