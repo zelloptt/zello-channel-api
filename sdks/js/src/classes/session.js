@@ -4,14 +4,16 @@ const Constants = require('./constants');
 const Utils = require('./utils');
 
 /**
- * @classdesc Session class to start session with zello server and interact with it using <a href="">zello channel api</a>
+ * @classdesc Session class to start a session with zello server and interact with it using
+ * the <a href="">zello channel api</a>
  * @example
  var session = new ZCC.Session({
   serverUrl: 'wss://zellowork.io/ws/[yournetworkname]',
   username: [username],
-  password: [password]
+  password: [password],
   channel: [channel],
   authToken: [authToken],
+  tokenVersion: [tokenVersion],
   maxConnectAttempts: 5,
   connectRetryTimeoutMs: 1000,
   autoSendAudio: true,
@@ -58,7 +60,7 @@ class Session extends Emitter {
       !initialOptions ||
       !initialOptions.serverUrl ||
       !initialOptions.channel ||
-      (initialOptions.username && !initialOptions.password && !initialOptions.token) ||
+      (initialOptions.username && !initialOptions.password && !initialOptions.authToken) ||
       (!initialOptions.authToken && !initialOptions.username)
     ) {
       throw new Error(Constants.ERROR_NOT_ENOUGH_PARAMS);
@@ -210,6 +212,7 @@ session.connect(function(err, result) {
       params.refresh_token = refreshToken;
     } else {
       params.auth_token = this.options.authToken;
+      params.token_version = this.options.tokenVersion;
     }
 
     if (this.options.listenOnly) {
@@ -218,11 +221,7 @@ session.connect(function(err, result) {
 
     if (this.options.username) {
       params.username = this.options.username;
-      if (this.options.token) {
-        params.token = this.options.token;
-      } else {
-        params.password = this.options.password;
-      }
+      params.password = this.options.password;
     }
 
     let callback = (err, data) => {
