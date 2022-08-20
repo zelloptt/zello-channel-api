@@ -7,16 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		226564E1C015605772E1B1D7 /* Pods_ZelloChannelDemoTests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 317EA0EB53C223C387B848DD /* Pods_ZelloChannelDemoTests.framework */; };
-		9BB2B8CD0EF427DB8B9568A9 /* Pods_ZelloChannelDemo_ZelloChannelDemoUITests.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A1741823296A823EB6B564D9 /* Pods_ZelloChannelDemo_ZelloChannelDemoUITests.framework */; };
 		A80440661FD5C00F00BFD1BF /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = A80440651FD5C00F00BFD1BF /* AppDelegate.m */; };
 		A80440691FD5C00F00BFD1BF /* RiderDriverViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = A80440681FD5C00F00BFD1BF /* RiderDriverViewController.m */; };
 		A804406C1FD5C00F00BFD1BF /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A804406A1FD5C00F00BFD1BF /* Main.storyboard */; };
 		A804406E1FD5C00F00BFD1BF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A804406D1FD5C00F00BFD1BF /* Assets.xcassets */; };
 		A80440711FD5C00F00BFD1BF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = A804406F1FD5C00F00BFD1BF /* LaunchScreen.storyboard */; };
 		A80440741FD5C00F00BFD1BF /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = A80440731FD5C00F00BFD1BF /* main.m */; };
-		A804407E1FD5C01000BFD1BF /* demoTests.m in Sources */ = {isa = PBXBuildFile; fileRef = A804407D1FD5C01000BFD1BF /* demoTests.m */; };
-		A80440891FD5C01000BFD1BF /* demoUITests.m in Sources */ = {isa = PBXBuildFile; fileRef = A80440881FD5C01000BFD1BF /* demoUITests.m */; };
 		A81802671FD7848500F5897F /* RiderTalkViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = A81802661FD7848500F5897F /* RiderTalkViewController.m */; };
 		A84FC6021FDA50830057ED6F /* MapKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A84FC6011FDA50830057ED6F /* MapKit.framework */; };
 		A84FC6081FDADF750057ED6F /* TalkViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = A84FC6071FDADF750057ED6F /* TalkViewController.m */; };
@@ -37,23 +33,6 @@
 		D1F6F54B2049B9890045A100 /* honk.wav in Resources */ = {isa = PBXBuildFile; fileRef = D1F6F54A2049B9890045A100 /* honk.wav */; };
 /* End PBXBuildFile section */
 
-/* Begin PBXContainerItemProxy section */
-		A804407A1FD5C01000BFD1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = A80440591FD5C00F00BFD1BF /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = A80440601FD5C00F00BFD1BF;
-			remoteInfo = demo;
-		};
-		A80440851FD5C01000BFD1BF /* PBXContainerItemProxy */ = {
-			isa = PBXContainerItemProxy;
-			containerPortal = A80440591FD5C00F00BFD1BF /* Project object */;
-			proxyType = 1;
-			remoteGlobalIDString = A80440601FD5C00F00BFD1BF;
-			remoteInfo = demo;
-		};
-/* End PBXContainerItemProxy section */
-
 /* Begin PBXFileReference section */
 		317EA0EB53C223C387B848DD /* Pods_ZelloChannelDemoTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_ZelloChannelDemoTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		3C8DBD11A7C3FEDA27D4CB4C /* Pods-ZelloChannelDemo-ZelloChannelDemoUITests.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ZelloChannelDemo-ZelloChannelDemoUITests.debug.xcconfig"; path = "Target Support Files/Pods-ZelloChannelDemo-ZelloChannelDemoUITests/Pods-ZelloChannelDemo-ZelloChannelDemoUITests.debug.xcconfig"; sourceTree = "<group>"; };
@@ -71,12 +50,6 @@
 		A80440701FD5C00F00BFD1BF /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		A80440721FD5C00F00BFD1BF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A80440731FD5C00F00BFD1BF /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
-		A80440791FD5C01000BFD1BF /* ZelloChannelDemoTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ZelloChannelDemoTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		A804407D1FD5C01000BFD1BF /* demoTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = demoTests.m; sourceTree = "<group>"; };
-		A804407F1FD5C01000BFD1BF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		A80440841FD5C01000BFD1BF /* ZelloChannelDemoUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ZelloChannelDemoUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		A80440881FD5C01000BFD1BF /* demoUITests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = demoUITests.m; sourceTree = "<group>"; };
-		A804408A1FD5C01000BFD1BF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A81802651FD7848500F5897F /* RiderTalkViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RiderTalkViewController.h; sourceTree = "<group>"; };
 		A81802661FD7848500F5897F /* RiderTalkViewController.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = RiderTalkViewController.m; sourceTree = "<group>"; };
 		A84FC6011FDA50830057ED6F /* MapKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MapKit.framework; path = System/Library/Frameworks/MapKit.framework; sourceTree = SDKROOT; };
@@ -124,22 +97,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		A80440761FD5C01000BFD1BF /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				226564E1C015605772E1B1D7 /* Pods_ZelloChannelDemoTests.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		A80440811FD5C01000BFD1BF /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				9BB2B8CD0EF427DB8B9568A9 /* Pods_ZelloChannelDemo_ZelloChannelDemoUITests.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -160,8 +117,6 @@
 			isa = PBXGroup;
 			children = (
 				A80440631FD5C00F00BFD1BF /* ZelloChannelDemo */,
-				A804407C1FD5C01000BFD1BF /* ZelloChannelDemoTests */,
-				A80440871FD5C01000BFD1BF /* ZelloChannelDemoUITests */,
 				A83CD5881FD61CE6004F0FF6 /* Frameworks */,
 				A80440621FD5C00F00BFD1BF /* Products */,
 				628780C37DD375FAD525802D /* Pods */,
@@ -172,8 +127,6 @@
 			isa = PBXGroup;
 			children = (
 				A80440611FD5C00F00BFD1BF /* ZelloChannelDemo.app */,
-				A80440791FD5C01000BFD1BF /* ZelloChannelDemoTests.xctest */,
-				A80440841FD5C01000BFD1BF /* ZelloChannelDemoUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -191,24 +144,6 @@
 				A87394DE1FD876C30007C37B /* Views */,
 			);
 			path = ZelloChannelDemo;
-			sourceTree = "<group>";
-		};
-		A804407C1FD5C01000BFD1BF /* ZelloChannelDemoTests */ = {
-			isa = PBXGroup;
-			children = (
-				A804407D1FD5C01000BFD1BF /* demoTests.m */,
-				A804407F1FD5C01000BFD1BF /* Info.plist */,
-			);
-			path = ZelloChannelDemoTests;
-			sourceTree = "<group>";
-		};
-		A80440871FD5C01000BFD1BF /* ZelloChannelDemoUITests */ = {
-			isa = PBXGroup;
-			children = (
-				A80440881FD5C01000BFD1BF /* demoUITests.m */,
-				A804408A1FD5C01000BFD1BF /* Info.plist */,
-			);
-			path = ZelloChannelDemoUITests;
 			sourceTree = "<group>";
 		};
 		A83CD5881FD61CE6004F0FF6 /* Frameworks */ = {
@@ -332,45 +267,6 @@
 			productReference = A80440611FD5C00F00BFD1BF /* ZelloChannelDemo.app */;
 			productType = "com.apple.product-type.application";
 		};
-		A80440781FD5C01000BFD1BF /* ZelloChannelDemoTests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = A80440901FD5C01000BFD1BF /* Build configuration list for PBXNativeTarget "ZelloChannelDemoTests" */;
-			buildPhases = (
-				0D6B8349F6FDBDE7BC2EA979 /* [CP] Check Pods Manifest.lock */,
-				A80440751FD5C01000BFD1BF /* Sources */,
-				A80440761FD5C01000BFD1BF /* Frameworks */,
-				A80440771FD5C01000BFD1BF /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				A804407B1FD5C01000BFD1BF /* PBXTargetDependency */,
-			);
-			name = ZelloChannelDemoTests;
-			productName = demoTests;
-			productReference = A80440791FD5C01000BFD1BF /* ZelloChannelDemoTests.xctest */;
-			productType = "com.apple.product-type.bundle.unit-test";
-		};
-		A80440831FD5C01000BFD1BF /* ZelloChannelDemoUITests */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = A80440931FD5C01000BFD1BF /* Build configuration list for PBXNativeTarget "ZelloChannelDemoUITests" */;
-			buildPhases = (
-				97FC8C343C224CF26278AAEC /* [CP] Check Pods Manifest.lock */,
-				A80440801FD5C01000BFD1BF /* Sources */,
-				A80440811FD5C01000BFD1BF /* Frameworks */,
-				A80440821FD5C01000BFD1BF /* Resources */,
-				A51649B0AB77C3A1FA8B0A11 /* [CP] Embed Pods Frameworks */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				A80440861FD5C01000BFD1BF /* PBXTargetDependency */,
-			);
-			name = ZelloChannelDemoUITests;
-			productName = demoUITests;
-			productReference = A80440841FD5C01000BFD1BF /* ZelloChannelDemoUITests.xctest */;
-			productType = "com.apple.product-type.bundle.ui-testing";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -389,16 +285,6 @@
 							};
 						};
 					};
-					A80440781FD5C01000BFD1BF = {
-						CreatedOnToolsVersion = 9.1;
-						ProvisioningStyle = Automatic;
-						TestTargetID = A80440601FD5C00F00BFD1BF;
-					};
-					A80440831FD5C01000BFD1BF = {
-						CreatedOnToolsVersion = 9.1;
-						ProvisioningStyle = Automatic;
-						TestTargetID = A80440601FD5C00F00BFD1BF;
-					};
 				};
 			};
 			buildConfigurationList = A804405C1FD5C00F00BFD1BF /* Build configuration list for PBXProject "ZelloChannelDemo" */;
@@ -415,8 +301,6 @@
 			projectRoot = "";
 			targets = (
 				A80440601FD5C00F00BFD1BF /* ZelloChannelDemo */,
-				A80440781FD5C01000BFD1BF /* ZelloChannelDemoTests */,
-				A80440831FD5C01000BFD1BF /* ZelloChannelDemoUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -435,45 +319,9 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		A80440771FD5C01000BFD1BF /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		A80440821FD5C01000BFD1BF /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		0D6B8349F6FDBDE7BC2EA979 /* [CP] Check Pods Manifest.lock */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
-				"${PODS_ROOT}/Manifest.lock",
-			);
-			name = "[CP] Check Pods Manifest.lock";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-ZelloChannelDemoTests-checkManifestLockResult.txt",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
-			showEnvVarsInLog = 0;
-		};
 		79C57A82472B75DFC3644696 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -496,46 +344,6 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		97FC8C343C224CF26278AAEC /* [CP] Check Pods Manifest.lock */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
-				"${PODS_ROOT}/Manifest.lock",
-			);
-			name = "[CP] Check Pods Manifest.lock";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-ZelloChannelDemo-ZelloChannelDemoUITests-checkManifestLockResult.txt",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
-			showEnvVarsInLog = 0;
-		};
-		A51649B0AB77C3A1FA8B0A11 /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-ZelloChannelDemo-ZelloChannelDemoUITests/Pods-ZelloChannelDemo-ZelloChannelDemoUITests-frameworks.sh",
-				"${BUILT_PRODUCTS_DIR}/ZelloChannelKit/ZelloChannelKit.framework",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputPaths = (
-				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ZelloChannelKit.framework",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-ZelloChannelDemo-ZelloChannelDemoUITests/Pods-ZelloChannelDemo-ZelloChannelDemoUITests-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
 		BAD80605714B4153FA9E8C77 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -544,10 +352,12 @@
 			inputPaths = (
 				"${PODS_ROOT}/Target Support Files/Pods-ZelloChannelDemo/Pods-ZelloChannelDemo-frameworks.sh",
 				"${BUILT_PRODUCTS_DIR}/ZelloChannelKit/ZelloChannelKit.framework",
+				"${PODS_XCFRAMEWORKS_BUILD_DIR}/zello-opus-ios/opus.framework/opus",
 			);
 			name = "[CP] Embed Pods Frameworks";
 			outputPaths = (
 				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/ZelloChannelKit.framework",
+				"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}/opus.framework",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
@@ -580,36 +390,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		A80440751FD5C01000BFD1BF /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				A804407E1FD5C01000BFD1BF /* demoTests.m in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		A80440801FD5C01000BFD1BF /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				A80440891FD5C01000BFD1BF /* demoUITests.m in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXTargetDependency section */
-		A804407B1FD5C01000BFD1BF /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = A80440601FD5C00F00BFD1BF /* ZelloChannelDemo */;
-			targetProxy = A804407A1FD5C01000BFD1BF /* PBXContainerItemProxy */;
-		};
-		A80440861FD5C01000BFD1BF /* PBXTargetDependency */ = {
-			isa = PBXTargetDependency;
-			target = A80440601FD5C00F00BFD1BF /* ZelloChannelDemo */;
-			targetProxy = A80440851FD5C01000BFD1BF /* PBXContainerItemProxy */;
-		};
-/* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
 		A804406A1FD5C00F00BFD1BF /* Main.storyboard */ = {
@@ -682,7 +463,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 9.3;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.1;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -734,7 +515,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 9.3;
+				IPHONEOS_DEPLOYMENT_TARGET = 12.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				VALIDATE_PRODUCT = YES;
@@ -787,64 +568,6 @@
 			};
 			name = Release;
 		};
-		A80440911FD5C01000BFD1BF /* Debug */ = {
-			isa = XCBuildConfiguration;
-			baseConfigurationReference = E4A0B977A1ED9A9E12FB3B72 /* Pods-ZelloChannelDemoTests.debug.xcconfig */;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				INFOPLIST_FILE = demoTests/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = Zello.demoTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ZelloChannelDemo.app/ZelloChannelDemo";
-			};
-			name = Debug;
-		};
-		A80440921FD5C01000BFD1BF /* Release */ = {
-			isa = XCBuildConfiguration;
-			baseConfigurationReference = 5BB76E293CE08AA33B8EA870 /* Pods-ZelloChannelDemoTests.release.xcconfig */;
-			buildSettings = {
-				BUNDLE_LOADER = "$(TEST_HOST)";
-				CODE_SIGN_STYLE = Automatic;
-				INFOPLIST_FILE = demoTests/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = Zello.demoTests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/ZelloChannelDemo.app/ZelloChannelDemo";
-			};
-			name = Release;
-		};
-		A80440941FD5C01000BFD1BF /* Debug */ = {
-			isa = XCBuildConfiguration;
-			baseConfigurationReference = 3C8DBD11A7C3FEDA27D4CB4C /* Pods-ZelloChannelDemo-ZelloChannelDemoUITests.debug.xcconfig */;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				INFOPLIST_FILE = demoUITests/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = Zello.demoUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = demo;
-			};
-			name = Debug;
-		};
-		A80440951FD5C01000BFD1BF /* Release */ = {
-			isa = XCBuildConfiguration;
-			baseConfigurationReference = 4EE3962EF1DFC34E54F9B1B9 /* Pods-ZelloChannelDemo-ZelloChannelDemoUITests.release.xcconfig */;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				INFOPLIST_FILE = demoUITests/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @loader_path/Frameworks";
-				PRODUCT_BUNDLE_IDENTIFIER = Zello.demoUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = demo;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -862,24 +585,6 @@
 			buildConfigurations = (
 				A804408E1FD5C01000BFD1BF /* Debug */,
 				A804408F1FD5C01000BFD1BF /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		A80440901FD5C01000BFD1BF /* Build configuration list for PBXNativeTarget "ZelloChannelDemoTests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				A80440911FD5C01000BFD1BF /* Debug */,
-				A80440921FD5C01000BFD1BF /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		A80440931FD5C01000BFD1BF /* Build configuration list for PBXNativeTarget "ZelloChannelDemoUITests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				A80440941FD5C01000BFD1BF /* Debug */,
-				A80440951FD5C01000BFD1BF /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
