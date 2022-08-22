@@ -31,7 +31,7 @@
     "eventemitter2": "^5.0.1",
     "handlebars": "^4.3.0",
     "handlebars-loader": "^1.7.0",
-    "jsdoc": "^3.6.3",
+    "jsdoc": "^3.6.11",
     "q": "^1.5.1",
     "raw-loader": "^0.5.1",
     "rename-output-webpack-plugin": "^1.0.1",
