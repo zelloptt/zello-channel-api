@@ -86,7 +86,7 @@ ZCC.Sdk.init({
       widget: false
     }, options);
 
-    let scriptsNames = [
+    let scriptNames = [
       'Session',
       'Constants',
       'IncomingImage',
@@ -106,30 +106,30 @@ ZCC.Sdk.init({
     let shouldInitDefaultPlayer = false;
     if (Sdk.initOptions.player && !Utils.isFunction(Sdk.initOptions.player)) {
       scriptsToLoad.push(url + 'zcc.player.js');
-      scriptsNames.push('Player');
+      scriptNames.push('Player');
       shouldInitDefaultPlayer = true;
     }
     if (Sdk.initOptions.decoder && !Utils.isFunction(Sdk.initOptions.decoder)) {
       scriptsToLoad.push(url + 'zcc.decoder.js');
-      scriptsNames.push('Decoder');
+      scriptNames.push('Decoder');
     }
     if (Sdk.initOptions.recorder && !Utils.isFunction(Sdk.initOptions.recorder)) {
       scriptsToLoad.push(url + 'zcc.recorder.js');
-      scriptsNames.push('Recorder');
+      scriptNames.push('Recorder');
     }
     if (Sdk.initOptions.encoder && !Utils.isFunction(Sdk.initOptions.encoder)) {
       scriptsToLoad.push(url + 'zcc.encoder.js');
-      scriptsNames.push('Encoder');
+      scriptNames.push('Encoder');
     }
     if (Sdk.initOptions.widget) {
       scriptsToLoad.push(url + 'zcc.widget.js');
-      scriptsNames.push('Widget');
+      scriptNames.push('Widget');
     }
 
     $script(scriptsToLoad, 'bundle');
     $script.ready('bundle', () => {
       const library = Utils.getLoadedLibrary();
-      for (const name of scriptsNames) {
+      for (const name of scriptNames) {
         if (library && library[name]) {
           continue;
         }
