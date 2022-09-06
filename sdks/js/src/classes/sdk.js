@@ -37,8 +37,10 @@ class Sdk {
    *                           or provide class function to be used as a custom player, decoder, recorder or encoder
    *                           (see <a href="">examples</a>).
    *
-   * @param {function} [userCallback] User callback to fire when sdk parts required by this init call are loaded
-   * @return {promise} Promise that resolves when sdk parts required by this init call are loaded
+   * @param {function} [userCallback] User callback to fire when sdk parts required by this init call are loaded,
+   *                                  or any of them failed to load.
+   * @return {promise} Promise that resolves when sdk parts required by this init call are loaded,
+   *                   or rejects if any of the required components failed to load.
    *
    * @example
    *
@@ -84,6 +86,14 @@ ZCC.Sdk.init({
       widget: false
     }, options);
 
+    let scriptNames = [
+      'Session',
+      'Constants',
+      'IncomingImage',
+      'OutgoingImage',
+      'IncomingMessage',
+      'OutgoingMessage'
+    ];
     let scriptsToLoad = [
       url + 'zcc.session.js',
       url + 'zcc.constants.js',
@@ -96,23 +106,39 @@ ZCC.Sdk.init({
     let shouldInitDefaultPlayer = false;
     if (Sdk.initOptions.player && !Utils.isFunction(Sdk.initOptions.player)) {
       scriptsToLoad.push(url + 'zcc.player.js');
+      scriptNames.push('Player');
       shouldInitDefaultPlayer = true;
     }
     if (Sdk.initOptions.decoder && !Utils.isFunction(Sdk.initOptions.decoder)) {
       scriptsToLoad.push(url + 'zcc.decoder.js');
+      scriptNames.push('Decoder');
     }
     if (Sdk.initOptions.recorder && !Utils.isFunction(Sdk.initOptions.recorder)) {
       scriptsToLoad.push(url + 'zcc.recorder.js');
+      scriptNames.push('Recorder');
     }
     if (Sdk.initOptions.encoder && !Utils.isFunction(Sdk.initOptions.encoder)) {
       scriptsToLoad.push(url + 'zcc.encoder.js');
+      scriptNames.push('Encoder');
     }
     if (Sdk.initOptions.widget) {
       scriptsToLoad.push(url + 'zcc.widget.js');
+      scriptNames.push('Widget');
     }
 
     $script(scriptsToLoad, 'bundle');
     $script.ready('bundle', () => {
+      const library = Utils.getLoadedLibrary();
+      for (const name of scriptNames) {
+        if (library && library[name]) {
+          continue;
+        }
+        if (typeof userCallback === 'function') {
+          userCallback.call(userCallback, 'Unable to load ' + name);
+        }
+        dfd.reject();
+        return;
+      }
       if (typeof userCallback === 'function') {
         userCallback.apply(userCallback);
       }
@@ -131,6 +157,11 @@ ZCC.Sdk.init({
       sampleRate: 48000
     }, options);
     library.IncomingMessage.PersistentPlayer = new library.Player(playerOptions);
+    library.IncomingMessage.PersistentPlayer.init().catch((err) => {
+      library.IncomingMessage.PersistentPlayer = undefined;
+      delete library.IncomingMessage.PersistentPlayer;
+      console.error('Failed to init the default player:', err);
+    });
   }
 
   static getMyUrl() {

@@ -103,6 +103,14 @@ class Utils {
     return Utils.instanceOf(p, Array);
   }
 
+  static isObject(p) {
+    return Utils.instanceOf(p, Object);
+  }
+
+  static isPromise(p) {
+    return Utils.isObject(p) && Utils.isFunction(p.then);
+  }
+
   static instanceOf(p, c) {
     return p instanceof c;
   }

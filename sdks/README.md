@@ -295,8 +295,10 @@ In iOS, the events interface is `ZCCSessionDelegate`.
 |`Session.error`|Error happened
 |`Session.status`|Session received channel status update
 |`Session.incoming_voice_will_start`|This event is fired when an incoming voice stream is about to start. `IncomingMessage` object is returned
-|`Session.incoming_voice_did_start`|Incoming voice message did start (first packet received)
+|`Session.incoming_voice_did_start`|Incoming voice message did start (first packet received and the playback has been initialized correctly)
+|`Session.incoming_voice_fail_start`|This event is called if the audio data was received, but playback failed to start
 |`Session.incoming_voice_did_stop`|An incoming voice stream has finished playing.
+|`Session.outgoing_voice_did_stop`|An outgoing voice stream has been stopped by the server
 |`IncomingMessage.incoming_voice_data`|Incoming voice message packet (with encoded audio)
 |`IncomingMessage.incoming_voice_data_decoded`|Incoming voice message packet decoded
 |`OutgoingMessage.data`|Outgoing message pcm data portion from recorder is ready to be encoded

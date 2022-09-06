@@ -4,14 +4,16 @@ const Constants = require('./constants');
 const Utils = require('./utils');
 
 /**
- * @classdesc Session class to start session with zello server and interact with it using <a href="">zello channel api</a>
+ * @classdesc Session class to start a session with the Zello server and interact with it using
+ * the <a href="https://github.com/zelloptt/zello-channel-api">Zello Channel API</a>
  * @example
  var session = new ZCC.Session({
   serverUrl: 'wss://zellowork.io/ws/[yournetworkname]',
   username: [username],
-  password: [password]
+  password: [password],
   channel: [channel],
   authToken: [authToken],
+  tokenVersion: [tokenVersion],
   maxConnectAttempts: 5,
   connectRetryTimeoutMs: 1000,
   autoSendAudio: true,
@@ -58,7 +60,7 @@ class Session extends Emitter {
       !initialOptions ||
       !initialOptions.serverUrl ||
       !initialOptions.channel ||
-      (initialOptions.username && !initialOptions.password) ||
+      (initialOptions.username && !initialOptions.password && !initialOptions.authToken) ||
       (!initialOptions.authToken && !initialOptions.username)
     ) {
       throw new Error(Constants.ERROR_NOT_ENOUGH_PARAMS);
@@ -155,6 +157,7 @@ session.connect(function(err, result) {
          * @param {string} error Error description
          */
         this.emit(isReconnect ? Constants.EVENT_SESSION_DISCONNECT : Constants.EVENT_SESSION_FAIL_CONNECT, err);
+        dfd.reject(err);
       });
     return dfd.promise;
   }
@@ -172,8 +175,8 @@ session.connect(function(err, result) {
       this.wsMessageHandler(event.data);
     });
 
-    this.wsConnection.addEventListener('error', (err) => {
-      return dfd.reject(err);
+    this.wsConnection.addEventListener('error', (event) => {
+      return dfd.reject('WebSocket error: ' + event);
     });
 
     this.wsConnection.addEventListener('close', (closeEvent) => {
@@ -210,6 +213,7 @@ session.connect(function(err, result) {
       params.refresh_token = refreshToken;
     } else {
       params.auth_token = this.options.authToken;
+      params.token_version = this.options.tokenVersion;
     }
 
     if (this.options.listenOnly) {
@@ -309,14 +313,37 @@ session.connect(function(err, result) {
       case 'on_stream_start':
         const incomingMessage = new library.IncomingMessage(jsonData, this);
         this.incomingMessages[jsonData.stream_id] = incomingMessage;
-        /**
-         * Incoming voice message is about to start.
-         * @event Session#incoming_voice_will_start
-         * @param {ZCC.IncomingMessage} incomingMessage message instance
-         */
-        this.emit(Constants.EVENT_INCOMING_VOICE_WILL_START, incomingMessage);
+        incomingMessage.init().then(() => {
+          /**
+           * Incoming voice message is about to start.
+           * @event Session#incoming_voice_will_start
+           * @param {ZCC.IncomingMessage} incomingMessage message instance
+           */
+          this.emit(
+            Constants.EVENT_INCOMING_VOICE_WILL_START,
+            incomingMessage
+          );
+        }).catch((err) => {
+          /**
+           * Failed to start an incoming voice message.
+           * @event Session#incoming_voice_fail_start
+           * @param {ZCC.IncomingMessage} incomingMessage message instance
+           * @param {String} err error description
+           */
+          this.emit(Constants.EVENT_INCOMING_VOICE_FAIL_START, incomingMessage, err);
+        });
+
         break;
       case 'on_stream_stop':
+        /**
+         * Outgoing voice message stopped by the server
+         * @event Session#outgoing_voice_did_stop
+         * @param {number} streamId unique identifier of the stream which has been stopped
+         */
+        if (!this.incomingMessages[jsonData.stream_id]) {
+          this.emit(Constants.EVENT_OUTGOING_VOICE_DID_STOP, jsonData.stream_id);
+          break;
+        }
         /**
          * Incoming voice message stopped
          * @event Session#incoming_voice_did_stop
