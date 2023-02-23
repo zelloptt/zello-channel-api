@@ -3,3 +3,4 @@ sdks/js/node_modules/
 build
 .externalNativeBuild
 .gradle
+.DS_Store
