@@ -30,7 +30,7 @@
     "ejs-compiled-loader": "3.1.0",
     "eventemitter2": "6.4.5",
     "handlebars": "4.7.7",
-    "handlebars-loader": "1.7.2",
+    "handlebars-loader": "1.7.3",
     "jsdoc": "3.6.10",
     "q": "1.5.1",
     "sass-loader": "13.0.0",
