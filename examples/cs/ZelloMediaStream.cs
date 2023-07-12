@@ -1,6 +1,7 @@
 ﻿namespace ZelloMediaStream
 {
     using System;
+    using System.Dynamic;
     using System.IO;
     using System.Net.WebSockets;
     using System.Threading;
@@ -12,6 +13,11 @@
 
     class ZelloMediaStream : IDisposable
     {
+        const string defaultServerUrlWork = "wss://zellowork.io/ws/";
+        const string defaultServerUrlConsumer = "wss://zello.io/ws";
+        const int TimeoutMS = 2000;
+
+        private string WebSocketServerUrl;
         private OpusFileStream OpusStream;
         private IConfigurationRoot Configuration;
         private CancellationTokenSource NetworkingCancelation;
@@ -19,8 +25,6 @@
         private UInt32 StreamId;
         private UInt32 PacketId;
         byte[] RcvBuffer;
-        const string Url = "wss://zello.io/ws";
-        const int TimeoutMS = 2000;
 
         public class ResponseJson
         {
@@ -38,6 +42,9 @@
             {
                 throw new Exception("Invalid configuration");
             }
+            this.WebSocketServerUrl = this.Configuration.GetSection("zello:network").Exists() ?
+                ZelloMediaStream.defaultServerUrlWork + this.Configuration["zello:network"] :
+                ZelloMediaStream.defaultServerUrlConsumer;
             this.WebSocket = new ClientWebSocket();
             this.NetworkingCancelation = new CancellationTokenSource();
             this.RcvBuffer = new byte[1024];
@@ -139,7 +146,7 @@
         {
             try
             {
-                var endpoint = new Uri(ZelloMediaStream.Url);
+                var endpoint = new Uri(this.WebSocketServerUrl);
                 var task = this.WebSocket.ConnectAsync(endpoint, this.NetworkingCancelation.Token);
                 if (task.Wait(ZelloMediaStream.TimeoutMS, this.NetworkingCancelation.Token))
                 {
@@ -151,21 +158,30 @@
             return false;
         }
 
+        private dynamic GetLogonJson()
+        {
+            dynamic json = new ExpandoObject();
+
+            json.seq = 1;
+            json.command = "logon";
+            json.username = this.Configuration["zello:username"];
+            json.password = this.Configuration["zello:password"];
+            json.auth_token = this.Configuration["zello:token"];
+            json.channel = this.Configuration["zello:channel"];
+
+            if (this.Configuration.GetSection("zello:network").Exists())
+            {
+                json.network = this.Configuration["zello:network"];
+            }
+            return json;
+        }
+
         public bool Authenticate()
         {
             bool isAuthorized = false;
             bool isChannelAvailable = false;
-            bool isSent = this.SendJson(new
-            {
-                seq = 1,
-                command = "logon",
-                username = this.Configuration["zello:username"],
-                password = this.Configuration["zello:password"],
-                auth_token = this.Configuration["zello:token"],
-                channel = this.Configuration["zello:channel"]
-            });
 
-            if (!isSent)
+            if (!this.SendJson(this.GetLogonJson()))
             {
                 return false;
             }

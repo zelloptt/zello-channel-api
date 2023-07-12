@@ -54,6 +54,11 @@ The encoded media will be stored in `media.opus` file.
 ## Edit the configuration file [stream.conf](./stream.conf).
 
 
+### If you want to connect to Zello Work network - configure the `network` property.
+
+Set the network name as a value of the `network` property.
+
+
 ### Configure the appropriate Zello account's `username` and `password`.
 
 This account is used by the example application to send the audio message.
