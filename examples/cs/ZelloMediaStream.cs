@@ -13,8 +13,8 @@
 
     class ZelloMediaStream : IDisposable
     {
-        const string defaultServerUrlWork = "wss://zellowork.io/ws/";
-        const string defaultServerUrlConsumer = "wss://zello.io/ws";
+        const string ServerUrlWork = "wss://zellowork.io/ws/";
+        const string ServerUrlConsumer = "wss://zello.io/ws";
         const int TimeoutMS = 2000;
 
         private string WebSocketServerUrl;
@@ -43,8 +43,8 @@
                 throw new Exception("Invalid configuration");
             }
             this.WebSocketServerUrl = this.Configuration.GetSection("zello:network").Exists() ?
-                ZelloMediaStream.defaultServerUrlWork + this.Configuration["zello:network"] :
-                ZelloMediaStream.defaultServerUrlConsumer;
+                ZelloMediaStream.ServerUrlWork + this.Configuration["zello:network"] :
+                ZelloMediaStream.ServerUrlConsumer;
             this.WebSocket = new ClientWebSocket();
             this.NetworkingCancelation = new CancellationTokenSource();
             this.RcvBuffer = new byte[1024];
