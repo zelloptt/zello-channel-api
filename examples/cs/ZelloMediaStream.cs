@@ -158,30 +158,21 @@
             return false;
         }
 
-        private dynamic GetLogonJson()
-        {
-            dynamic json = new ExpandoObject();
-
-            json.seq = 1;
-            json.command = "logon";
-            json.username = this.Configuration["zello:username"];
-            json.password = this.Configuration["zello:password"];
-            json.auth_token = this.Configuration["zello:token"];
-            json.channel = this.Configuration["zello:channel"];
-
-            if (this.Configuration.GetSection("zello:network").Exists())
-            {
-                json.network = this.Configuration["zello:network"];
-            }
-            return json;
-        }
-
         public bool Authenticate()
         {
             bool isAuthorized = false;
             bool isChannelAvailable = false;
+            bool isSent = this.SendJson(new
+            {
+                seq = 1,
+                command = "logon",
+                username = this.Configuration["zello:username"],
+                password = this.Configuration["zello:password"],
+                auth_token = this.Configuration["zello:token"],
+                channel = this.Configuration["zello:channel"]
+            });
 
-            if (!this.SendJson(this.GetLogonJson()))
+            if (!isSent)
             {
                 return false;
             }
