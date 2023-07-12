@@ -34,6 +34,7 @@
             public string error { get; set; }
             public bool success { get; set; }
             public UInt32 stream_id { get; set; }
+            public UInt32 seq { get; set; }
         };
 
         public ZelloMediaStream(string configFileName)
@@ -79,9 +80,17 @@
             {
                 throw new Exception("Failed to open a config file. " + e.Message);
             }
+
+            if (
+                !this.Configuration.GetSection("zello:network").Exists() &&
+                !this.Configuration.GetSection("zello:token").Exists()
+            ) {
+                // Token is mandatory for Zello Consumer
+                return false;
+            }
+
             return this.Configuration.GetSection("zello:username").Exists() &&
                 this.Configuration.GetSection("zello:password").Exists() &&
-                this.Configuration.GetSection("zello:token").Exists() &&
                 this.Configuration.GetSection("zello:channel").Exists() &&
                 this.Configuration.GetSection("media:filename").Exists();
         }
@@ -158,21 +167,28 @@
             return false;
         }
 
+        private dynamic GetLogonJson()
+        {
+            dynamic json = new ExpandoObject();
+
+            json.seq = 1;
+            json.command = "logon";
+            json.username = this.Configuration["zello:username"];
+            json.password = this.Configuration["zello:password"];
+            json.channel = this.Configuration["zello:channel"];
+            if (this.Configuration.GetSection("zello:token").Exists())
+            {
+                json.auth_token = this.Configuration["zello:token"];
+            }
+            return json;
+        }
+
         public bool Authenticate()
         {
             bool isAuthorized = false;
             bool isChannelAvailable = false;
-            bool isSent = this.SendJson(new
-            {
-                seq = 1,
-                command = "logon",
-                username = this.Configuration["zello:username"],
-                password = this.Configuration["zello:password"],
-                auth_token = this.Configuration["zello:token"],
-                channel = this.Configuration["zello:channel"]
-            });
 
-            if (!isSent)
+            if (!this.SendJson(this.GetLogonJson()))
             {
                 return false;
             }
@@ -184,7 +200,7 @@
                 {
                     return false;
                 }
-                if (!String.IsNullOrEmpty(responseJson.refresh_token))
+                if (responseJson.seq == 1 && responseJson.success)
                 {
                     isAuthorized = true;
                 }

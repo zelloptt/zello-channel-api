@@ -72,6 +72,7 @@ Make sure the configured account is allowed to send the audio message to this ch
 ### Setup an auth `token`.
 
 Use instructions from [AUTH.md](../AUTH.md) to obtain the auth token for the Zello account.
+Token is optional for Zello Work networks.
 
 
 ### Specify the audio `filename`.
