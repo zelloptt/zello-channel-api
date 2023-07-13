@@ -8,7 +8,8 @@ import socket
 import configparser
 import opus_file_stream
 
-WS_ENDPOINT = "wss://zello.io/ws"
+WS_CONSUMER_ENDPOINT = "wss://zello.io/ws"
+WS_WORK_ENDPOINT = "wss://zellowork.io/ws/"
 WS_TIMEOUT_SEC = 2
 
 ZelloWS = None
@@ -24,17 +25,28 @@ def main():
         config.read('stream.conf')
         username = config['zello']['username']
         password = config['zello']['password']
-        token = config['zello']['token']
         channel = config['zello']['channel']
         filename = config['media']['filename']
     except KeyError as error:
         print("Check config file. Missing key:", error)
         return
 
+    token = None
+    network = None
+    if 'network' in config['zello']:
+        network = config['zello']['network']
+
+    if 'token' in config['zello']:
+        token = config['zello']['token']
+    elif network is None:
+        # Zello Consumer requires an auth token
+        print("Check config file. Missing token")
+        return
+
     loop = asyncio.get_event_loop()
     try:
         loop.run_until_complete(zello_stream_audio_to_channel(username, password,
-            token, channel, filename))
+            network, token, channel, filename))
     except KeyboardInterrupt:
         try:
             if ZelloWS and ZelloStreamID:
@@ -59,14 +71,15 @@ def main():
         loop.close()
 
 
-async def zello_stream_audio_to_channel(username, password, token, channel, opusfile):
+async def zello_stream_audio_to_channel(username, password, network, token, channel, opusfile):
     # Pass out the opened WebSocket and StreamID to handle synchronous keyboard interrupt
     global ZelloWS, ZelloStreamID
+    wss_url = WS_CONSUMER_ENDPOINT if network is None else WS_WORK_ENDPOINT + network
     try:
         opus_stream = opus_file_stream.OpusFileStream(opusfile)
         conn = aiohttp.TCPConnector(family = socket.AF_INET, ssl = False)
         async with aiohttp.ClientSession(connector = conn) as session:
-            async with session.ws_connect(WS_ENDPOINT) as ws:
+            async with session.ws_connect(wss_url) as ws:
                 ZelloWS = ws
                 await asyncio.wait_for(authenticate(ws, username, password, token, channel), WS_TIMEOUT_SEC)
                 print(f"User {username} has been authenticated on {channel} channel")
@@ -82,21 +95,24 @@ async def zello_stream_audio_to_channel(username, password, token, channel, opus
 
 async def authenticate(ws, username, password, token, channel):
     # https://github.com/zelloptt/zello-channel-api/blob/master/AUTH.md
-    await ws.send_str(json.dumps({
+    auth_command = {
         "command": "logon",
         "seq": 1,
         "auth_token": token,
         "username": username,
         "password": password,
         "channel": channel
-    }))
+    }
+    if token is None:
+        auth_command.pop("auth_token")
+    await ws.send_str(json.dumps(auth_command))
 
     is_authorized = False
     is_channel_available = False
     async for msg in ws:
         if msg.type == aiohttp.WSMsgType.TEXT:
             data = json.loads(msg.data)
-            if "refresh_token" in data:
+            if "seq" in data and data["seq"] == 1 and "success" in data and data["success"]:
                 is_authorized = True
             elif "command" in data and "status" in data and data["command"] == "on_channel_status":
                 is_channel_available = data["status"] == "online"
