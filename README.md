@@ -1,5 +1,5 @@
 # Zello Channel API
-[WebSocket](http://www.websocket.org/aboutwebsocket.html) based API to connect to Zello channels
+[WebSocket](https://datatracker.ietf.org/doc/html/rfc6455) based API to connect to Zello channels
 
 ## Overview
 
