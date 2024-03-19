@@ -2,9 +2,7 @@
 
 To use the API or the SDK you'll need a valid access token. This document describes how to get one.
 
-## Generate API keys and development token
-
-### For Zello consumer network
+## Generate API keys and development token for Zello consumer network
 
 1. Go to https://developers.zello.com/ and click __Login__
 2. Enter your Zello username and password. If you don't have Zello account [download Zello app](https://zello.com/personal/download/) and create one.
@@ -12,14 +10,6 @@ To use the API or the SDK you'll need a valid access token. This document descri
 4. Click __Keys__ and __Add Key__
 5. Copy and save __Sample Development Token__, __Issuer__, and __Private Key__. Make sure you copy each of the values completely using Select All.
 6. Click __Close__
-
-### For ZelloWork
-
-1. Sign into your ZelloWork network at https://`network name`.zellowork.com/
-2. Navigate to https://`network name`.zellowork.com/__keys.html__
-3. Click __Create Key__
-4. Copy and save __Sample Development Token__, __Issuer__, and __Private Key__. Make sure you copy each of the values completely using Select All.
-5. Click __Close__
 
 ## Using sample development token
 
