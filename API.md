@@ -10,7 +10,7 @@ This document is intended for developers interested in implementation of their o
 
 This API supports subset of Zello features and currently focused on sending and receiving channel voice messages. See [Supported features](#supported-features) for the complete list.
 
-To access the API you need to generate a valid access token, based on [JWT](https://jwt.io/) standard. See [Authentication](#authentication).
+To access the API you need to generate a valid access token (optional for Zello Work), based on [JWT](https://jwt.io/) standard. See [Authentication](#authentication).
 
 ## API entry points
 | Service | WebSocket URL
