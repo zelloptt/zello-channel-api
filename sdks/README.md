@@ -120,16 +120,18 @@ $script(['https://zello.io/sdks/js/0.1/zcc.sdk.js'], function() {
 
 ## Using the SDK
 
-### Getting an authentication token
+### Authentication
 
-Use [these instructions](https://github.com/zelloptt/zello-channel-api/blob/master/AUTH.md) to get authentication token for your app.
+If connecting to Zello Work, you will need only a valid set of account credentials (username and password).
+
+If connecting to Zello Consumer, use [these instructions](https://github.com/zelloptt/zello-channel-api/blob/master/AUTH.md) to get an authentication token for your app.
 
 Development tokens are only valid for use during development of your app. When you are ready to build your app for production, you will need to create authentication tokens on your own server and provide them to the client app as described above. Otherwise, your app may become unable to connect to the Zello Channel server unexpectedly when the development token expires.
 
 ### Creating a session and logging on
 
 ###### Android
-Each connection to the Zello server is represented by a `Session` object. When you create the `Session` object, you provide it with the address for the Zello server, your authentication token, the name of the channel you are connecting to, and optionally a username and password. 
+Each connection to the Zello server is represented by a `Session` object. When you create the `Session` object, you provide it with the address for the Zello server, your authentication token (if consumer), the name of the channel you are connecting to, and a username and password (if Zello Work, optional for consumer). 
 You should also supply a `SessionListener` object so your app can be informed about session events such as disconnections and incoming messages.
 
 ```kotlin
@@ -140,7 +142,7 @@ session.connect()
 ```
 
 ###### iOS
-Each connection to the Zello server is represented by a `ZCCSession` object. When you create the `ZCCSession` object, you provide it with the address for the Zello server, your authentication token, the name of the channel you are connecting to, and optionally a username and password. 
+Each connection to the Zello server is represented by a `ZCCSession` object. When you create the `ZCCSession` object, you provide it with the address for the Zello server, your authentication token (if consumer), the name of the channel you are connecting to, and a username and password (if Zello Work, optional for consumer). 
 You should also supply a `ZCCSessionDelegate` object so your app can be informed about session events such as disconnections and incoming messages.
 
 ```objc
@@ -156,8 +158,7 @@ session.delegate = myDelegate;
 
 ###### Browser JavaScript
 Each connection to the Zello server is represented by a `ZCC.Session` object. 
-When you create the `ZCC.Session` object, you provide it with the address for the Zello server, your authentication token, the name of the channel you are connecting to, 
-and optionally a username and password. 
+When you create the `ZCC.Session` object, you provide it with the address for the Zello server, your authentication token (if consumer), the name of the channel you are connecting to, and a username and password (if Zello Work, optional if consumer).
 
 ```javascript
  var session = new ZCC.Session({
@@ -308,7 +309,7 @@ In iOS, the events interface is `ZCCSessionDelegate`.
 
 All apps using Zello SDK must adhere to the following:
 
-* All UI screens, embedding the Zello SDK must include the Zello logo
+* All UI screens embedding the Zello SDK must include the Zello logo
 * Use the Zello logo and "Zello" name, when referencing Zello-powered features inside of your app or service
 * [Send us the app for approval](https://zello.com/contact/) before distributing to any third parties or customers
 
