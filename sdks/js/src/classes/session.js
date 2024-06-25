@@ -39,6 +39,13 @@ class Session extends Emitter {
     this.wsConnection = null;
     this.refreshToken = null;
     this.seq = 0;
+    this.version = this.options.version || VERSION;
+    if (this.options.PlatformName) {
+      this.PlatformName = this.options.PlatformName;
+    }
+    if (this.options.PlatformType) {
+        this.PlatformType = this.options.PlatformType;
+    }
     this.maxConnectAttempts = this.options.maxConnectAttempts;
     this.connectAttempts = this.maxConnectAttempts;
     this.connectRetryTimeoutMs = this.options.connectRetryTimeoutMs;
@@ -120,6 +127,7 @@ session.connect(function(err, result) {
       this.emit(Constants.EVENT_SESSION_START_CONNECT);
     }
     this.connectAttempts--;
+    const self = this;
     this.doConnect()
       .then(() => {
         return this.doLogon();
@@ -136,15 +144,16 @@ session.connect(function(err, result) {
         dfd.resolve(result);
       })
       .catch((err) => {
-        if (this.connectAttempts) {
-          this.clearExistingReconnectTimeout();
-          this.reconnectTimeout = setTimeout(() => {
-            this.connectOrReconnect(userCallback, isReconnect);
-          }, this.connectRetryTimeoutMs);
+        self.disconnect() // this prevents reconnect on ws.close event
+        if (self.connectAttempts) {
+          self.clearExistingReconnectTimeout();
+          self.reconnectTimeout = setTimeout(() => {
+            self.connectOrReconnect(userCallback, isReconnect);
+          }, self.connectRetryTimeoutMs);
           return;
         }
         if (typeof userCallback === 'function') {
-          userCallback.apply(this, [err]);
+          userCallback.apply(self, [err]);
         }
         /**
          * The Session has failed to connect or sign in.
@@ -156,7 +165,7 @@ session.connect(function(err, result) {
          * @event Session#session_disconnect
          * @param {string} error Error description
          */
-        this.emit(isReconnect ? Constants.EVENT_SESSION_DISCONNECT : Constants.EVENT_SESSION_FAIL_CONNECT, err);
+        self.emit(isReconnect ? Constants.EVENT_SESSION_DISCONNECT : Constants.EVENT_SESSION_FAIL_CONNECT, err);
         dfd.reject(err);
       });
     return dfd.promise;
@@ -223,6 +232,14 @@ session.connect(function(err, result) {
     if (this.options.username) {
       params.username = this.options.username;
       params.password = this.options.password;
+    }
+
+    params.version = this.version;
+    if (this.options.platformName) {
+      params.platform_name = this.options.platformName;
+    }
+    if (this.options.platformType) {
+      params.platform_type = this.options.platformType;
     }
 
     let callback = (err, data) => {

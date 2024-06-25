@@ -3,11 +3,11 @@ var streamId = null;
 
 
 describe('session', function() {
-  it ('wrong password should fail to login', function(done) {
+  it('wrong password should fail to login', function(done) {
     session = globals.createSessionAWrongPassword();
     session.connect(function(err, result) {
-        chai.expect(err).to.not.be.null;
-        done();
+      chai.expect(err).to.not.be.null;
+      done();
     });
   });
 
@@ -33,13 +33,14 @@ describe('session', function() {
 
   it('should fail to start stream with wrong params', function(done) {
     session = globals.createSessionA();
-    session.connect()
-      .then(function() {
-        session.startStream({}, function(err) {
-          chai.expect(err).to.not.be.null;
-          done();
-        })
+    session.on('status', function(result) {
+      chai.expect(result.status).to.equal('online');
+      session.startStream({}, function(err) {
+        chai.expect(err).to.not.be.null;
+        done();
       });
+    });
+    session.connect();
   });
 
   it('should start stream with correct params', function(done) {
