@@ -127,7 +127,6 @@ session.connect(function(err, result) {
       this.emit(Constants.EVENT_SESSION_START_CONNECT);
     }
     this.connectAttempts--;
-    const self = this;
     this.doConnect()
       .then(() => {
         return this.doLogon();
@@ -144,16 +143,16 @@ session.connect(function(err, result) {
         dfd.resolve(result);
       })
       .catch((err) => {
-        self.disconnect() // this prevents reconnect on ws.close event
-        if (self.connectAttempts) {
-          self.clearExistingReconnectTimeout();
-          self.reconnectTimeout = setTimeout(() => {
-            self.connectOrReconnect(userCallback, isReconnect);
-          }, self.connectRetryTimeoutMs);
+        this.disconnect() // this prevents reconnect on ws.close event
+        if (this.connectAttempts) {
+          this.clearExistingReconnectTimeout();
+          this.reconnectTimeout = setTimeout(() => {
+            this.connectOrReconnect(userCallback, isReconnect);
+          }, this.connectRetryTimeoutMs);
           return;
         }
         if (typeof userCallback === 'function') {
-          userCallback.apply(self, [err]);
+          userCallback.apply(this, [err]);
         }
         /**
          * The Session has failed to connect or sign in.
@@ -165,7 +164,7 @@ session.connect(function(err, result) {
          * @event Session#session_disconnect
          * @param {string} error Error description
          */
-        self.emit(isReconnect ? Constants.EVENT_SESSION_DISCONNECT : Constants.EVENT_SESSION_FAIL_CONNECT, err);
+        this.emit(isReconnect ? Constants.EVENT_SESSION_DISCONNECT : Constants.EVENT_SESSION_FAIL_CONNECT, err);
         dfd.reject(err);
       });
     return dfd.promise;
