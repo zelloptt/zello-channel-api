@@ -162,15 +162,15 @@ When you create the `ZCC.Session` object, you provide it with the address for th
 
 ```javascript
  var session = new ZCC.Session({
-  serverUrl: 'wss://zellowork.io/ws/[yournetworkname]',
-  username: [username],
-  password: [password]
-  channel: [channel],
-  authToken: [authToken],
-  maxConnectAttempts: 5,
-  connectRetryTimeoutMs: 1000,
-  autoSendAudio: true
-);
+    serverUrl: 'wss://zellowork.io/ws/[yournetworkname]',
+    username: [username],
+    password: [password],
+    channel: [channel],
+    authToken: [authToken],
+    maxConnectAttempts: 5,
+    connectRetryTimeoutMs: 1000,
+    autoSendAudio: true
+});
 
 session.connect().then(function() {
   // connected

@@ -74,6 +74,9 @@ Connecting to multiple channels (up to 100) is currently supported for Zello Wor
 | `password` | string | (optional) Password to logon with. Required if username is provided.
 | `channels` | array of strings | The list of names of the channels to connect to. 
 | `listen_only` | boolean | (optional) Set to `true` to connect in listen-only mode.
+| `version` | string | (optional) Client version string. If not provided, the server will use the Channel API server version.
+| `platform_type` | string | (optional) Client platform type, any string
+| `platform_name` | string | (optional) Client platform name, any string. If includes `Gateway` or `Kiosk` (case-insensitive), the Zello Alarms service will track the online status of this client.
 
 #### Request:
 
