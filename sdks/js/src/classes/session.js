@@ -40,12 +40,6 @@ class Session extends Emitter {
     this.refreshToken = null;
     this.seq = 0;
     this.version = this.options.version || VERSION;
-    if (this.options.PlatformName) {
-      this.PlatformName = this.options.PlatformName;
-    }
-    if (this.options.PlatformType) {
-        this.PlatformType = this.options.PlatformType;
-    }
     this.maxConnectAttempts = this.options.maxConnectAttempts;
     this.connectAttempts = this.maxConnectAttempts;
     this.connectRetryTimeoutMs = this.options.connectRetryTimeoutMs;
