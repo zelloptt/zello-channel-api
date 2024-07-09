@@ -137,7 +137,7 @@ session.connect(function(err, result) {
         dfd.resolve(result);
       })
       .catch((err) => {
-        this.disconnect() // this prevents reconnect on ws.close event
+        this.disconnect(); // this prevents reconnect on ws.close event
         if (this.connectAttempts) {
           this.clearExistingReconnectTimeout();
           this.reconnectTimeout = setTimeout(() => {
