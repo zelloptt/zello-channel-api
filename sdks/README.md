@@ -162,22 +162,24 @@ When you create the `ZCC.Session` object, you provide it with the address for th
 
 ```javascript
  var session = new ZCC.Session({
-  serverUrl: 'wss://zellowork.io/ws/[yournetworkname]',
-  username: [username],
-  password: [password]
-  channel: [channel],
-  authToken: [authToken],
-  maxConnectAttempts: 5,
-  connectRetryTimeoutMs: 1000,
-  autoSendAudio: true
-);
+    serverUrl: 'wss://zellowork.io/ws/[yournetworkname]',
+    username: [username],
+    password: [password],
+    channel: [channel],
+    authToken: [authToken],
+    maxConnectAttempts: 5,
+    connectRetryTimeoutMs: 1000,
+    autoSendAudio: true
+});
 
 session.connect().then(function() {
   // connected
 });
 ```
 
-`serverURL` can be one of the [API entry points](https://github.com/zelloptt/zello-channel-api/blob/master/API.md#api-entry-points).
+`serverURL` can be one of the [API entry points](https://github.com/zelloptt/zello-channel-api/blob/master/API.md#api-entry-points).  
+You may want to provide any string as a version of your app as `version`  
+You can also provide `platformName` string to identify your platform. If the provided value include "gateway" substring, Zello Alarm service will track the online status of this client (if enabled).
 
 ### Sending voice messages
 

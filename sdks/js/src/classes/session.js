@@ -39,6 +39,7 @@ class Session extends Emitter {
     this.wsConnection = null;
     this.refreshToken = null;
     this.seq = 0;
+    this.version = this.options.version || VERSION;
     this.maxConnectAttempts = this.options.maxConnectAttempts;
     this.connectAttempts = this.maxConnectAttempts;
     this.connectRetryTimeoutMs = this.options.connectRetryTimeoutMs;
@@ -136,6 +137,7 @@ session.connect(function(err, result) {
         dfd.resolve(result);
       })
       .catch((err) => {
+        this.disconnect(); // this prevents reconnect on ws.close event
         if (this.connectAttempts) {
           this.clearExistingReconnectTimeout();
           this.reconnectTimeout = setTimeout(() => {
@@ -223,6 +225,14 @@ session.connect(function(err, result) {
     if (this.options.username) {
       params.username = this.options.username;
       params.password = this.options.password;
+    }
+
+    params.version = this.version;
+    if (this.options.platformName) {
+      params.platform_name = this.options.platformName;
+    }
+    if (this.options.platformType) {
+      params.platform_type = this.options.platformType;
     }
 
     let callback = (err, data) => {
