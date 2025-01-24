@@ -45,7 +45,7 @@ def main():
 
 
 async def zello_stream_audio_to_channel(username, password, token, channel, opusfile):
-     # Pass out the opened WebSocket and StreamID to handle synchronous keyboard interrupt
+    # Pass out the opened WebSocket and StreamID to handle synchronous keyboard interrupt
     global ZelloWS, ZelloStreamID
     try:
         opus_stream = opus_file_stream.OpusFileStream(opusfile)
