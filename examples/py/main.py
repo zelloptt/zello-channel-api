@@ -49,7 +49,7 @@ async def zello_stream_audio_to_channel(username, password, token, channel, opus
     global ZelloWS, ZelloStreamID
     try:
         opus_stream = opus_file_stream.OpusFileStream(opusfile)
-        conn = aiohttp.TCPConnector(family=socket.AF_INET, ssl=False)
+        conn = aiohttp.TCPConnector(family = socket.AF_INET, ssl = False)
         async with aiohttp.ClientSession(connector=conn) as session:
             async with session.ws_connect(WS_ENDPOINT) as ws:
                 ZelloWS = ws
