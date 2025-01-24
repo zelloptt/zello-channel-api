@@ -96,7 +96,6 @@ async def zello_stream_start(ws, opus_stream):
     sample_rate = opus_stream.sample_rate
     frames_per_packet = opus_stream.frames_per_packet
     packet_duration = opus_stream.packet_duration
-    
     # Sample_rate is in little endian.
     # https://github.com/zelloptt/zello-channel-api/blob/409378acd06257bcd07e3f89e4fbc885a0cc6663/sdks/js/src/classes/utils.js#L63
     codec_header = base64.b64encode(
