@@ -50,7 +50,7 @@ async def zello_stream_audio_to_channel(username, password, token, channel, opus
     try:
         opus_stream = opus_file_stream.OpusFileStream(opusfile)
         conn = aiohttp.TCPConnector(family = socket.AF_INET, ssl = False)
-        async with aiohttp.ClientSession(connector=conn) as session:
+        async with aiohttp.ClientSession(connector = conn) as session:
             async with session.ws_connect(WS_ENDPOINT) as ws:
                 ZelloWS = ws
                 await asyncio.wait_for(authenticate(ws, username, password, token, channel), WS_TIMEOUT_SEC)
