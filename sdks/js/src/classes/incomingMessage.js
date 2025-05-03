@@ -21,6 +21,9 @@ class IncomingMessage extends Emitter {
     this.streamId = messageData.stream_id;
     this.codecDetails = Utils.parseCodedHeader(messageData.codec_header);
     this.messageDidStart = false;
+    this.messageStartTime = 0;
+    this.packetCount = 0;
+    this.isPlaybackComplete = false;
     let library = Utils.getLoadedLibrary();
     this.options =
       Object.assign({
@@ -28,6 +31,7 @@ class IncomingMessage extends Emitter {
         channels: 1,
         sampleRate: IncomingMessage.detectSampleRate(this.codecDetails.rate),
         flushingTime: 240,
+        burstJitter: 1000
       },
       session.options,
       {messageData: messageData}
@@ -61,6 +65,37 @@ class IncomingMessage extends Emitter {
     return 48000;
   }
 
+  stopPlayback(isComplete) {
+    this.session.log(`Stopping playback, isComplete: ${isComplete}`);
+
+    this.isPlaybackComplete = !!isComplete;
+    if (this.stopPlaybackTimer) {
+      clearTimeout(this.stopPlaybackTimer);
+    }
+    /**
+     * Incoming voice message stopped
+     * @event IncomingMessage#incoming_voice_did_stop
+     * @param {ZCC.IncomingMessage} incomingMessage incoming message instance (self)
+     */
+    this.emit(Constants.EVENT_INCOMING_VOICE_DID_STOP, this);
+    if (this.decoder && Utils.isFunction(this.decoder.destroy)) {
+      this.decoder.destroy();
+      this.decoder = undefined;
+    }
+    if (this.player && Utils.isFunction(this.player.destroy) && !IncomingMessage.PersistentPlayer) {
+      this.session.log(`Destroying player`);
+      this.player.mute(true);
+      this.player.destroy();
+      this.player = undefined;
+    } else if (!isComplete && this.player && Utils.isFunction(this.player.reset)) {
+      this.session.log(`Resetting player`);
+      this.player.reset();
+    }
+    this.session.off([Constants.EVENT_INCOMING_VOICE_DATA, this.instanceId], this.incomingVoiceHandler);
+    this.session.off([Constants.EVENT_INCOMING_VOICE_DID_STOP, this.instanceId], this.incomingVoiceDidStopHandler);
+    this.session.onIncomingVoicePlaybackStopped(this);
+  }
+
   initEventHandlers() {
     this.decodedAudioHandler = (pcmData) => {
       if (this.player && Utils.isFunction(this.player.feed)) {
@@ -69,25 +104,24 @@ class IncomingMessage extends Emitter {
     };
 
     this.incomingVoiceDidStopHandler = () => {
-      /**
-       * Incoming voice message stopped
-       * @event IncomingMessage#incoming_voice_did_stop
-       * @param {ZCC.IncomingMessage} incomingMessage incoming message instance (self)
-       */
-      this.emit(Constants.EVENT_INCOMING_VOICE_DID_STOP, this);
-      if (this.player && Utils.isFunction(this.player.destroy) && !IncomingMessage.PersistentPlayer) {
-        this.player.destroy();
+      const elapsed = Date.now() - this.messageStartTime;
+      const frameDuration = this.codecDetails.framesPerPacket * this.codecDetails.frameSize;
+      const playbackDuration = frameDuration > 0 ? this.packetCount * frameDuration : this.packetCount * 20;
+
+      if (elapsed + this.options.burstJitter < playbackDuration) {
+        this.session.log(`Incoming message ended early, waiting another ${playbackDuration - elapsed}ms`);
+        this.stopPlaybackTimer = setTimeout(() => {
+          this.stopPlayback(true);
+        }, playbackDuration - elapsed);
+      } else {
+        this.stopPlayback(true);
       }
-      if (this.decoder && Utils.isFunction(this.decoder.destroy)) {
-        this.decoder.destroy();
-      }
-      this.session.off([Constants.EVENT_INCOMING_VOICE_DATA, this.instanceId], this.incomingVoiceHandler);
-      this.session.off([Constants.EVENT_INCOMING_VOICE_DID_STOP, this.instanceId], this.incomingVoiceDidStopHandler);
     };
 
     this.incomingVoiceHandler = (parsedAudioPacket) => {
       if (!this.messageDidStart) {
         this.messageDidStart = true;
+        this.messageStartTime = Date.now();
         /**
          * Incoming voice message started
          * @event IncomingMessage#incoming_voice_did_start
@@ -96,6 +130,8 @@ class IncomingMessage extends Emitter {
         this.emit(Constants.EVENT_INCOMING_VOICE_DID_START, this);
         this.session.onIncomingVoiceDidStart(this);
       }
+
+      this.packetCount++;
 
       /**
        * Incoming voice message packet (with encoded audio)

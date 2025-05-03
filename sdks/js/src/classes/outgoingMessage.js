@@ -16,9 +16,11 @@ class OutgoingMessage extends Emitter {
         recorderSampleRate: 44100, // fallback for recorder with no getOriginalSampleRate method
         encoderFrameSize: 20,
         encoderSampleRate: 16000,
-        encoderApplication: 2048
+        encoderApplication: 2048,
+        numberOfChannels: 1
       }, session.options, instanceOptions);
     this.userCallback = userCallback;
+    this.instanceOptions = instanceOptions;
 
     if (this.options.recorder && !Utils.isFunction(this.options.recorder)) {
       this.options.recorder = library.Recorder;
@@ -158,16 +160,19 @@ outgoingMessage.then(function(result) {
  * when instance is created by <code>session.startVoiceMessage</code>
  * **/
   start() {
-    let params = {
+    const params = {
       'type': 'audio',
       'codec': 'opus',
       'codec_header': Utils.buildCodecHeader(this.options.encoderSampleRate, 1, this.options.encoderFrameSize),
       'packet_duration': this.options.encoderFrameSize
     };
-    if (this.options.for) {
+    if (this.instanceOptions.for) {
       params.for = this.options.for;
     }
-    if (this.options.talkPriority !== undefined) {
+    if (this.instanceOptions.username) {
+      params.username = this.options.username;
+    }
+    if (this.instanceOptions.talkPriority !== undefined) {
       params.talk_priority = this.options.talkPriority;
     }
     this.session
