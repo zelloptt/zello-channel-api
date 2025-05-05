@@ -222,8 +222,8 @@ class Recorder {
     this.disconnectNodes();
     this.clearStream();
     this.initAudioContext();
-    this.initAudioGraph(true).then(() => {
-      this.initSourceNode().then((sourceNode) => {
+    return this.initAudioGraph(true).then(() => {
+      return this.initSourceNode().then((sourceNode) => {
         this.sourceNode = sourceNode;
         this.sourceNode.connect(this.monitorGainNode);
         this.sourceNode.connect(this.recordingGainNode);
@@ -238,7 +238,7 @@ class Recorder {
 
     this.initAudioContext();
     return this.initAudioGraph().then(() => {
-      this.initSourceNode().then((sourceNode) => {
+      return this.initSourceNode().then((sourceNode) => {
         this.state = RecorderState.Recording;
         this.sourceNode = sourceNode;
         this.sourceNode.connect(this.monitorGainNode);
