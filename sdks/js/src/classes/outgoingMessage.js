@@ -17,11 +17,12 @@ class OutgoingMessage extends Emitter {
         encoderFrameSize: 20,
         encoderSampleRate: 16000,
         encoderApplication: 2048,
-        numberOfChannels: 1
+        log: session.log
       }, session.options, instanceOptions);
     this.userCallback = userCallback;
     this.instanceOptions = instanceOptions;
 
+    this.options.log?.(`Outgoing message options: ${JSON.stringify(session.options)} ${JSON.stringify(instanceOptions)}`)
     if (this.options.recorder && !Utils.isFunction(this.options.recorder)) {
       this.options.recorder = library.Recorder;
     }

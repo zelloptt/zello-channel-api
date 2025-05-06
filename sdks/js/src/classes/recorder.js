@@ -21,6 +21,7 @@ class Recorder {
       monitorGain: 0,
       recordingGain: 1,
       useScriptProcessorRecorder: false,
+      numberOfChannels: 1,
       mediaConstraints: { audio: true }
     }, options);
     this.encoder = encoder;
@@ -139,7 +140,7 @@ class Recorder {
     return this.audioContext.audioWorklet.addModule(new URL('./recorderWorklet.js', import.meta.url)).then(() => {
       this.audioWorkletNode = new AudioWorkletNode(
         this.audioContext,
-        'recording-processor',
+        'recorder-processor',
         {
           numberOfInputs: 1,
           numberOfOutputs: 1,
@@ -151,7 +152,7 @@ class Recorder {
 
       this.audioWorkletNode.port.onmessage = (event) => {
         if (event.data.debug) {
-          console.log('recorder worklet said: ' + event.data.debug);
+          this.options.log?.(`Received from recorder worklet: ${event.data.debug}`);
           return;
         }
         const { buffers } = event.data;
@@ -181,7 +182,7 @@ class Recorder {
     return global.navigator.mediaDevices.getUserMedia(this.options.mediaConstraints).then((stream) => {
       this.stream = stream;
       const sourceNode = this.audioContext.createMediaStreamSource(stream);
-      console.log(`mic source has ${sourceNode.channelCount} channels and ${sourceNode.numberOfOutputs} outputs`);
+      this.options.log?.(`mic has ${sourceNode.channelCount} channels and ${sourceNode.numberOfOutputs} outputs`);
       return sourceNode;
     });
   }

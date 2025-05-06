@@ -31,7 +31,8 @@ class IncomingMessage extends Emitter {
         channels: 1,
         sampleRate: IncomingMessage.detectSampleRate(this.codecDetails.rate),
         flushingTime: 240,
-        burstJitter: 1000
+        burstJitter: 1000,
+        log: session.log
       },
       session.options,
       {messageData: messageData}
@@ -66,7 +67,7 @@ class IncomingMessage extends Emitter {
   }
 
   stopPlayback(isComplete) {
-    this.session.log(`Stopping playback, isComplete: ${isComplete}`);
+    this.options.log?.(`Stopping playback, isComplete: ${isComplete}`);
 
     this.isPlaybackComplete = !!isComplete;
     if (this.stopPlaybackTimer) {
@@ -83,12 +84,12 @@ class IncomingMessage extends Emitter {
       this.decoder = undefined;
     }
     if (this.player && Utils.isFunction(this.player.destroy) && !IncomingMessage.PersistentPlayer) {
-      this.session.log(`Destroying player`);
+      this.options.log?.(`Destroying player`);
       this.player.mute(true);
       this.player.destroy();
       this.player = undefined;
     } else if (!isComplete && this.player && Utils.isFunction(this.player.reset)) {
-      this.session.log(`Resetting player`);
+      this.options.log?.(`Resetting player`);
       this.player.reset();
     }
     this.session.off([Constants.EVENT_INCOMING_VOICE_DATA, this.instanceId], this.incomingVoiceHandler);
@@ -105,11 +106,11 @@ class IncomingMessage extends Emitter {
 
     this.incomingVoiceDidStopHandler = () => {
       const elapsed = Date.now() - this.messageStartTime;
-      const frameDuration = this.codecDetails.framesPerPacket * this.codecDetails.frameSize;
-      const playbackDuration = frameDuration > 0 ? this.packetCount * frameDuration : this.packetCount * 20;
+      const packetDuration = this.codecDetails.framesPerPacket * this.codecDetails.frameSize;
+      const playbackDuration = this.packetCount * packetDuration;
 
       if (elapsed + this.options.burstJitter < playbackDuration) {
-        this.session.log(`Incoming message ended early, waiting another ${playbackDuration - elapsed}ms`);
+        this.options.log?.(`Incoming message ended early, waiting another ${playbackDuration - elapsed}ms`);
         this.stopPlaybackTimer = setTimeout(() => {
           this.stopPlayback(true);
         }, playbackDuration - elapsed);

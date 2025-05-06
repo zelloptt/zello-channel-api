@@ -95,5 +95,4 @@ module.exports = {
 
   TALK_PRIORITY_VALUE_NORMAL: 100,
   TALK_PRIORITY_VALUE_LOW: 10
-
 };
