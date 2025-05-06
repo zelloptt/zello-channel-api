@@ -22,7 +22,6 @@ class OutgoingMessage extends Emitter {
     this.userCallback = userCallback;
     this.instanceOptions = instanceOptions;
 
-    this.options.log?.(`Outgoing message options: ${JSON.stringify(session.options)} ${JSON.stringify(instanceOptions)}`)
     if (this.options.recorder && !Utils.isFunction(this.options.recorder)) {
       this.options.recorder = library.Recorder;
     }
