@@ -50,6 +50,12 @@ class Session extends Emitter {
     this.wasOnline = false;
     this.reconnectTimeout = null;
     this.channelConfigurationError = false;
+
+    if (this.options.enableLogging) {
+      this.log = Utils.enableLogging();
+    } else {
+      this.log = () => {};
+    }
   }
 
   getSeq() {
@@ -106,6 +112,8 @@ session.connect(function(err, result) {
   }
 
   connectOrReconnect(userCallback = null, isReconnect = false) {
+    this.log(`Connecting to server: ${this.options.serverUrl}, isReconnect: ${isReconnect}`);
+
     let dfd = Promise.defer();
     if (!this.connectAttempts) {
       this.emit(
@@ -234,6 +242,12 @@ session.connect(function(err, result) {
     if (this.options.platformType) {
       params.platform_type = this.options.platformType;
     }
+
+    if (this.options.features) {
+      params.features = this.options.features;
+    }
+
+    this.log(`Logging in as ${this.options.username}`);
 
     let callback = (err, data) => {
       if (err) {
@@ -386,6 +400,9 @@ session.connect(function(err, result) {
         const incomingImage = new library.IncomingImage(jsonData, this);
         this.emit(Constants.EVENT_INCOMING_IMAGE, incomingImage);
         break;
+      case 'on_transcription':
+        this.emit(Constants.EVENT_TRANSCRIPTION, jsonData);
+        break;
       case 'on_dispatch_call_status':
         /**
          * Incoming dispatch call status change information
@@ -506,6 +523,10 @@ var outgoingMessage = session.startVoiceMessage({
      * @param {ZCC.IncomingMessage} incoming message instance
      */
     this.emit(Constants.EVENT_INCOMING_VOICE_DATA_DECODED, pcmData, incomingMessage);
+  }
+
+  onIncomingVoicePlaybackStopped(incomingMessage) {
+    this.emit(Constants.EVENT_INCOMING_VOICE_DID_STOP_PLAYBACK, incomingMessage);
   }
 
   /**

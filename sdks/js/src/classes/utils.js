@@ -2,6 +2,8 @@ const settings = require('./../../settings');
 const str2ab = require('string-to-arraybuffer');
 
 class Utils {
+  static logEnabled;
+
   static getLoadedLibrary() {
     if (!window) {
       return false;
@@ -125,6 +127,39 @@ class Utils {
     }
   }
 
+  static formatDate(date) {
+    return date.toString();
+  }
+
+  static enableLogging() {
+    Utils.logEnabled = true;
+
+    if (window.Intl) {
+      const options = {
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      };
+      const locale = navigator.language || 'en-US';
+      const formatter = new Intl.DateTimeFormat(locale, options);
+      Utils.logDateFormatter = formatter.format;
+    } else {
+      Utils.logDateFormatter = Utils.formatDate;
+    }
+
+    return Utils.log;
+  }
+
+  static log(message) {
+    if (!Utils.logEnabled) {
+      return;
+    }
+    console.log(`${Utils.logDateFormatter(Date.now())} - Zello Channel SDK - ${message}`);
+  }
 }
 
 module.exports = Utils;
