@@ -123,7 +123,7 @@ class Widget extends Emitter {
     }, additionalData);
     this.emit(eventName, emitData);
     if (window.parent) {
-      window.parent.postMessage(JSON.stringify(emitData), '*');
+      window.parent.postMessage(JSON.stringify(emitData), 'https://trusted-origin.com'); // Updated target origin
     }
   }
 
