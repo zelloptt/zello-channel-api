@@ -43,7 +43,8 @@ def main():
         print("Check config file. Missing token")
         return
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     try:
         loop.run_until_complete(zello_stream_audio_to_channel(username, password,
             network, token, channel, filename))
