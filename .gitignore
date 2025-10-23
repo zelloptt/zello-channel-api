@@ -4,3 +4,4 @@ build
 .externalNativeBuild
 .gradle
 .DS_Store
+__pycache__/
