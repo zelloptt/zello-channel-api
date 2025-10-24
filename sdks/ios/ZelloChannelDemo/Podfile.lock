@@ -1,16 +1,16 @@
 PODS:
   - zello-opus-ios (1.0.1)
-  - ZelloChannelKit (0.5.6):
+  - ZelloChannelKit (0.5.7):
     - zello-opus-ios (~> 1.0.1)
-    - ZelloChannelKit/libopus (= 0.5.6)
-    - ZelloChannelKit/SocketRocket (= 0.5.6)
-  - ZelloChannelKit/libopus (0.5.6):
+    - ZelloChannelKit/libopus (= 0.5.7)
+    - ZelloChannelKit/SocketRocket (= 0.5.7)
+  - ZelloChannelKit/libopus (0.5.7):
     - zello-opus-ios (~> 1.0.1)
-  - ZelloChannelKit/SocketRocket (0.5.6):
+  - ZelloChannelKit/SocketRocket (0.5.7):
     - zello-opus-ios (~> 1.0.1)
 
 DEPENDENCIES:
-  - ZelloChannelKit (~> 0.5.6)
+  - ZelloChannelKit (~> 0.5.7)
 
 SPEC REPOS:
   trunk:
@@ -19,8 +19,8 @@ SPEC REPOS:
 
 SPEC CHECKSUMS:
   zello-opus-ios: 8c1f08799d7a147c86f21ec2a18f7b19f8c2ceed
-  ZelloChannelKit: 14a74ad8722d388d5fdc5d78764feb1fad6355bc
+  ZelloChannelKit: 55b800a5c444fc0761909dda11fc0f85a4bf86ce
 
-PODFILE CHECKSUM: 75f63d167a6087a133cf8c20c9b255ea64e30d88
+PODFILE CHECKSUM: 7b4e1ececdbc8b52dac8b3ffabe053648856a90e
 
-COCOAPODS: 1.11.3
+COCOAPODS: 1.15.2

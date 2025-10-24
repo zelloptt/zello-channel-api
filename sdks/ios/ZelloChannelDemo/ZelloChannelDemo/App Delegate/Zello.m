@@ -8,8 +8,6 @@
 
 #import "Zello.h"
 
-static NSString * const developmentToken = @"[YOUR TOKEN HERE]";
-
 static ZCCSession *_session;
 
 @implementation Zello
@@ -19,7 +17,8 @@ static ZCCSession *_session;
 }
 
 + (void)setupSessionWithURL:(NSURL *)url channel:(NSString *)channel username:(NSString *)username password:(NSString *)password {
-  _session = [[ZCCSession alloc] initWithURL:url authToken:developmentToken username:username password:password channel:channel callbackQueue:nil];
+  // authToken is required for connecting to Friends & Family Zello, but should be nil for Zello Work
+  _session = [[ZCCSession alloc] initWithURL:url authToken:nil username:username password:password channel:channel callbackQueue:nil];
 }
 
 + (void)closeSession {

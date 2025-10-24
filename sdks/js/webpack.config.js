@@ -1,6 +1,7 @@
 const path = require('path');
 const settings = require('./settings');
 const TerserPlugin = require("terser-webpack-plugin");
+const webpack = require('webpack');
 
 let entryFiles = {
   'Sdk': './src/classes/sdk.js',
@@ -88,5 +89,10 @@ module.exports = {
         }
       }
     ]
-  }
+  },
+  plugins: [
+    new webpack.DefinePlugin({
+      VERSION: JSON.stringify(require("./package.json").version),
+    }),
+  ],
 };

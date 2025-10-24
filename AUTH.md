@@ -1,10 +1,8 @@
 # Zello Channel API auth tokens
 
-To use the API or the SDK you'll need a valid access token. This document describes how to get one.
+To use the API or the SDK with Zello Consumer you'll need a valid access token. This document describes how to get one.
 
 ## Generate API keys and development token
-
-### For Zello consumer network
 
 1. Go to https://developers.zello.com/ and click __Login__
 2. Enter your Zello username and password. If you don't have Zello account [download Zello app](https://zello.com/personal/download/) and create one.
@@ -13,17 +11,9 @@ To use the API or the SDK you'll need a valid access token. This document descri
 5. Copy and save __Sample Development Token__, __Issuer__, and __Private Key__. Make sure you copy each of the values completely using Select All.
 6. Click __Close__
 
-### For ZelloWork
-
-1. Sign into your ZelloWork network at https://`network name`.zellowork.com/
-2. Navigate to https://`network name`.zellowork.com/__keys.html__
-3. Click __Create Key__
-4. Copy and save __Sample Development Token__, __Issuer__, and __Private Key__. Make sure you copy each of the values completely using Select All.
-5. Click __Close__
-
 ## Using sample development token
 
-The developer token you received is valid for 30 days and can be used in your app to connect to API making it easy to test without building your own server for provisioning the actual tokens. Pass the sample development token as `auth_token` when performing logon.
+The developer token you received is valid for 30 days and can be used in your app to connect to the API making it easy to test without building your own server for provisioning the actual tokens. Pass the sample development token as `auth_token` when performing logon.
 
 If your development token expires repeat [the steps above](#generate-api-keys-and-development-token) to create a new one.
 

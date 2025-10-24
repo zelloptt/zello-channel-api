@@ -10,7 +10,7 @@ This document is intended for developers interested in implementation of their o
 
 This API supports subset of Zello features and currently focused on sending and receiving channel voice messages. See [Supported features](#supported-features) for the complete list.
 
-To access the API you need to generate a valid access token, based on [JWT](https://jwt.io/) standard. See [Authentication](#authentication).
+To access the API you will need valid account credentials and/or a valid access token, based on the [JWT](https://jwt.io/) standard. See [Authentication](#authentication).
 
 ## API entry points
 | Service | WebSocket URL
@@ -37,7 +37,7 @@ Named accounts:
 * Must include a valid username and password
 * Have full access to authorized channels
 * Supported for both Zello Work and consumer Zello
-* A valid [auth token](AUTH.md) is required for consumer Zello but optional for Zello Work
+* A valid [auth token](AUTH.md) is required for consumer Zello
 
 ## Connection keepalive
 The API monitors connectivity by sending a [WebSocket Ping frame](https://datatracker.ietf.org/doc/html/rfc6455#section-5.5.2) to the client every 30 seconds. The WebSocket client must respond to the Ping frame with a Pong frame. If a client takes longer than 30 seconds to respond with a Pong frame, the API terminates the connection.
@@ -74,6 +74,9 @@ Connecting to multiple channels (up to 100) is currently supported for Zello Wor
 | `password` | string | (optional) Password to logon with. Required if username is provided.
 | `channels` | array of strings | The list of names of the channels to connect to. 
 | `listen_only` | boolean | (optional) Set to `true` to connect in listen-only mode.
+| `version` | string | (optional) Client version string. If not provided, the server will use the Channel API server version.
+| `platform_type` | string | (optional) Client platform type, any string
+| `platform_name` | string | (optional) Client platform name, any string. If includes `Gateway` or `Kiosk` (case-insensitive), the Zello Alarms service will track the online status of this client.
 
 #### Request:
 

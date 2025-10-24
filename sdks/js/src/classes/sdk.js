@@ -83,7 +83,8 @@ ZCC.Sdk.init({
       decoder: true,
       recorder: true,
       encoder: true,
-      widget: false
+      widget: false,
+      enableLogging: false
     }, options);
 
     let scriptNames = [
@@ -102,6 +103,12 @@ ZCC.Sdk.init({
       url + 'zcc.incomingmessage.js',
       url + 'zcc.outgoingmessage.js'
     ];
+
+    if (Sdk.initOptions.enableLogging) {
+      Utils.enableLogging();
+    }
+
+    Utils.log('Loading all SDK scripts');
 
     let shouldInitDefaultPlayer = false;
     if (Sdk.initOptions.player && !Utils.isFunction(Sdk.initOptions.player)) {

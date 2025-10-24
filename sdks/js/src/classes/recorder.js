@@ -20,6 +20,8 @@ class Recorder {
       bufferLength: 0,
       monitorGain: 0,
       recordingGain: 1,
+      useScriptProcessorRecorder: false,
+      numberOfChannels: 1,
       mediaConstraints: { audio: true }
     }, options);
     this.encoder = encoder;
@@ -60,7 +62,12 @@ class Recorder {
     this.sourceNode.disconnect();
     this.recordingGainNode.disconnect();
     this.monitorGainNode.disconnect();
-    this.scriptProcessorNode.disconnect();
+
+    if (this.options.useScriptProcessorRecorder) {
+      this.scriptProcessorNode.disconnect();
+    } else {
+      this.audioWorkletNode.disconnect();
+    }
   }
 
   getSampleRate() {
@@ -71,11 +78,16 @@ class Recorder {
     if (this.state !== RecorderState.Recording) {
       return;
     }
-    let buffers = [];
-    for (let i = 0; i < inputBuffer.numberOfChannels; i++) {
-      buffers[i] = inputBuffer.getChannelData(i);
+
+    if (this.options.useScriptProcessorRecorder) {
+      const buffers = [];
+      for (let i = 0; i < inputBuffer.numberOfChannels; i++) {
+        buffers[i] = inputBuffer.getChannelData(i);
+      }
+      this.ondata(buffers);
+    } else {
+      this.ondata(inputBuffer);
     }
-    this.ondata(buffers);
   }
 
   initAudioContext() {
@@ -86,6 +98,33 @@ class Recorder {
     return this.audioContext;
   }
 
+  initScriptProcessor() {
+    return new Promise((resolve) => {
+      this.scriptProcessorNode = this.audioContext.createScriptProcessor(
+        this.options.bufferLength,
+        this.options.numberOfChannels,
+        this.options.numberOfChannels
+      );
+      this.scriptProcessorNode.connect(this.audioContext.destination);
+      this.scriptProcessorNode.onaudioprocess = (e) => {
+        this.encodeBuffers(e.inputBuffer);
+        if (this.bufferLimit !== undefined && ++this.buffersEncoded >= this.bufferLimit) {
+          this.clearStopTimeout()
+          this.stop();
+        }
+      };
+
+      this.monitorGainNode = this.audioContext.createGain();
+      this.setMonitorGain(this.options.monitorGain);
+      this.monitorGainNode.connect(this.audioContext.destination);
+
+      this.recordingGainNode = this.audioContext.createGain();
+      this.setRecordingGain(this.options.recordingGain);
+      this.recordingGainNode.connect(this.scriptProcessorNode);
+      resolve();
+    })
+  }
+
   initAudioGraph(fromInputDeviceChange = false) {
     // First buffer can contain old data. Don't encode it.
     if (!fromInputDeviceChange) {
@@ -94,27 +133,46 @@ class Recorder {
       }; 
     }
 
-    this.scriptProcessorNode = this.audioContext.createScriptProcessor(
-      this.options.bufferLength,
-      this.options.numberOfChannels,
-      this.options.numberOfChannels
-    );
-    this.scriptProcessorNode.connect(this.audioContext.destination);
-    this.scriptProcessorNode.onaudioprocess = (e) => {
-      this.encodeBuffers(e.inputBuffer);
-      if (this.bufferLimit !== undefined && ++this.buffersEncoded >= this.bufferLimit) {
-        this.clearStopTimeout()
-        this.stop();
-      }
-    };
+    if (this.options.useScriptProcessorRecorder) {
+      return this.initScriptProcessor();
+    }
 
-    this.monitorGainNode = this.audioContext.createGain();
-    this.setMonitorGain(this.options.monitorGain);
-    this.monitorGainNode.connect(this.audioContext.destination);
+    return this.audioContext.audioWorklet.addModule(new URL('./recorderWorklet.js', import.meta.url)).then(() => {
+      this.audioWorkletNode = new AudioWorkletNode(
+        this.audioContext,
+        'recorder-processor',
+        {
+          numberOfInputs: 1,
+          numberOfOutputs: 1,
+          outputChannelCount: [this.options.numberOfChannels]
+        }
+      );
 
-    this.recordingGainNode = this.audioContext.createGain();
-    this.setRecordingGain(this.options.recordingGain);
-    this.recordingGainNode.connect(this.scriptProcessorNode);
+      this.audioWorkletNode.connect(this.audioContext.destination);
+
+      this.audioWorkletNode.port.onmessage = (event) => {
+        if (event.data.debug) {
+          this.options.log?.(`Received from recorder worklet: ${event.data.debug}`);
+          return;
+        }
+        const { buffers } = event.data;
+
+        this.encodeBuffers(buffers);
+
+        if (this.bufferLimit !== undefined && ++this.buffersEncoded >= this.bufferLimit) {
+          this.clearStopTimeout();
+          this.stop();
+        }
+      };
+
+      this.monitorGainNode = this.audioContext.createGain();
+      this.setMonitorGain(this.options.monitorGain);
+      this.monitorGainNode.connect(this.audioContext.destination);
+
+      this.recordingGainNode = this.audioContext.createGain();
+      this.setRecordingGain(this.options.recordingGain);
+      this.recordingGainNode.connect(this.audioWorkletNode);
+    })
   };
 
   initSourceNode() {
@@ -123,7 +181,9 @@ class Recorder {
     }
     return global.navigator.mediaDevices.getUserMedia(this.options.mediaConstraints).then((stream) => {
       this.stream = stream;
-      return this.audioContext.createMediaStreamSource(stream);
+      const sourceNode = this.audioContext.createMediaStreamSource(stream);
+      this.options.log?.(`mic has ${sourceNode.channelCount} channels and ${sourceNode.numberOfOutputs} outputs`);
+      return sourceNode;
     });
   }
 
@@ -163,12 +223,13 @@ class Recorder {
     this.disconnectNodes();
     this.clearStream();
     this.initAudioContext();
-    this.initAudioGraph(true);
-    this.initSourceNode().then((sourceNode) => {
-      this.sourceNode = sourceNode;
-      this.sourceNode.connect(this.monitorGainNode);
-      this.sourceNode.connect(this.recordingGainNode);
-    });
+    return this.initAudioGraph(true).then(() => {
+      return this.initSourceNode().then((sourceNode) => {
+        this.sourceNode = sourceNode;
+        this.sourceNode.connect(this.monitorGainNode);
+        this.sourceNode.connect(this.recordingGainNode);
+      });
+    })
   }
 
   init() {
@@ -177,15 +238,15 @@ class Recorder {
     }
 
     this.initAudioContext();
-    this.initAudioGraph();
-
-    return this.initSourceNode().then((sourceNode) => {
-      this.state = RecorderState.Recording;
-      this.sourceNode = sourceNode;
-      this.sourceNode.connect(this.monitorGainNode);
-      this.sourceNode.connect(this.recordingGainNode);
-      this.onready();
-    });
+    return this.initAudioGraph().then(() => {
+      return this.initSourceNode().then((sourceNode) => {
+        this.state = RecorderState.Recording;
+        this.sourceNode = sourceNode;
+        this.sourceNode.connect(this.monitorGainNode);
+        this.sourceNode.connect(this.recordingGainNode);
+        this.onready();
+      });
+    })
   }
 
   stop() {

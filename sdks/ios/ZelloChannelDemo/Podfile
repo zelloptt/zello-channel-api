@@ -6,5 +6,5 @@ target 'ZelloChannelDemo' do
   use_frameworks!
 
   # Pods for ZelloChannelDemo
-  pod 'ZelloChannelKit', '~> 0.5.6'
+  pod 'ZelloChannelKit', '~> 0.5.7'
 end

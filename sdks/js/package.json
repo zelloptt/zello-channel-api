@@ -1,12 +1,13 @@
 {
   "name": "zello-channels-js-sdk",
-  "copyright": "Copyright © 2023 Zello Inc.",
-  "version": "1.0.2",
-  "description": "Zello channels JS SDK",
+  "copyright": "Copyright © 2025 Zello Inc.",
+  "version": "1.2.0",
+  "description": "Zello Channel API JS SDK",
   "main": "index.js",
   "homepage": "https://zello.com/work",
   "scripts": {
     "build": "cross-env NODE_ENV=production npx webpack",
+    "build-dev": "cross-env NODE_ENV=development npx webpack",
     "watch": "cross-env npx webpack --watch",
     "docs": "npx jsdoc -d ./../../docs/js/ src/classes/"
   },
@@ -16,8 +17,8 @@
     "url": "https://zello.com/work"
   },
   "engines": {
-    "node": "16.15.1",
-    "npm": "8.11.0"
+    "node": "=18.17.1",
+    "npm": "=9.6.7"
   },
   "license": "ISC",
   "devDependencies": {

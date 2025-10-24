@@ -27,49 +27,34 @@ def main():
         password = config['zello']['password']
         channel = config['zello']['channel']
         filename = config['media']['filename']
+
+        token = None
+        network = None
+        if 'network' in config['zello']:
+            network = config['zello']['network']
+
+        if 'token' in config['zello']:
+            token = config['zello']['token']
+        elif network is None:
+            # Zello Consumer requires an auth token
+            print("Check config file. Missing token")
+            return
+
     except KeyError as error:
         print("Check config file. Missing key:", error)
         return
-
-    token = None
-    network = None
-    if 'network' in config['zello']:
-        network = config['zello']['network']
-
-    if 'token' in config['zello']:
-        token = config['zello']['token']
-    elif network is None:
-        # Zello Consumer requires an auth token
-        print("Check config file. Missing token")
+    except Exception as e:
+        print("Error loading configuration:", e)
         return
 
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
     try:
-        loop.run_until_complete(zello_stream_audio_to_channel(username, password,
-            network, token, channel, filename))
+        asyncio.run(zello_stream_audio_to_channel(username, password, network, token, channel, filename))
     except KeyboardInterrupt:
-        try:
-            if ZelloWS and ZelloStreamID:
-                loop.run_until_complete(zello_stream_stop(ZelloWS, ZelloStreamID))
-
-        except aiohttp.client_exceptions.ClientError as error:
-            print("Error during stopping. ", error)
-
-        def shutdown_exception_handler(loop, context):
-            if "exception" in context and isinstance(context["exception"], asyncio.CancelledError):
-                return
-            loop.default_exception_handler(context)
-
-        loop.set_exception_handler(shutdown_exception_handler)
-        tasks = asyncio.gather(*asyncio.all_tasks(loop=loop), return_exceptions=True)
-        tasks.add_done_callback(lambda t: loop.stop())
-        tasks.cancel()
-        while not tasks.done() and not loop.is_closed():
-            loop.run_forever()
-        print("Stopped by user")
-    finally:
-        loop.close()
+        if ZelloWS and ZelloStreamID:
+            try:
+                asyncio.run(zello_stream_stop(ZelloWS, ZelloStreamID))
+            except aiohttp.client_exceptions.ClientError as error:
+                print("Error during stopping:", error)
 
 
 async def zello_stream_audio_to_channel(username, password, network, token, channel, opusfile):
@@ -90,9 +75,10 @@ async def zello_stream_audio_to_channel(username, password, network, token, chan
                 await zello_stream_send_audio(session, ws, stream_id, opus_stream)
                 await asyncio.wait_for(zello_stream_stop(ws, stream_id), WS_TIMEOUT_SEC)
     except (NameError, aiohttp.client_exceptions.ClientError, IOError) as error:
-        print(error)
+        print("Error during streaming:", error)
     except asyncio.TimeoutError:
         print("Communication timeout")
+
 
 async def authenticate(ws, username, password, token, channel):
     # https://github.com/zelloptt/zello-channel-api/blob/master/AUTH.md
@@ -121,18 +107,20 @@ async def authenticate(ws, username, password, token, channel):
                 break
 
     if not is_authorized or not is_channel_available:
-        raise NameError('Authentication failed')
+        raise NameError("Authentication failed")
 
 
 async def zello_stream_start(ws, opus_stream):
     sample_rate = opus_stream.sample_rate
     frames_per_packet = opus_stream.frames_per_packet
     packet_duration = opus_stream.packet_duration
-
     # Sample_rate is in little endian.
     # https://github.com/zelloptt/zello-channel-api/blob/409378acd06257bcd07e3f89e4fbc885a0cc6663/sdks/js/src/classes/utils.js#L63
-    codec_header = base64.b64encode(sample_rate.to_bytes(2, "little") + \
-        frames_per_packet.to_bytes(1, "big") + packet_duration.to_bytes(1, "big")).decode()
+    codec_header = base64.b64encode(
+        sample_rate.to_bytes(2, "little") +
+        frames_per_packet.to_bytes(1, "big") +
+        packet_duration.to_bytes(1, "big")
+    ).decode()
 
     await ws.send_str(json.dumps({
         "command": "start_stream",
@@ -141,74 +129,67 @@ async def zello_stream_start(ws, opus_stream):
         "codec": "opus",
         "codec_header": codec_header,
         "packet_duration": packet_duration
-        }))
+    }))
 
     async for msg in ws:
         if msg.type == aiohttp.WSMsgType.TEXT:
             data = json.loads(msg.data)
             if "success" in data and "stream_id" in data and data["success"]:
                 return data["stream_id"]
-            elif "error" in data:
-                print("Got an error:", data["error"])
-                break
-            else:
-                # Ignore the messages we are not interested in
-                continue
-
-    raise NameError('Failed to create Zello audio stream')
-
-
-async def zello_stream_stop(ws, stream_id):
-    await ws.send_str(json.dumps({
-        "command": "stop_stream",
-        "stream_id": stream_id
-        }))
-
-
-async def send_audio_packet(ws, packet):
-    # Once the data has been sent - listen on websocket, connection may be closed otherwise.
-    await ws.send_bytes(packet)
-    await ws.receive()
-
-
-def generate_zello_stream_packet(stream_id, packet_id, data):
-    # https://github.com/zelloptt/zello-channel-api/blob/master/API.md#stream-data
-    return (1).to_bytes(1, "big") + stream_id.to_bytes(4, "big") + \
-        packet_id.to_bytes(4, "big") + data
+    raise NameError("Failed to create Zello audio stream")
 
 
 async def zello_stream_send_audio(session, ws, stream_id, opus_stream):
     packet_duration_sec = opus_stream.packet_duration / 1000
-    start_ts_sec = time.time_ns() / 1000000000
+    start_ts_sec = time.time_ns() / 1_000_000_000
     time_streaming_sec = 0
     packet_id = 0
-    while True:
-        data = opus_stream.get_next_opus_packet()
 
-        if not data:
-            print("Audio stream is over")
-            break
+    try:
+        while True:
+            data = opus_stream.get_next_opus_packet()
+            if not data:
+                break
 
-        if session.closed:
-            raise NameError("Session is closed!")
+            if ws.closed:
+                raise NameError("WebSocket closed")
 
-        packet_id += 1
-        packet = generate_zello_stream_packet(stream_id, packet_id, data)
-        try:
-            # Once wait_for() is timed out - it takes additional operational time.
-            # Recalculate delay and sleep at the end of the loop to compensate this delay.
-            await asyncio.wait_for(
-                send_audio_packet(ws, packet), packet_duration_sec * 0.8
-            )
-        except asyncio.TimeoutError:
-            pass
+            packet = generate_zello_stream_packet(stream_id, packet_id, data)
+            await ws.send_bytes(packet)
 
-        time_streaming_sec += packet_duration_sec
-        time_elapsed_sec = (time.time_ns() / 1000000000) - start_ts_sec
-        sleep_delay_sec = time_streaming_sec - time_elapsed_sec
+            packet_id += 1
+            time_streaming_sec += packet_duration_sec
+            time_elapsed_sec = (time.time_ns() / 1_000_000_000) - start_ts_sec
+            sleep_delay_sec = time_streaming_sec - time_elapsed_sec
 
-        if sleep_delay_sec > 0.001:
-            time.sleep(sleep_delay_sec)
+            if sleep_delay_sec > 0:
+                await asyncio.sleep(sleep_delay_sec)
+    except Exception:
+        raise
+
+
+def generate_zello_stream_packet(stream_id, packet_id, data):
+    return (
+        (1).to_bytes(1, "big") +  # Packet type: 1 for audio
+        stream_id.to_bytes(4, "big") +
+        packet_id.to_bytes(4, "big") +
+        data
+    )
+
+
+async def zello_stream_stop(ws, stream_id):
+    # If the websocket is already closing/closed, don't try to write.
+    if getattr(ws, "closed", False):
+        return
+    try:
+        await ws.send_str(json.dumps({
+            "command": "stop_stream",
+            "stream_id": stream_id
+        }))
+    except Exception:
+        # Swallow errors like "Cannot write to closing transport"
+        # since shutdown may already be in progress.
+        pass
 
 
 if __name__ == "__main__":
