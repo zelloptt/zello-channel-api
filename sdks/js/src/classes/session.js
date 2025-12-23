@@ -453,6 +453,22 @@ session.connect(function(err, result) {
     this.wsConnection.send(data);
   }
 
+  /**
+   * Starts a media stream
+   *
+   * @param {object} options Options for starting the stream
+   *
+   * @property {String} [options.for] Optional username to send the stream to
+   *
+   * @param {function} [userCallback] Callback fired when the stream is started or fails to start
+   *
+   * @return {Promise} Promise that resolves once the stream is successfully started and rejects on failure
+   *
+   * @example
+   * session.startStream({
+   *   for: 'username',
+   * });
+   */
   startStream(options = {}, userCallback = null) {
     return this.sendCommandWithCallback('start_stream', options, userCallback);
   }
@@ -556,18 +572,17 @@ var outgoingMessage = session.startVoiceMessage({
    * Sends a text message
    *
    * @param {object} options options for outgoing text message.
-   * @property {String} for optional username to send this text message to
-   * @property {String} text message text
+   * @property {String} options.text message text
+   * @property {String} [options.for] optional username to send this text message to
    *
    * @param {function} [userCallback] callback that is fired on message being send or failed to be sent
    * @return {promise} promise that resolves once session successfully send a text message and rejects if
    *                   text message sending failed
    * @example
-   *
-   session.sendTextMessage({
-    for: 'username',
-    text: 'Hello Zello!'
-   });
+   * session.sendTextMessage({
+   *   text: 'Hello Zello!',
+   *   for: 'username',
+   * });
    **/
   sendTextMessage(options = {}, userCallback = null) {
     return this.sendCommandWithCallback('send_text_message', options, userCallback);

@@ -175,6 +175,12 @@ outgoingMessage.then(function(result) {
     if (this.instanceOptions.talkPriority !== undefined) {
       params.talk_priority = this.options.talkPriority;
     }
+    if (this.instanceOptions.retransmissionInterval !== undefined) {
+      params.retransmissionInterval = this.instanceOptions.retransmissionInterval;
+    }
+    if (this.instanceOptions.retransmissionDuration !== undefined) {
+      params.retransmissionDuration = this.instanceOptions.retransmissionDuration;
+    }
     this.session
       .startStream(params, this.userCallback)
       .then((result) => {
