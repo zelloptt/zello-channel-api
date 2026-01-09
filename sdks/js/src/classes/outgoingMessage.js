@@ -17,6 +17,7 @@ class OutgoingMessage extends Emitter {
         encoderFrameSize: 20,
         encoderSampleRate: 16000,
         encoderApplication: 2048,
+        numberOfChannels: 1,
         log: session.log
       }, session.options, instanceOptions);
     this.userCallback = userCallback;
@@ -174,6 +175,12 @@ outgoingMessage.then(function(result) {
     }
     if (this.instanceOptions.talkPriority !== undefined) {
       params.talk_priority = this.options.talkPriority;
+    }
+    if (this.instanceOptions.retransmissionInterval !== undefined) {
+      params.retransmissionInterval = this.instanceOptions.retransmissionInterval;
+    }
+    if (this.instanceOptions.retransmissionDuration !== undefined) {
+      params.retransmissionDuration = this.instanceOptions.retransmissionDuration;
     }
     this.session
       .startStream(params, this.userCallback)
