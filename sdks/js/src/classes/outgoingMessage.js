@@ -17,6 +17,7 @@ class OutgoingMessage extends Emitter {
         encoderFrameSize: 20,
         encoderSampleRate: 16000,
         encoderApplication: 2048,
+        numberOfChannels: 1,
         log: session.log
       }, session.options, instanceOptions);
     this.userCallback = userCallback;
