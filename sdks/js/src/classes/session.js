@@ -195,6 +195,10 @@ session.connect(function(err, result) {
 
     this.connectTimeout = setTimeout(() => {
       if (this.wsConnection && this.wsConnection.readyState !== WebSocket.OPEN) {
+        // Mark as self-disconnect to prevent close handler from interfering
+        // The catch block will also call disconnect(), but this prevents
+        // the close event (which fires asynchronously) from triggering reconnect logic
+        this.selfDisconnect = true;
         this.wsConnection.close();
         const timeoutError = `WebSocket connection timeout after ${this.connectTimeoutMs}ms`;
         this.connectTimeout = null;
