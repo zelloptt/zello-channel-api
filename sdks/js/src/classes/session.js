@@ -116,7 +116,7 @@ session.connect(function(err, result) {
     }
   }
 
-  clearConnectionTimeout() {
+  clearConnectTimeout() {
     if (this.connectTimeout) {
       clearTimeout(this.connectTimeout);
       this.connectTimeout = null;
@@ -188,7 +188,7 @@ session.connect(function(err, result) {
     let dfd = Promise.defer();
     
     // Clear any existing connection timeout before creating a new connection
-    this.clearConnectionTimeout();
+    this.clearConnectTimeout();
     
     this.wsConnection = new WebSocket(this.options.serverUrl);
     this.wsConnection.binaryType = 'arraybuffer';
@@ -202,7 +202,7 @@ session.connect(function(err, result) {
     }, this.connectTimeoutMs);
 
     this.wsConnection.addEventListener('open', () => {
-      this.clearConnectionTimeout();
+      this.clearConnectTimeout();
       return dfd.resolve();
     });
 
@@ -211,12 +211,12 @@ session.connect(function(err, result) {
     });
 
     this.wsConnection.addEventListener('error', (event) => {
-      this.clearConnectionTimeout();
+      this.clearConnectTimeout();
       return dfd.reject('WebSocket error: ' + event);
     });
 
     this.wsConnection.addEventListener('close', (closeEvent) => {
-      this.clearConnectionTimeout();
+      this.clearConnectTimeout();
       if (this.selfDisconnect) {
         this.selfDisconnect = false;
         return;
@@ -292,7 +292,7 @@ session.connect(function(err, result) {
    */
   disconnect() {
     this.selfDisconnect = true;
-    this.clearConnectionTimeout();
+    this.clearConnectTimeout();
     if (this.wsConnection) {
       this.wsConnection.close();
     }
