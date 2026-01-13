@@ -16,7 +16,7 @@ const Utils = require('./utils');
   tokenVersion: [tokenVersion],
   maxConnectAttempts: 5,
   connectRetryTimeoutMs: 1000,
-  connectionTimeoutMs: 60000,
+  connectTimeoutMs: 60000,
   autoSendAudio: true,
   noPersistentPlayer: false
 );
