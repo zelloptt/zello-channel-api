@@ -16,6 +16,7 @@ const Utils = require('./utils');
   tokenVersion: [tokenVersion],
   maxConnectAttempts: 5,
   connectRetryTimeoutMs: 1000,
+  connectTimeoutMs: 60000,
   autoSendAudio: true,
   noPersistentPlayer: false
 );
@@ -32,6 +33,7 @@ class Session extends Emitter {
     this.options = Object.assign({}, library.Sdk.initOptions, {
       maxConnectAttempts: 5,
       connectRetryTimeoutMs: 1000,
+      connectTimeoutMs: 60000,
       autoSendAudio: true,
       noPersistentPlayer: false
     }, options);
@@ -43,12 +45,14 @@ class Session extends Emitter {
     this.maxConnectAttempts = this.options.maxConnectAttempts;
     this.connectAttempts = this.maxConnectAttempts;
     this.connectRetryTimeoutMs = this.options.connectRetryTimeoutMs;
+    this.connectTimeoutMs = this.options.connectTimeoutMs;
     this.selfDisconnect = false;
     this.incomingMessages = {};
     this.activeOutgoingMessage = null;
     this.activeOutgoingImage = null;
     this.wasOnline = false;
     this.reconnectTimeout = null;
+    this.connectTimeout = null;
     this.channelConfigurationError = false;
 
     if (this.options.enableLogging) {
@@ -108,6 +112,14 @@ session.connect(function(err, result) {
   clearExistingReconnectTimeout() {
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
+      this.reconnectTimeout = null;
+    }
+  }
+
+  clearConnectTimeout() {
+    if (this.connectTimeout) {
+      clearTimeout(this.connectTimeout);
+      this.connectTimeout = null;
     }
   }
 
@@ -174,10 +186,23 @@ session.connect(function(err, result) {
 
   doConnect() {
     let dfd = Promise.defer();
+    
+    // Clear any existing connection timeout before creating a new connection
+    this.clearConnectTimeout();
+    
     this.wsConnection = new WebSocket(this.options.serverUrl);
     this.wsConnection.binaryType = 'arraybuffer';
 
+    this.connectTimeout = setTimeout(() => {
+      if (this.wsConnection && this.wsConnection.readyState !== WebSocket.OPEN) {
+        const timeoutError = `WebSocket connection timeout after ${this.connectTimeoutMs}ms`;
+        this.connectTimeout = null;
+        dfd.reject(timeoutError);
+      }
+    }, this.connectTimeoutMs);
+
     this.wsConnection.addEventListener('open', () => {
+      this.clearConnectTimeout();
       return dfd.resolve();
     });
 
@@ -186,10 +211,12 @@ session.connect(function(err, result) {
     });
 
     this.wsConnection.addEventListener('error', (event) => {
+      this.clearConnectTimeout();
       return dfd.reject('WebSocket error: ' + event);
     });
 
     this.wsConnection.addEventListener('close', (closeEvent) => {
+      this.clearConnectTimeout();
       if (this.selfDisconnect) {
         this.selfDisconnect = false;
         return;
@@ -265,7 +292,10 @@ session.connect(function(err, result) {
    */
   disconnect() {
     this.selfDisconnect = true;
-    this.wsConnection.close();
+    this.clearConnectTimeout();
+    if (this.wsConnection) {
+      this.wsConnection.close();
+    }
   }
 
   wsBinaryDataHandler(data) {
