@@ -49,6 +49,9 @@ class IncomingMessage extends Emitter {
     this.streamId = messageData.stream_id;
     this.codecDetails = Utils.parseCodedHeader(messageData.codec_header);
     this.messageDidStart = false;
+    this.messageStartTime = 0;
+    this.packetCount = 0;
+    this.isPlaybackComplete = false;
     let library = Utils.getLoadedLibrary();
     this.options =
       Object.assign({
@@ -56,6 +59,8 @@ class IncomingMessage extends Emitter {
         channels: 1,
         sampleRate: IncomingMessage.detectSampleRate(this.codecDetails.rate),
         flushingTime: 240,
+        burstJitter: 1000,
+        log: session.log
       },
       session.options,
       {messageData: messageData}
@@ -68,16 +73,15 @@ class IncomingMessage extends Emitter {
     if (this.options.player &amp;&amp; !Utils.isFunction(this.options.player)) {
       this.options.player = library.Player;
     }
-
-    this.initPlayer();
-    this.initDecoder();
-    this.initSessionHandlers();
-
     this.session = session;
     this.instanceId = messageData.stream_id.toString();
-    this.session.on([Constants.EVENT_INCOMING_VOICE_DATA, this.instanceId], this.incomingVoiceHandler);
-    this.session.on([Constants.EVENT_INCOMING_VOICE_DID_STOP, this.instanceId], this.incomingVoiceDidStopHandler);
-    this.on([Constants.EVENT_INCOMING_VOICE_DATA_DECODED, this.instanceId], this.decodedAudioHandler);
+  }
+
+  init() {
+    return this.initPlayer().then(() => {
+      this.initDecoder();
+      this.initEventHandlers();
+    });
   }
 
 
@@ -90,7 +94,38 @@ class IncomingMessage extends Emitter {
     return 48000;
   }
 
-  initSessionHandlers() {
+  stopPlayback(isComplete) {
+    this.options.log?.(`Stopping playback, isComplete: ${isComplete}`);
+
+    this.isPlaybackComplete = !!isComplete;
+    if (this.stopPlaybackTimer) {
+      clearTimeout(this.stopPlaybackTimer);
+    }
+    /**
+     * Incoming voice message stopped
+     * @event IncomingMessage#incoming_voice_did_stop
+     * @param {ZCC.IncomingMessage} incomingMessage incoming message instance (self)
+     */
+    this.emit(Constants.EVENT_INCOMING_VOICE_DID_STOP, this);
+    if (this.decoder &amp;&amp; Utils.isFunction(this.decoder.destroy)) {
+      this.decoder.destroy();
+      this.decoder = undefined;
+    }
+    if (this.player &amp;&amp; Utils.isFunction(this.player.destroy) &amp;&amp; !IncomingMessage.PersistentPlayer) {
+      this.options.log?.(`Destroying player`);
+      this.player.mute(true);
+      this.player.destroy();
+      this.player = undefined;
+    } else if (!isComplete &amp;&amp; this.player &amp;&amp; Utils.isFunction(this.player.reset)) {
+      this.options.log?.(`Resetting player`);
+      this.player.reset();
+    }
+    this.session.off([Constants.EVENT_INCOMING_VOICE_DATA, this.instanceId], this.incomingVoiceHandler);
+    this.session.off([Constants.EVENT_INCOMING_VOICE_DID_STOP, this.instanceId], this.incomingVoiceDidStopHandler);
+    this.session.onIncomingVoicePlaybackStopped(this);
+  }
+
+  initEventHandlers() {
     this.decodedAudioHandler = (pcmData) => {
       if (this.player &amp;&amp; Utils.isFunction(this.player.feed)) {
         this.player.feed(pcmData);
@@ -98,25 +133,24 @@ class IncomingMessage extends Emitter {
     };
 
     this.incomingVoiceDidStopHandler = () => {
-      /**
-       * Incoming voice message stopped
-       * @event IncomingMessage#incoming_voice_did_stop
-       * @param {ZCC.IncomingMessage} incomingMessage incoming message instance (self)
-       */
-      this.emit(Constants.EVENT_INCOMING_VOICE_DID_STOP, this);
-      if (this.player &amp;&amp; Utils.isFunction(this.player.destroy) &amp;&amp; !IncomingMessage.PersistentPlayer) {
-        this.player.destroy();
+      const elapsed = Date.now() - this.messageStartTime;
+      const packetDuration = this.codecDetails.framesPerPacket * this.codecDetails.frameSize;
+      const playbackDuration = this.packetCount * packetDuration;
+
+      if (elapsed + this.options.burstJitter &lt; playbackDuration) {
+        this.options.log?.(`Incoming message ended early, waiting another ${playbackDuration - elapsed}ms`);
+        this.stopPlaybackTimer = setTimeout(() => {
+          this.stopPlayback(true);
+        }, playbackDuration - elapsed);
+      } else {
+        this.stopPlayback(true);
       }
-      if (this.decoder &amp;&amp; Utils.isFunction(this.decoder.destroy)) {
-        this.decoder.destroy();
-      }
-      this.session.off([Constants.EVENT_INCOMING_VOICE_DATA, this.instanceId], this.incomingVoiceHandler);
-      this.session.off([Constants.EVENT_INCOMING_VOICE_DID_STOP, this.instanceId], this.incomingVoiceDidStopHandler);
     };
 
     this.incomingVoiceHandler = (parsedAudioPacket) => {
       if (!this.messageDidStart) {
         this.messageDidStart = true;
+        this.messageStartTime = Date.now();
         /**
          * Incoming voice message started
          * @event IncomingMessage#incoming_voice_did_start
@@ -125,6 +159,8 @@ class IncomingMessage extends Emitter {
         this.emit(Constants.EVENT_INCOMING_VOICE_DID_START, this);
         this.session.onIncomingVoiceDidStart(this);
       }
+
+      this.packetCount++;
 
       /**
        * Incoming voice message packet (with encoded audio)
@@ -138,7 +174,20 @@ class IncomingMessage extends Emitter {
       if (this.decoder) {
         this.decode(parsedAudioPacket);
       }
-    }
+    };
+
+    this.session.on(
+      [Constants.EVENT_INCOMING_VOICE_DATA, this.instanceId],
+      this.incomingVoiceHandler
+    );
+    this.session.on(
+      [Constants.EVENT_INCOMING_VOICE_DID_STOP, this.instanceId],
+      this.incomingVoiceDidStopHandler
+    );
+    this.on(
+      [Constants.EVENT_INCOMING_VOICE_DATA_DECODED, this.instanceId],
+      this.decodedAudioHandler
+    );
   }
 
   decode(parsedAudioPacket) {
@@ -151,6 +200,9 @@ class IncomingMessage extends Emitter {
     }
     this.decoder = new this.options.decoder(this.options);
     this.decoder.ondata = (pcmData) => {
+      if (!pcmData) {
+        return;
+      }
       /**
        * Incoming voice message packet decoded
        * @event IncomingMessage#incoming_voice_data_decoded
@@ -162,19 +214,38 @@ class IncomingMessage extends Emitter {
   }
 
   initPlayer() {
-    if (IncomingMessage.PersistentPlayer &amp;&amp; !this.options.noPersistentPlayer) {
-      this.player = IncomingMessage.PersistentPlayer;
-      this.player.setSampleRate(this.options.sampleRate);
-      return;
-    }
-    if (!this.options.player) {
-      return;
-    }
-    this.player = new this.options.player(this.options);
-    if (this.options.noPersistentPlayer) {
-      return;
-    }
-    IncomingMessage.PersistentPlayer = this.player;
+    return new Promise((resolve, reject) => {
+      if (IncomingMessage.PersistentPlayer &amp;&amp; !this.options.noPersistentPlayer) {
+        this.player = IncomingMessage.PersistentPlayer;
+        this.player.setSampleRate(this.options.sampleRate);
+      } else if (this.options.player) {
+        this.player = new this.options.player(this.options);
+        if (!this.options.noPersistentPlayer) {
+          IncomingMessage.PersistentPlayer = this.player;
+        }
+
+        if (Utils.isFunction(this.player.init)) {
+          const ret = this.player.init();
+
+          if (Utils.isPromise(ret)) {
+            // If the player has an asynchronous init() method - wait here until it's resolved
+            ret.then(() => resolve()).catch((err) => {
+              if (!this.options.noPersistentPlayer &amp;&amp; IncomingMessage.PersistentPlayer) {
+                IncomingMessage.PersistentPlayer = undefined;
+                delete IncomingMessage.PersistentPlayer;
+              }
+              if (this.options.player &amp;&amp; this.player) {
+                this.player = undefined;
+                delete this.player;
+              }
+              reject('Player init failed' + (err ? ': ' + err.toString() : ''));
+            });
+            return;
+          }
+        }
+      }
+      resolve();
+    });
   }
 }
 
@@ -189,13 +260,13 @@ module.exports = IncomingMessage;</code></pre>
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="IncomingImage.html">IncomingImage</a></li><li><a href="IncomingMessage.html">IncomingMessage</a></li><li><a href="OutgoingImage.html">OutgoingImage</a></li><li><a href="OutgoingMessage.html">OutgoingMessage</a></li><li><a href="Sdk.html">Sdk</a></li><li><a href="Session.html">Session</a></li></ul><h3>Interfaces</h3><ul><li><a href="Decoder.html">Decoder</a></li><li><a href="Encoder.html">Encoder</a></li><li><a href="Player.html">Player</a></li><li><a href="Recorder.html">Recorder</a></li></ul><h3>Events</h3><ul><li><a href="Decoder.html#event:decode">decode</a></li><li><a href="IncomingImage.html#event:image">image</a></li><li><a href="IncomingImage.html#event:image_thumbnail">image_thumbnail</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="OutgoingImage.html#event:image_preview_data">image_preview_data</a></li><li><a href="OutgoingImage.html#event:thumbnail_preview_data">thumbnail_preview_data</a></li><li><a href="OutgoingMessage.html#event:data">data</a></li><li><a href="OutgoingMessage.html#event:data_encoded">data_encoded</a></li><li><a href="Session.html#event:error">error</a></li><li><a href="Session.html#event:incoming_image">incoming_image</a></li><li><a href="Session.html#event:incoming_location">incoming_location</a></li><li><a href="Session.html#event:incoming_text_message">incoming_text_message</a></li><li><a href="Session.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="Session.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="Session.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="Session.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="Session.html#event:incoming_voice_will_start">incoming_voice_will_start</a></li><li><a href="Session.html#event:session_connect">session_connect</a></li><li><a href="Session.html#event:session_connection_lost">session_connection_lost</a></li><li><a href="Session.html#event:session_disconnect">session_disconnect</a></li><li><a href="Session.html#event:session_fail_connect">session_fail_connect</a></li><li><a href="Session.html#event:session_start_connect">session_start_connect</a></li><li><a href="Session.html#event:status">status</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="IncomingImage.html">IncomingImage</a></li><li><a href="IncomingMessage.html">IncomingMessage</a></li><li><a href="OutgoingImage.html">OutgoingImage</a></li><li><a href="OutgoingMessage.html">OutgoingMessage</a></li><li><a href="Sdk.html">Sdk</a></li><li><a href="Session.html">Session</a></li></ul><h3>Interfaces</h3><ul><li><a href="Decoder.html">Decoder</a></li><li><a href="Encoder.html">Encoder</a></li><li><a href="Player.html">Player</a></li><li><a href="Recorder.html">Recorder</a></li></ul><h3>Events</h3><ul><li><a href="Decoder.html#event:decode">decode</a></li><li><a href="IncomingImage.html#event:image">image</a></li><li><a href="IncomingImage.html#event:image_thumbnail">image_thumbnail</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="OutgoingImage.html#event:image_preview_data">image_preview_data</a></li><li><a href="OutgoingImage.html#event:thumbnail_preview_data">thumbnail_preview_data</a></li><li><a href="OutgoingMessage.html#event:data">data</a></li><li><a href="OutgoingMessage.html#event:data_encoded">data_encoded</a></li><li><a href="Session.html#event:dispatch_call_status">dispatch_call_status</a></li><li><a href="Session.html#event:error">error</a></li><li><a href="Session.html#event:incoming_image">incoming_image</a></li><li><a href="Session.html#event:incoming_location">incoming_location</a></li><li><a href="Session.html#event:incoming_text_message">incoming_text_message</a></li><li><a href="Session.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="Session.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="Session.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="Session.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="Session.html#event:incoming_voice_fail_start">incoming_voice_fail_start</a></li><li><a href="Session.html#event:incoming_voice_will_start">incoming_voice_will_start</a></li><li><a href="Session.html#event:outgoing_voice_did_stop">outgoing_voice_did_stop</a></li><li><a href="Session.html#event:session_connect">session_connect</a></li><li><a href="Session.html#event:session_connection_lost">session_connection_lost</a></li><li><a href="Session.html#event:session_disconnect">session_disconnect</a></li><li><a href="Session.html#event:session_fail_connect">session_fail_connect</a></li><li><a href="Session.html#event:session_start_connect">session_start_connect</a></li><li><a href="Session.html#event:status">status</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.3</a> on Thu Jun 10 2021 11:52:31 GMT-0500 (Central Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Thu Jan 29 2026 00:17:21 GMT-0500 (Eastern Standard Time)
 </footer>
 
 <script> prettyPrint(); </script>
