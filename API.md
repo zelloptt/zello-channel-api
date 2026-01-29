@@ -64,19 +64,20 @@ Connecting to multiple channels (up to 100) is currently supported for Zello Wor
 
 #### Attributes
 
-| Name | Type | Value  / Description
-|---|---|---
-| `command` | string | `logon`
-| `seq` | integer | Command sequence number
-| `auth_token` | string | (optional) API authentication token. If omitted `refresh_token` is required when connecting to consumer Zello. See [Authentication](#authentication)
+| Name            | Type | Value / Description
+|-----------------|---|---
+| `command`       | string | `logon`
+| `seq`           | integer | Command sequence number
+| `auth_token`    | string | (optional) API authentication token. If omitted `refresh_token` is required when connecting to consumer Zello. See [Authentication](#authentication)
 | `refresh_token` | string | (optional) API refresh token. If omitted `auth_token ` is required when connecting to consumer Zello. See [Authentication](#authentication)
-| `username` | string | (optional) Username to logon with. If not provided the client will connect anonymously. See [Authentication](#authentication)
-| `password` | string | (optional) Password to logon with. Required if username is provided.
-| `channels` | array of strings | The list of names of the channels to connect to. 
-| `listen_only` | boolean | (optional) Set to `true` to connect in listen-only mode.
-| `version` | string | (optional) Client version string. If not provided, the server will use the Channel API server version.
+| `username`      | string | (optional) Username to logon with. If not provided the client will connect anonymously. See [Authentication](#authentication)
+| `password`      | string | (optional) Password to logon with. Required if username is provided.
+| `channels`      | array of strings | The list of names of the channels to connect to. 
+| `listen_only`   | boolean | (optional) Set to `true` to connect in listen-only mode.
+| `version`       | string | (optional) Client version string. If not provided, the server will use the Channel API server version.
 | `platform_type` | string | (optional) Client platform type, any string
 | `platform_name` | string | (optional) Client platform name, any string. If includes `Gateway` or `Kiosk` (case-insensitive), the Zello Alarms service will track the online status of this client.
+| `language`      | string | (optional) Client ISO 639-1 language code. Required for translation channels.
 
 #### Request:
 
@@ -131,7 +132,7 @@ Starts a new stream to the channel. The successful response includes `stream_id`
 
 #### Attributes
 
-| Name | Type | Value  / Description
+| Name | Type | Value / Description
 |---|---|---
 | `command` | string | `start_stream `
 | `seq` | integer | Command sequence number
@@ -201,7 +202,7 @@ Stops outgoing stream. Send this command after you sent the last data packet.
 
 #### Attributes
 
-| Name | Type | Value  / Description
+| Name | Type | Value / Description
 |---|---|---
 | `command` | string | `stop_stream `
 | `seq` | integer | Command sequence number
@@ -221,7 +222,7 @@ Stops outgoing stream. Send this command after you sent the last data packet.
 ```
 
 ### Stream data
-The same binary packet structure is used for any streamed data (e.g. audio) travelling both ways. The `packet_id` field is populated with the packet number for the audio packets sent from the server to a client. When streaming data to the server the `packet_id` value is ignored and should be filled with zeroes.  Fields are stored in network byte order.
+The same binary packet structure is used for any streamed data (e.g. audio) traveling both ways. The `packet_id` field is populated with the packet number for the audio packets sent from the server to a client. When streaming data to the server the `packet_id` value is ignored and should be filled with zeroes. Fields are stored in network byte order.
 
 `{type(8) = 0x01, stream_id(32), packet_id(32), data[]}`
 
@@ -233,7 +234,7 @@ Each image begins with send_image command followed by the sequence of binary pac
 ### `send_image`
 Starts sending a new image to the channel. The successful response includes `image_id` which must be used in all data packets for this image.
 
-| Name | Type | Value  / Description
+| Name | Type | Value / Description
 |---|---|---
 | `command` | string | `send_image `
 | `seq` | integer | Command sequence number
@@ -285,7 +286,7 @@ After successfully connecting to the channel and receiving channel status you ca
 ### `send_text_message`
 Sends a new text message to the channel.
 
-| Name | Type | Value  / Description
+| Name | Type | Value / Description
 |---|---|---
 | `command` | string | `send_text_message`
 | `seq` | integer | Command sequence number
@@ -312,13 +313,13 @@ Sends a new text message to the channel.
 }
 ```
 
-## Sending  locations
+## Sending locations
 After successfully connecting to the channel and receiving channel status you can start sending locations.
 
 ### `send_location`
 Sends user's location to the channel.
 
-| Name | Type | Value  / Description
+| Name | Type | Value / Description
 |---|---|---
 | `command` | string | `send_location`
 | `seq` | integer | Command sequence number
@@ -326,7 +327,7 @@ Sends user's location to the channel.
 | `latitude` | number | Shared location latitude
 | `longitude` | number | Shared location longitude
 | `accuracy` | number | Shared location accuracy in meters
-| `formatted_address` | string |  Shared location reverse geocoding result (street address)
+| `formatted_address` | string | Shared location reverse geocoding result (street address)
 | `for` | string | Optional username to send location to. Other users in the channel won't be receiving this location data 
 
 #### Request:
@@ -359,7 +360,7 @@ Indicates there was a change in channel status, which may include channel being 
 
 #### Attributes
 
-| Name | Type | Value  / Description
+| Name | Type | Value / Description
 |---|---|---
 | `command` | string | `on_channel_status`
 | `channel ` | string | The name of the channel
@@ -392,14 +393,14 @@ Indicates the start of the new incoming stream. This event corresponds to `start
 
 #### Attributes
 
-| Name | Type | Value  / Description
+| Name | Type | Value / Description
 |---|---|---
 | `command` | string | `on_stream_start`
 | `type` | string | Stream type. Only `audio` is currently supported
 | `codec` | string | The name of audio codec used. Required for `audio` streams. Must be `opus`
 | `codec_header` | string | base64-encoded codec header buffer. Required for `opus` streams
 | `packet_duration` | integer | Audio packet duration in milliseconds. Values between 2.5 ms and 60 ms are supported
-| `stream_id ` | integer |  The id of the stream that started
+| `stream_id ` | integer | The id of the stream that started
 | `channel ` | string | The name of the channel
 | `from ` | string | The username of the sender of the message
 | `for ` | string | The username of the recipient of the message if it was sent with `for` parameter 
@@ -426,7 +427,7 @@ Indicates the stop of the incoming stream. This event corresponds to `stop_strea
 
 #### Attributes
 
-| Name | Type | Value  / Description
+| Name | Type | Value / Description
 |---|---|---
 | `command` | string | `on_stream_stop `
 | `stream_id ` | integer | The id of the stream that stopped
@@ -440,13 +441,28 @@ Indicates the stop of the incoming stream. This event corresponds to `stop_strea
 }
 ```
 
+### `on_transcription`
+Transcriptions, when enabled on the Zello Work network, will be delivered for incoming and outgoing messages. They will contain a `stream_id` which
+matches the `stream_id` of a voice message. Transcriptions will happen automatically for completed messages, or when a message hits the one-minute mark. 
+
+#### Attributes
+
+| Name         | Type    | Value / Description
+|--------------|---------|---
+| `command`    | string  | `on_transcription `
+| `text`       | string  | The voice message transcription
+| `stream_id ` | integer | The id of the stream this transcription is for
+| `confidence` | number  | Percentage (0-1) confidence in the transcription accuracy
+| `sender `    | string  | The username of the sender of the message
+| `language `  | string  | The language of the transcription
+| `truncated ` | boolean | Whether the transcription is partial or for the whole message
 
 ### `on_error`
 Indicates a server error.
 
 #### Attributes
 
-| Name | Type | Value  / Description
+| Name | Type | Value / Description
 |---|---|---
 | `command` | string | `on_error `
 | `error ` | string | One of the [error codes](#error-codes)
@@ -465,17 +481,17 @@ Indicates incoming image from the channel. This event corresponds to `send_image
 
 #### Attributes
 
-| Name | Type | Value  / Description
+| Name | Type | Value / Description
 |---|---|---
 | `command` | string | `on_image`
 | `channel` | string | The name of the channel
 | `from ` | string | The username of the sender of the image
 | `for ` | string | The username of the recipient of the image if it was sent with `for` parameter
-| `message_id` | integer |  The id of the image message
+| `message_id` | integer | The id of the image message
 | `type` | string | image content type (`jpeg`)
-| `height` | integer |  Image height (some clients don't provide this value)
-| `width` | integer |  Image width (some clients don't provide this value)
-| `source` | string |  Image source (`camera` or `library`)
+| `height` | integer | Image height (some clients don't provide this value)
+| `width` | integer | Image width (some clients don't provide this value)
+| `source` | string | Image source (`camera` or `library`)
 
 #### Example:
 
@@ -507,14 +523,14 @@ Fields are stored in network byte order similar to audio stream packets.
 Indicates incoming text message from the channel.
 
 #### Attributes
-| Name | Type | Value  / Description
+| Name | Type | Value / Description
 |---|---|---
 | `command` | string | `on_text_message`
 | `channel` | string | The name of the channel
 | `from ` | string | The username of the sender of the text message
 | `for ` | string\|boolean | The username of the recipient of the text message if it was sent with `for` parameter, `false` otherwise
-| `message_id` | integer |  The id of the text message
-| `text` | string |  Message text
+| `message_id` | integer | The id of the text message
+| `text` | string | Message text
 
 #### Example:
 
@@ -533,7 +549,7 @@ Indicates incoming text message from the channel.
 Indicates incoming shared location from the channel.
 
 #### Attributes
-| Name | Type | Value  / Description
+| Name | Type | Value / Description
 |---|---|---
 | `command` | string | `on_location`
 | `channel` | string | The name of the channel
@@ -542,7 +558,7 @@ Indicates incoming shared location from the channel.
 | `message_id` | integer | The id of the shared location message
 | `latitude` | number | Shared location latitude
 | `longitude` | number | Shared location longitude
-| `formatted_address` | string |  Shared location reverse geocoding result (street address) 
+| `formatted_address` | string | Shared location reverse geocoding result (street address) 
 | `accuracy` | number | Shared location accuracy in meters 
 
 
