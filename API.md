@@ -393,18 +393,19 @@ Indicates the start of the new incoming stream. This event corresponds to `start
 
 #### Attributes
 
-| Name | Type | Value / Description
-|---|---|---
-| `command` | string | `on_stream_start`
-| `type` | string | Stream type. Only `audio` is currently supported
-| `codec` | string | The name of audio codec used. Required for `audio` streams. Must be `opus`
-| `codec_header` | string | base64-encoded codec header buffer. Required for `opus` streams
-| `packet_duration` | integer | Audio packet duration in milliseconds. Values between 2.5 ms and 60 ms are supported
-| `stream_id ` | integer | The id of the stream that started
-| `channel ` | string | The name of the channel
-| `from ` | string | The username of the sender of the message
-| `for ` | string | The username of the recipient of the message if it was sent with `for` parameter 
-
+| Name                    | Type    | Value / Description
+|-------------------------|---------|---
+| `command`               | string  | `on_stream_start`
+| `type`                  | string  | Stream type. Only `audio` is currently supported
+| `codec`                 | string  | The name of audio codec used. Required for `audio` streams. Must be `opus`
+| `codec_header`          | string  | base64-encoded codec header buffer. Required for `opus` streams
+| `packet_duration`       | integer | Audio packet duration in milliseconds. Values between 2.5 ms and 60 ms are supported
+| `stream_id `            | integer | The id of the stream that started
+| `channel `              | string  | The name of the channel
+| `from `                 | string  | The username of the sender of the message
+| `for `                  | string  | The username of the recipient of the message if it was sent with `for` parameter 
+| `translations_enabled ` | boolean | (optional) Whether translations are enabled for this channel
+| `language `             | string  | (optional) The ISO 639-1 language code of the sender
 
 #### Example:
 
@@ -443,19 +444,20 @@ Indicates the stop of the incoming stream. This event corresponds to `stop_strea
 
 ### `on_transcription`
 Transcriptions, when enabled on the Zello Work network, will be delivered for incoming and outgoing messages. They will contain a `stream_id` which
-matches the `stream_id` of a voice message. Transcriptions will happen automatically for completed messages, or when a message hits the one-minute mark. 
+matches the `stream_id` of a voice message. Transcriptions will happen automatically for completed messages, or when a message hits the one-minute mark.
 
 #### Attributes
 
-| Name         | Type    | Value / Description
-|--------------|---------|---
-| `command`    | string  | `on_transcription `
-| `text`       | string  | The voice message transcription
-| `stream_id ` | integer | The id of the stream this transcription is for
-| `confidence` | number  | Percentage (0-1) confidence in the transcription accuracy
-| `sender `    | string  | The username of the sender of the message
-| `language `  | string  | The language of the transcription
-| `truncated ` | boolean | Whether the transcription is partial or for the whole message
+| Name            | Type             | Value / Description
+|-----------------|------------------|---
+| `command`       | string           | `on_transcription `
+| `text`          | string           | The voice message transcription
+| `stream_id `    | integer          | The id of the stream this transcription is for
+| `confidence`    | number           | Percentage (0-1) confidence in the transcription accuracy
+| `sender `       | string           | The username of the sender of the message
+| `language `     | string           | The ISO 639-1 language code of the transcription
+| `truncated `    | boolean          | Whether the transcription is partial or for the whole message
+| `translations ` | array of objects | (optional) Translations of this transcription
 
 ### `on_error`
 Indicates a server error.
