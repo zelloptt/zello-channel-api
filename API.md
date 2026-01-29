@@ -457,7 +457,7 @@ matches the `stream_id` of a voice message. Transcriptions will happen automatic
 | `sender `       | string           | The username of the sender of the message
 | `language `     | string           | The ISO 639-1 language code of the transcription
 | `truncated `    | boolean          | Whether the transcription is partial or for the whole message
-| `translations ` | array of objects | (optional) Translations of this transcription
+| `translations ` | array of objects | (optional) Translations of this transcription. Each object contains two strings, `language` and `message`
 
 ### `on_error`
 Indicates a server error.
