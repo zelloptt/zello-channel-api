@@ -26,7 +26,13 @@
     
     <section>
         <article>
-            <pre class="prettyprint source linenums"><code>/**
+            <pre class="prettyprint source linenums"><code>const RecorderState = Object.freeze({
+  Inactive: "inactive",
+  Recording: "recording",
+  Paused: "paused"
+});
+
+/**
  * Recorder interface. Recorder is used by &lt;code>OutgoingMessage&lt;/code> to record and send voice data
  * Custom recorder implementation should call method &lt;code>onready&lt;/code> once recorder is initialized and method
  * &lt;code>ondata&lt;/code> once PCM data portion is ready
@@ -39,13 +45,15 @@ class Recorder {
       throw new Error("Recording is not supported in this browser");
     }
     this.options = Object.assign({
-      bufferLength: 4096,
+      bufferLength: 0,
       monitorGain: 0,
       recordingGain: 1,
+      useScriptProcessorRecorder: false,
+      numberOfChannels: 1,
       mediaConstraints: { audio: true }
     }, options);
     this.encoder = encoder;
-    this.state = "inactive";
+    this.state = RecorderState.Inactive;
   }
 
   static getAudioContext() {
@@ -79,10 +87,15 @@ class Recorder {
   }
 
   disconnectNodes() {
-    this.monitorGainNode.disconnect();
-    this.scriptProcessorNode.disconnect();
-    this.recordingGainNode.disconnect();
     this.sourceNode.disconnect();
+    this.recordingGainNode.disconnect();
+    this.monitorGainNode.disconnect();
+
+    if (this.options.useScriptProcessorRecorder) {
+      this.scriptProcessorNode.disconnect();
+    } else {
+      this.audioWorkletNode.disconnect();
+    }
   }
 
   getSampleRate() {
@@ -90,14 +103,19 @@ class Recorder {
   }
 
   encodeBuffers(inputBuffer) {
-    if (this.state !== "recording") {
+    if (this.state !== RecorderState.Recording) {
       return;
     }
-    let buffers = [];
-    for (let i = 0; i &lt; inputBuffer.numberOfChannels; i++) {
-      buffers[i] = inputBuffer.getChannelData(i);
+
+    if (this.options.useScriptProcessorRecorder) {
+      const buffers = [];
+      for (let i = 0; i &lt; inputBuffer.numberOfChannels; i++) {
+        buffers[i] = inputBuffer.getChannelData(i);
+      }
+      this.ondata(buffers);
+    } else {
+      this.ondata(inputBuffer);
     }
-    this.ondata(buffers);
   }
 
   initAudioContext() {
@@ -108,8 +126,34 @@ class Recorder {
     return this.audioContext;
   }
 
-  initAudioGraph(fromInputDeviceChange = false) {
+  initScriptProcessor() {
+    return new Promise((resolve) => {
+      this.scriptProcessorNode = this.audioContext.createScriptProcessor(
+        this.options.bufferLength,
+        this.options.numberOfChannels,
+        this.options.numberOfChannels
+      );
+      this.scriptProcessorNode.connect(this.audioContext.destination);
+      this.scriptProcessorNode.onaudioprocess = (e) => {
+        this.encodeBuffers(e.inputBuffer);
+        if (this.bufferLimit !== undefined &amp;&amp; ++this.buffersEncoded >= this.bufferLimit) {
+          this.clearStopTimeout()
+          this.stop();
+        }
+      };
 
+      this.monitorGainNode = this.audioContext.createGain();
+      this.setMonitorGain(this.options.monitorGain);
+      this.monitorGainNode.connect(this.audioContext.destination);
+
+      this.recordingGainNode = this.audioContext.createGain();
+      this.setRecordingGain(this.options.recordingGain);
+      this.recordingGainNode.connect(this.scriptProcessorNode);
+      resolve();
+    })
+  }
+
+  initAudioGraph(fromInputDeviceChange = false) {
     // First buffer can contain old data. Don't encode it.
     if (!fromInputDeviceChange) {
       this.encodeBuffers = () => {
@@ -117,23 +161,46 @@ class Recorder {
       }; 
     }
 
-    this.scriptProcessorNode = this.audioContext.createScriptProcessor(
-      this.options.bufferLength,
-      this.options.numberOfChannels,
-      this.options.numberOfChannels
-    );
-    this.scriptProcessorNode.connect(this.audioContext.destination);
-    this.scriptProcessorNode.onaudioprocess = (e) => {
-      this.encodeBuffers(e.inputBuffer);
-    };
+    if (this.options.useScriptProcessorRecorder) {
+      return this.initScriptProcessor();
+    }
 
-    this.monitorGainNode = this.audioContext.createGain();
-    this.setMonitorGain(this.options.monitorGain);
-    this.monitorGainNode.connect(this.audioContext.destination);
+    return this.audioContext.audioWorklet.addModule(new URL('./recorderWorklet.js', import.meta.url)).then(() => {
+      this.audioWorkletNode = new AudioWorkletNode(
+        this.audioContext,
+        'recorder-processor',
+        {
+          numberOfInputs: 1,
+          numberOfOutputs: 1,
+          outputChannelCount: [this.options.numberOfChannels]
+        }
+      );
 
-    this.recordingGainNode = this.audioContext.createGain();
-    this.setRecordingGain(this.options.recordingGain);
-    this.recordingGainNode.connect(this.scriptProcessorNode);
+      this.audioWorkletNode.connect(this.audioContext.destination);
+
+      this.audioWorkletNode.port.onmessage = (event) => {
+        if (event.data.debug) {
+          this.options.log?.(`Received from recorder worklet: ${event.data.debug}`);
+          return;
+        }
+        const { buffers } = event.data;
+
+        this.encodeBuffers(buffers);
+
+        if (this.bufferLimit !== undefined &amp;&amp; ++this.buffersEncoded >= this.bufferLimit) {
+          this.clearStopTimeout();
+          this.stop();
+        }
+      };
+
+      this.monitorGainNode = this.audioContext.createGain();
+      this.setMonitorGain(this.options.monitorGain);
+      this.monitorGainNode.connect(this.audioContext.destination);
+
+      this.recordingGainNode = this.audioContext.createGain();
+      this.setRecordingGain(this.options.recordingGain);
+      this.recordingGainNode.connect(this.audioWorkletNode);
+    })
   };
 
   initSourceNode() {
@@ -142,19 +209,21 @@ class Recorder {
     }
     return global.navigator.mediaDevices.getUserMedia(this.options.mediaConstraints).then((stream) => {
       this.stream = stream;
-      return this.audioContext.createMediaStreamSource(stream);
+      const sourceNode = this.audioContext.createMediaStreamSource(stream);
+      this.options.log?.(`mic has ${sourceNode.channelCount} channels and ${sourceNode.numberOfOutputs} outputs`);
+      return sourceNode;
     });
   }
 
   pause() {
-    if (this.state === "recording") {
-      this.state = "paused";
+    if (this.state === RecorderState.Recording) {
+      this.state = RecorderState.Paused;
     }
   }
 
   resume() {
-    if (this.state === "paused") {
-      this.state = "recording";
+    if (this.state === RecorderState.Paused) {
+      this.state = RecorderState.Recording;
     }
   }
 
@@ -175,52 +244,77 @@ class Recorder {
   }
 
   changeInputDevice(deviceId) {
-    if (this.state !== "recording") {
+    if (this.state !== RecorderState.Recording) {
       return;
     }
     this.options.mediaConstraints.audio = {deviceId: {exact: deviceId}};
     this.disconnectNodes();
     this.clearStream();
     this.initAudioContext();
-    this.initAudioGraph(true);
-    this.initSourceNode().then((sourceNode) => {
-      this.sourceNode = sourceNode;
-      this.sourceNode.connect(this.monitorGainNode);
-      this.sourceNode.connect(this.recordingGainNode);
-    });
+    return this.initAudioGraph(true).then(() => {
+      return this.initSourceNode().then((sourceNode) => {
+        this.sourceNode = sourceNode;
+        this.sourceNode.connect(this.monitorGainNode);
+        this.sourceNode.connect(this.recordingGainNode);
+      });
+    })
   }
 
   init() {
-    if (this.state !== "inactive") {
+    if (this.state !== RecorderState.Inactive) {
       return global.Promise.reject("Recording is not inactive");
     }
 
     this.initAudioContext();
-    this.initAudioGraph();
-
-    return this.initSourceNode().then((sourceNode) => {
-      this.state = "recording";
-      this.sourceNode = sourceNode;
-      this.sourceNode.connect(this.monitorGainNode);
-      this.sourceNode.connect(this.recordingGainNode);
-      this.onready();
-    });
+    return this.initAudioGraph().then(() => {
+      return this.initSourceNode().then((sourceNode) => {
+        this.state = RecorderState.Recording;
+        this.sourceNode = sourceNode;
+        this.sourceNode.connect(this.monitorGainNode);
+        this.sourceNode.connect(this.recordingGainNode);
+        this.onready();
+      });
+    })
   }
 
   stop() {
-    if (this.state !== "inactive") {
-      this.state = "inactive";
-      this.monitorGainNode.disconnect();
-      this.scriptProcessorNode.disconnect();
-      this.recordingGainNode.disconnect();
-      this.sourceNode.disconnect();
+    if (this.state === RecorderState.Inactive) {
+      return;
+    }
 
-      if (!this.options.leaveStreamOpen) {
-        this.clearStream();
-      }
+    this.state = RecorderState.Inactive;
+    this.disconnectNodes();
 
-      // send to encoder
-      this.encoder.postMessage({command: "done"});
+    if (!this.options.leaveStreamOpen) {
+      this.clearStream();
+    }
+
+    // signal encoder
+    this.encoder.postMessage({command: "done"});
+  }
+
+  /**
+   * A delayed stop that allows for the processing of bufferLimit more audio buffers before stopping.
+   */
+  stopAfter(bufferLimit) {
+    // Protection against multiple stopAfter calls
+    this.clearStopTimeout();
+    // Failsafe in case we don't receive additional encoded audio
+    this.stopTimeout = setTimeout(() => {
+      this.stop();
+    }, 1000); // ms. TODO Is there a way to calculate this value mathematically?
+    this.setBufferLimit(bufferLimit);
+  }
+
+  setBufferLimit(bufferLimit = 1) {
+    this.bufferLimit = bufferLimit;
+    this.buffersEncoded = 0;
+  }
+
+  clearStopTimeout() {
+    if (this.stopTimeout) {
+      clearTimeout(this.stopTimeout);
+      this.stopTimeout = undefined;
     }
   }
 
@@ -248,13 +342,13 @@ module.exports = Recorder;</code></pre>
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="IncomingImage.html">IncomingImage</a></li><li><a href="IncomingMessage.html">IncomingMessage</a></li><li><a href="OutgoingImage.html">OutgoingImage</a></li><li><a href="OutgoingMessage.html">OutgoingMessage</a></li><li><a href="Sdk.html">Sdk</a></li><li><a href="Session.html">Session</a></li></ul><h3>Interfaces</h3><ul><li><a href="Decoder.html">Decoder</a></li><li><a href="Encoder.html">Encoder</a></li><li><a href="Player.html">Player</a></li><li><a href="Recorder.html">Recorder</a></li></ul><h3>Events</h3><ul><li><a href="Decoder.html#event:decode">decode</a></li><li><a href="IncomingImage.html#event:image">image</a></li><li><a href="IncomingImage.html#event:image_thumbnail">image_thumbnail</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="OutgoingImage.html#event:image_preview_data">image_preview_data</a></li><li><a href="OutgoingImage.html#event:thumbnail_preview_data">thumbnail_preview_data</a></li><li><a href="OutgoingMessage.html#event:data">data</a></li><li><a href="OutgoingMessage.html#event:data_encoded">data_encoded</a></li><li><a href="Session.html#event:error">error</a></li><li><a href="Session.html#event:incoming_image">incoming_image</a></li><li><a href="Session.html#event:incoming_location">incoming_location</a></li><li><a href="Session.html#event:incoming_text_message">incoming_text_message</a></li><li><a href="Session.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="Session.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="Session.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="Session.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="Session.html#event:incoming_voice_will_start">incoming_voice_will_start</a></li><li><a href="Session.html#event:session_connect">session_connect</a></li><li><a href="Session.html#event:session_connection_lost">session_connection_lost</a></li><li><a href="Session.html#event:session_disconnect">session_disconnect</a></li><li><a href="Session.html#event:session_fail_connect">session_fail_connect</a></li><li><a href="Session.html#event:session_start_connect">session_start_connect</a></li><li><a href="Session.html#event:status">status</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="IncomingImage.html">IncomingImage</a></li><li><a href="IncomingMessage.html">IncomingMessage</a></li><li><a href="OutgoingImage.html">OutgoingImage</a></li><li><a href="OutgoingMessage.html">OutgoingMessage</a></li><li><a href="Sdk.html">Sdk</a></li><li><a href="Session.html">Session</a></li></ul><h3>Interfaces</h3><ul><li><a href="Decoder.html">Decoder</a></li><li><a href="Encoder.html">Encoder</a></li><li><a href="Player.html">Player</a></li><li><a href="Recorder.html">Recorder</a></li></ul><h3>Events</h3><ul><li><a href="Decoder.html#event:decode">decode</a></li><li><a href="IncomingImage.html#event:image">image</a></li><li><a href="IncomingImage.html#event:image_thumbnail">image_thumbnail</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="OutgoingImage.html#event:image_preview_data">image_preview_data</a></li><li><a href="OutgoingImage.html#event:thumbnail_preview_data">thumbnail_preview_data</a></li><li><a href="OutgoingMessage.html#event:data">data</a></li><li><a href="OutgoingMessage.html#event:data_encoded">data_encoded</a></li><li><a href="Session.html#event:dispatch_call_status">dispatch_call_status</a></li><li><a href="Session.html#event:error">error</a></li><li><a href="Session.html#event:incoming_image">incoming_image</a></li><li><a href="Session.html#event:incoming_location">incoming_location</a></li><li><a href="Session.html#event:incoming_text_message">incoming_text_message</a></li><li><a href="Session.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="Session.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="Session.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="Session.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="Session.html#event:incoming_voice_fail_start">incoming_voice_fail_start</a></li><li><a href="Session.html#event:incoming_voice_will_start">incoming_voice_will_start</a></li><li><a href="Session.html#event:outgoing_voice_did_stop">outgoing_voice_did_stop</a></li><li><a href="Session.html#event:session_connect">session_connect</a></li><li><a href="Session.html#event:session_connection_lost">session_connection_lost</a></li><li><a href="Session.html#event:session_disconnect">session_disconnect</a></li><li><a href="Session.html#event:session_fail_connect">session_fail_connect</a></li><li><a href="Session.html#event:session_start_connect">session_start_connect</a></li><li><a href="Session.html#event:status">status</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.3</a> on Thu Jun 10 2021 11:52:31 GMT-0500 (Central Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Wed Jan 28 2026 23:47:31 GMT-0500 (Eastern Standard Time)
 </footer>
 
 <script> prettyPrint(); </script>
