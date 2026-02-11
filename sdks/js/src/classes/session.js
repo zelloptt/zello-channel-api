@@ -54,6 +54,8 @@ class Session extends Emitter {
     this.reconnectTimeout = null;
     this.connectTimeout = null;
     this.channelConfigurationError = false;
+    this.heartbeatTimer = null;
+    this.heartbeatTimeoutMs = typeof this.options.heartbeatTimeoutMs === 'number' ? this.options.heartbeatTimeoutMs : null;
 
     if (this.options.enableLogging) {
       this.log = Utils.enableLogging();
@@ -203,6 +205,7 @@ session.connect(function(err, result) {
 
     this.wsConnection.addEventListener('open', () => {
       this.clearConnectTimeout();
+      this.startHeartbeatMonitor();
       return dfd.resolve();
     });
 
@@ -217,6 +220,7 @@ session.connect(function(err, result) {
 
     this.wsConnection.addEventListener('close', (closeEvent) => {
       this.clearConnectTimeout();
+      this.stopHeartbeatMonitor();
       if (this.selfDisconnect) {
         this.selfDisconnect = false;
         return;
@@ -293,9 +297,48 @@ session.connect(function(err, result) {
   disconnect() {
     this.selfDisconnect = true;
     this.clearConnectTimeout();
+    this.stopHeartbeatMonitor();
     if (this.wsConnection) {
       this.wsConnection.close();
     }
+  }
+
+  startHeartbeatMonitor() {
+    if (this.heartbeatTimeoutMs == null) {
+      return;
+    }
+
+    this.resetHeartbeatTimer();
+  }
+
+  resetHeartbeatTimer() {
+    if (this.heartbeatTimeoutMs == null) {
+      return;
+    }
+
+    if (this.heartbeatTimer) {
+      clearTimeout(this.heartbeatTimer);
+    }
+
+    this.heartbeatTimer = setTimeout(() => {
+      this.log('Heartbeat timeout');
+
+      this.emit(
+        Constants.EVENT_SESSION_CONNECTION_LOST,
+        'heartbeat timeout'
+      );
+
+      this.disconnect();
+      this.connectOrReconnect(null, true);
+    }, this.heartbeatTimeoutMs);
+  }
+
+  stopHeartbeatMonitor() {
+    if (!this.heartbeatTimer) {
+      return;
+    }
+    clearTimeout(this.heartbeatTimer);
+    this.heartbeatTimer = null;
   }
 
   wsBinaryDataHandler(data) {
@@ -451,6 +494,11 @@ session.connect(function(err, result) {
   }
 
   wsMessageHandler(data) {
+    if (typeof data === 'string' && data === '__heartbeat__') {
+      this.resetHeartbeatTimer();
+      return;
+    }
+
     let jsonData = null;
     try {
       jsonData = JSON.parse(data);
