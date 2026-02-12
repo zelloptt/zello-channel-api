@@ -5,7 +5,7 @@ To use the Channel API or SDK with Zello Friends and Family you'll need a valid 
 ## Generate API keys and development token
 
 1. Go to https://developers.zello.com/ and click __Login__
-2. Enter your Zello username and password. If you don't have a Zello account, [download the Zello app](https://zello.com/personal/download/) and create one.
+2. Enter your Zello username and password. If you don't have a Zello account, [download the Zello app](https://zello.com/downloads/) and create one.
 3. Complete all fields in the developer profile and click __Submit__
 4. Click __Keys__ and __Add Key__
 5. Copy and save __Sample Development Token__, __Issuer__, and __Private Key__. Make sure you copy each of the values completely using Select All.
