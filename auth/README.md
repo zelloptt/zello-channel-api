@@ -1,6 +1,6 @@
 ## Channel API Authentication
 
-> __Note__: The following applies only to the Zello Friends & Family platform. If you are using the Channel API with a 
+> __Note__: The following applies only to the Zello Friends and Family platform. If you are using the Channel API with a 
 Zello Work account, you should omit the `auth_token` property from your `logon` command.
 
 The Zello Channel API relies on the [JWT](https://jwt.io/introduction/) standard

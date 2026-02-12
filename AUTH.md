@@ -1,6 +1,6 @@
 # Zello Channel API auth tokens
 
-To use the Channel API or SDK with Zello Friends & Family you'll need a valid access token. This document describes how to get one.
+To use the Channel API or SDK with Zello Friends and Family you'll need a valid access token. This document describes how to get one.
 
 ## Generate API keys and development token
 
