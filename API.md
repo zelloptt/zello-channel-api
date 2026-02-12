@@ -10,12 +10,12 @@ This document is intended for developers interested in implementation of their o
 
 This API supports a subset of Zello features and is currently focused on sending and receiving channel voice messages. See [Supported features](#supported-features) for the complete list.
 
-To access the API you will need valid account credentials and (for Zello Friends & Family) a valid access token, based on the [JWT](https://jwt.io/) standard. See [Authentication](#authentication).
+To access the API you will need valid account credentials and (for Zello Friends and Family) a valid access token, based on the [JWT](https://jwt.io/) standard. See [Authentication](#authentication).
 
 ## API entry points
 | Service                 | WebSocket URL
 |-------------------------|---
-| Zello Friends & Family  | wss://zello.io/ws
+| Zello Friends and Family  | wss://zello.io/ws
 | Zello Work              | wss://zellowork.io/ws/`network name`
 | Zello Enterprise Server | wss://`your server domain`/ws/mesh
 
@@ -29,15 +29,15 @@ Anonymous accounts:
 
 * No need to provide username or password
 * Can access unrestricted channels in listen only mode
-* Only supported with Zello Friends & Family
-* A valid [auth token](AUTH.md) is required for Zello Friends & Family
+* Only supported with Zello Friends and Family
+* A valid [auth token](AUTH.md) is required for Zello Friends and Family
 
 Named accounts:
 
 * Must include a valid username and password
 * Have full access to authorized channels
-* Supported for both Zello Work and Zello Friends & Family
-* A valid [auth token](AUTH.md) is required for Zello Friends & Family
+* Supported for both Zello Work and Zello Friends and Family
+* A valid [auth token](AUTH.md) is required for Zello Friends and Family
 
 ## Connection keepalive
 The API monitors connectivity by sending a [WebSocket Ping frame](https://datatracker.ietf.org/doc/html/rfc6455#section-5.5.2) to the client every 30 seconds. The WebSocket client must respond to the Ping frame with a Pong frame. If a client takes longer than 30 seconds to respond with a Pong frame, the API terminates the connection.
@@ -68,12 +68,12 @@ Connecting to multiple channels (up to 100) is currently supported for Zello Wor
 |-----------------|---|---
 | `command`       | string | `logon`
 | `seq`           | integer | Command sequence number
-| `auth_token`    | string | (Zello Friends & Family only) API authentication token. If omitted `refresh_token` is required. See [Authentication](#authentication).
-| `refresh_token` | string | (Zello Friends & Family only) API refresh token. If omitted `auth_token ` is required. See [Authentication](#authentication).
-| `username`      | string | (optional for Zello Friends & Family) Username to logon with. If not provided the client will connect anonymously. See [Authentication](#authentication)
-| `password`      | string | (optional for Zello Friends & Family) Password to logon with. Required if username is provided.
+| `auth_token`    | string | (Zello Friends and Family only) API authentication token. If omitted `refresh_token` is required. See [Authentication](#authentication).
+| `refresh_token` | string | (Zello Friends and Family only) API refresh token. If omitted `auth_token ` is required. See [Authentication](#authentication).
+| `username`      | string | (optional for Zello Friends and Family) Username to logon with. If not provided the client will connect anonymously. See [Authentication](#authentication).
+| `password`      | string | (optional for Zello Friends and Family) Password to logon with. Required if username is provided.
 | `channels`      | array of strings | The list of names of the channels to connect to. 
-| `listen_only`   | boolean | (optional for Zello Friends & Family) Set to `true` to connect in listen-only mode.
+| `listen_only`   | boolean | (optional; supported on Zello Friends and Family only) Set to `true` to connect in listen-only mode.
 | `version`       | string | (optional) Client version string. If not provided, the server will use the Channel API server version.
 | `platform_type` | string | (optional) Client platform type, any string
 | `platform_name` | string | (optional) Client platform name, any string. If includes `Gateway` or `Kiosk` (case-insensitive), the Zello Alarms service will track the online status of this client.
@@ -107,7 +107,7 @@ or
   "error": "error code"
 }
 ```
-### Zello Friends & Family
+### Zello Friends and Family
 
 #### Request:
 ```json
@@ -631,7 +631,7 @@ Indicates incoming shared location from the channel.
 ## Supported features
 
 
-|Feature| Zello Friends & Family |Zello Work
+|Feature| Zello Friends and Family |Zello Work
 |---|------------------------|---
 |Access channels using authorized user credentials | Supported              | Supported
 |Access channels anonymously in listen only mode | Supported              | Not supported
