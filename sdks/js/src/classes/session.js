@@ -46,6 +46,9 @@ class Session extends Emitter {
     this.connectAttempts = this.maxConnectAttempts;
     this.connectRetryTimeoutMs = this.options.connectRetryTimeoutMs;
     this.connectTimeoutMs = this.options.connectTimeoutMs;
+    this.heartbeatIntervalMs = this.options.clientPing?.intervalMs;
+    this.heartbeatMissedPongsTimeout = this.options.clientPing?.missedPongsTimeout;
+    this.heartbeatEnabled = !!this.heartbeatIntervalMs && !!this.heartbeatMissedPongsTimeout;
     this.selfDisconnect = false;
     this.incomingMessages = {};
     this.activeOutgoingMessage = null;
@@ -54,6 +57,10 @@ class Session extends Emitter {
     this.reconnectTimeout = null;
     this.connectTimeout = null;
     this.channelConfigurationError = false;
+
+    this.heartbeatTimer = null;
+    this.awaitingServerPong = false;
+    this.missedPongs = 0;
 
     if (this.options.enableLogging) {
       this.log = Utils.enableLogging();
@@ -203,6 +210,7 @@ session.connect(function(err, result) {
 
     this.wsConnection.addEventListener('open', () => {
       this.clearConnectTimeout();
+      this.startHeartbeat();
       return dfd.resolve();
     });
 
@@ -217,6 +225,7 @@ session.connect(function(err, result) {
 
     this.wsConnection.addEventListener('close', (closeEvent) => {
       this.clearConnectTimeout();
+      this.stopHeartbeat();
       if (this.selfDisconnect) {
         this.selfDisconnect = false;
         return;
@@ -236,6 +245,58 @@ session.connect(function(err, result) {
       }
     });
     return dfd.promise;
+  }
+
+  startHeartbeat() {
+    if (!this.heartbeatEnabled) {
+      return;
+    }
+    this.stopHeartbeat();
+    alert(`[clientPing] start`);
+
+    this.heartbeatTimer = setInterval(() => {
+      if (!this.wsConnection || this.wsConnection.readyState !== WebSocket.OPEN) {
+        alert('[clientPing] tick skipped (socket not OPEN)');
+        return;
+      }
+
+      if (this.awaitingServerPong) {
+        this.missedPongs += 1;
+        alert(`[clientPing] missed pong (#${this.missedPongs})`);
+      } else {
+        this.awaitingServerPong = true;
+        alert('[clientPing] -> send PING');
+        try {
+          this.wsConnection.send(new Uint8Array([Constants.MESSAGE_TYPE_PING]));
+        } catch (e) {
+          // If send fails, treat like missed pong
+          this.missedPongs += 1;
+          alert(`[clientPing] send failed, missed pong`);
+        }
+      }
+
+      if (this.missedPongs >= this.heartbeatMissedPongsTimeout) {
+        alert(`[clientPing] TIMEOUT`);
+        this.emit(Constants.EVENT_SESSION_CONNECTION_LOST, 'heartbeat timeout');
+      }
+    }, this.heartbeatIntervalMs);
+  }
+
+  stopHeartbeat() {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
+    this.awaitingServerPong = false;
+    this.missedPongs = 0;
+  }
+
+  handleServerPong() {
+    if (!this.heartbeatEnabled) {
+      return;
+    }
+    this.awaitingServerPong = false;
+    this.missedPongs = 0;
   }
 
   doLogon(refreshToken = '') {
@@ -293,6 +354,7 @@ session.connect(function(err, result) {
   disconnect() {
     this.selfDisconnect = true;
     this.clearConnectTimeout();
+    this.stopHeartbeat();
     if (this.wsConnection) {
       this.wsConnection.close();
     }
@@ -451,6 +513,15 @@ session.connect(function(err, result) {
   }
 
   wsMessageHandler(data) {
+    if (this.heartbeatEnabled && data instanceof ArrayBuffer) {
+      const u8 = new Uint8Array(data);
+      if (u8.length === 1 && u8[0] === Constants.MESSAGE_TYPE_PONG) {
+        alert('[clientPing] message handler saw PONG');
+        this.handleServerPong();
+        return;
+      }
+    }
+
     let jsonData = null;
     try {
       jsonData = JSON.parse(data);
