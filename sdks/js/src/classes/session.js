@@ -57,10 +57,9 @@ class Session extends Emitter {
     this.reconnectTimeout = null;
     this.connectTimeout = null;
     this.channelConfigurationError = false;
-
     this.heartbeatTimer = null;
-    this.awaitingServerPong = false;
-    this.missedPongs = 0;
+    this.heartbeatAwaitingServerPong = false;
+    this.heartbeatMissedPongs = 0;
 
     if (this.options.enableLogging) {
       this.log = Utils.enableLogging();
@@ -252,31 +251,25 @@ session.connect(function(err, result) {
       return;
     }
     this.stopHeartbeat();
-    alert(`[clientPing] start`);
 
     this.heartbeatTimer = setInterval(() => {
       if (!this.wsConnection || this.wsConnection.readyState !== WebSocket.OPEN) {
-        alert('[clientPing] tick skipped (socket not OPEN)');
         return;
       }
 
-      if (this.awaitingServerPong) {
-        this.missedPongs += 1;
-        alert(`[clientPing] missed pong (#${this.missedPongs})`);
+      if (this.heartbeatAwaitingServerPong) {
+        this.heartbeatMissedPongs += 1;
       } else {
-        this.awaitingServerPong = true;
-        alert('[clientPing] -> send PING');
+        this.heartbeatAwaitingServerPong = true;
         try {
           this.wsConnection.send(new Uint8Array([Constants.MESSAGE_TYPE_PING]));
         } catch (e) {
           // If send fails, treat like missed pong
-          this.missedPongs += 1;
-          alert(`[clientPing] send failed, missed pong`);
+          this.heartbeatMissedPongs += 1;
         }
       }
 
-      if (this.missedPongs >= this.heartbeatMissedPongsTimeout) {
-        alert(`[clientPing] TIMEOUT`);
+      if (this.heartbeatMissedPongs >= this.heartbeatMissedPongsTimeout) {
         this.emit(Constants.EVENT_SESSION_CONNECTION_LOST, 'heartbeat timeout');
       }
     }, this.heartbeatIntervalMs);
@@ -287,16 +280,16 @@ session.connect(function(err, result) {
       clearInterval(this.heartbeatTimer);
       this.heartbeatTimer = null;
     }
-    this.awaitingServerPong = false;
-    this.missedPongs = 0;
+    this.heartbeatAwaitingServerPong = false;
+    this.heartbeatMissedPongs = 0;
   }
 
   handleServerPong() {
     if (!this.heartbeatEnabled) {
       return;
     }
-    this.awaitingServerPong = false;
-    this.missedPongs = 0;
+    this.heartbeatAwaitingServerPong = false;
+    this.heartbeatMissedPongs = 0;
   }
 
   doLogon(refreshToken = '') {
@@ -516,7 +509,6 @@ session.connect(function(err, result) {
     if (this.heartbeatEnabled && data instanceof ArrayBuffer) {
       const u8 = new Uint8Array(data);
       if (u8.length === 1 && u8[0] === Constants.MESSAGE_TYPE_PONG) {
-        alert('[clientPing] message handler saw PONG');
         this.handleServerPong();
         return;
       }
