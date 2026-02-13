@@ -47,8 +47,8 @@ class Session extends Emitter {
     this.connectRetryTimeoutMs = this.options.connectRetryTimeoutMs;
     this.connectTimeoutMs = this.options.connectTimeoutMs;
     this.heartbeatIntervalMs = this.options.clientPing?.intervalMs;
-    this.heartbeatMissedPongsTimeout = this.options.clientPing?.missedPongsTimeout;
-    this.heartbeatEnabled = !!this.heartbeatIntervalMs && !!this.heartbeatMissedPongsTimeout;
+    this.heartbeatConsecutiveMissedPongsThreshold = this.options.clientPing?.consecutiveMissedPongsThreshold;
+    this.heartbeatEnabled = !!this.heartbeatIntervalMs && !!this.heartbeatConsecutiveMissedPongsThreshold;
     this.selfDisconnect = false;
     this.incomingMessages = {};
     this.activeOutgoingMessage = null;
@@ -269,7 +269,7 @@ session.connect(function(err, result) {
         }
       }
 
-      if (this.heartbeatMissedPongs >= this.heartbeatMissedPongsTimeout) {
+      if (this.heartbeatMissedPongs >= this.heartbeatConsecutiveMissedPongsThreshold) {
         this.emit(Constants.EVENT_SESSION_CONNECTION_LOST, 'heartbeat timeout');
       }
     }, this.heartbeatIntervalMs);
