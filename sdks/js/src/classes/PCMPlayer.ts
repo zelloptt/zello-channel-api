@@ -123,7 +123,7 @@ class PCMPlayer {
     }
 
     const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
-    this.audioCtx = new AudioCtx();
+    this.audioCtx = new AudioCtx({ sampleRate: this.options.sampleRate });
 
     await this.webAudioTouchUnlock(this.audioCtx);
 
@@ -396,14 +396,19 @@ class PCMPlayer {
   /**
    * Converts raw PCM data to Float32Array.
    *
-   * 32-bit float encoding (maxValue === 1) creates a typed view with zero
-   * per-sample work. Other encodings multiply by a precomputed reciprocal.
+   * 32-bit float encoding (maxValue === 1) uses slice() to make a cheap
+   * defensive copy. A zero-copy view is unsafe here because the chunked
+   * buffering strategy holds references until the next flush(), and upstream
+   * decoders may reuse or release the underlying ArrayBuffer before then.
+   *
+   * Other encodings multiply by a precomputed reciprocal.
    */
   private formatSamples(data: ArrayBufferView): Float32Array {
     const buffer = data.buffer as ArrayBuffer;
 
     if (this.maxValue === 1) {
-      return new Float32Array(buffer, data.byteOffset, data.byteLength / 4);
+      const source = new Float32Array(buffer, data.byteOffset, data.byteLength / 4);
+      return source.slice();
     }
 
     const typedData = new this.typedArrayCtor(

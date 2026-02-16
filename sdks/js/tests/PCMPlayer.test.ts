@@ -1190,11 +1190,14 @@ describe('PCMPlayer', () => {
   // =========================================================================
 
   describe('formatSamples', () => {
-    test('32bitFloat creates a view without per-sample work', () => {
+    test('32bitFloat creates a defensive copy with correct values', () => {
       const player = new PCMPlayer({ encoding: '32bitFloat' });
       const data = createFloat32Samples(10, 0.42);
       const result = player['formatSamples'](data);
-      expect(result.buffer).toBe(data.buffer);
+      // Must be a separate buffer (defensive copy) so upstream buffer
+      // reuse doesn't corrupt chunks held until the next flush
+      expect(result.buffer).not.toBe(data.buffer);
+      expect(result.length).toBe(10);
       expect(result[0]).toBeCloseTo(0.42, 5);
     });
 
