@@ -286,6 +286,27 @@ describe('PCMPlayer', () => {
       expect(audioEl).toBeDefined();
       player.destroy();
     });
+
+    test('calls resume() on AudioContext when autoResume is true', async () => {
+      const player = await createInitializedPlayer({ autoResume: true });
+      const ctx = player['audioCtx'] as unknown as MockAudioContext;
+      expect(ctx.resume).toHaveBeenCalled();
+      player.destroy();
+    });
+
+    test('does not call resume() when autoResume is false', async () => {
+      const player = await createInitializedPlayer({ autoResume: false });
+      const ctx = player['audioCtx'] as unknown as MockAudioContext;
+      expect(ctx.resume).not.toHaveBeenCalled();
+      player.destroy();
+    });
+
+    test('does not call resume() when autoResume is not set', async () => {
+      const player = await createInitializedPlayer();
+      const ctx = player['audioCtx'] as unknown as MockAudioContext;
+      expect(ctx.resume).not.toHaveBeenCalled();
+      player.destroy();
+    });
   });
 
   // =========================================================================

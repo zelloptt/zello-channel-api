@@ -6,6 +6,7 @@ interface PCMPlayerOptions {
   gain?: number;
   useAudioElement?: boolean;
   outputDeviceId?: string;
+  autoResume?: boolean;
 }
 
 type OnEndedCallback = (feedCounter: number) => void;
@@ -68,7 +69,7 @@ class PCMPlayer {
       'encoding' | 'channels' | 'sampleRate' | 'flushingTime' | 'gain'
     >
   > &
-    Pick<PCMPlayerOptions, 'useAudioElement' | 'outputDeviceId'>;
+    Pick<PCMPlayerOptions, 'useAudioElement' | 'outputDeviceId' | 'autoResume'>;
 
   private readonly onEndedCallback: OnEndedCallback | null;
   private readonly maxValue: number;
@@ -124,6 +125,10 @@ class PCMPlayer {
 
     const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
     this.audioCtx = new AudioCtx();
+
+    if (this.options.autoResume) {
+      this.audioCtx?.resume();
+    }
 
     await this.webAudioTouchUnlock(this.audioCtx);
 
