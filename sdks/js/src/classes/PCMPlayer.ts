@@ -31,9 +31,10 @@ const ENCODING_TYPED_ARRAYS: Record<string, SupportedTypedArrayConstructor> = {
 };
 
 const FADE_SAMPLES = 50;
+const DEFAULT_ENCODING = '16bitInt';
 
 const DEFAULT_OPTIONS = {
-  encoding: '16bitInt' as const,
+  encoding: DEFAULT_ENCODING,
   channels: 1,
   sampleRate: 8000,
   flushingTime: 1000,
@@ -101,14 +102,20 @@ class PCMPlayer {
 
     const encoding = this.options.encoding;
     this.maxValue =
-      ENCODING_MAX_VALUES[encoding] ?? ENCODING_MAX_VALUES['16bitInt'];
+      ENCODING_MAX_VALUES[encoding] ?? ENCODING_MAX_VALUES[DEFAULT_ENCODING];
     this.typedArrayCtor =
-      ENCODING_TYPED_ARRAYS[encoding] ?? ENCODING_TYPED_ARRAYS['16bitInt'];
+      ENCODING_TYPED_ARRAYS[encoding] ?? ENCODING_TYPED_ARRAYS[DEFAULT_ENCODING];
   }
 
   /**
    * Initializes the AudioContext, GainNode, and flush timer.
    * Must be called (and awaited) before feeding data.
+   *
+   * Note: On mobile browsers (iOS/Safari) the AudioContext may start in a
+   * "suspended" state. This method installs touch event listeners that will
+   * resume the context on the first user interaction. Callers should ensure
+   * init() is invoked in response to a user gesture (e.g. a button tap) so
+   * the context can be resumed immediately.
    */
   public async init(): Promise<void> {
     if (this.destroyed) {
@@ -117,8 +124,6 @@ class PCMPlayer {
 
     const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
     this.audioCtx = new AudioCtx();
-
-    this.audioCtx.resume();
 
     await this.webAudioTouchUnlock(this.audioCtx);
 
@@ -207,7 +212,7 @@ class PCMPlayer {
    * Clears all buffered sample data and resets the feed counter.
    */
   public reset() {
-    this.chunks.length = 0;
+    this.chunks = [];
     this.totalSamples = 0;
     this.feedCounter = 0;
   }
@@ -287,9 +292,7 @@ class PCMPlayer {
     const samples = this.concatenateChunks();
     const capturedFeedCount = this.feedCounter;
 
-    this.chunks.length = 0;
-    this.totalSamples = 0;
-    this.feedCounter = 0;
+    this.reset();
 
     const { channels, sampleRate } = this.options;
     const length = (samples.length / channels) | 0;
@@ -316,7 +319,9 @@ class PCMPlayer {
     const callback = this.onEndedCallback;
     source.onended = () => {
       source.disconnect();
-      if (callback) callback(capturedFeedCount);
+      if (callback) {
+        callback(capturedFeedCount);
+      }
     };
 
     this.startTime += audioBuffer.duration;
