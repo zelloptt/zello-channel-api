@@ -239,11 +239,6 @@ class PCMPlayer {
       this.flushTimer = null;
     }
 
-    if (this.touchUnlockAbort) {
-      this.touchUnlockAbort.abort();
-      this.touchUnlockAbort = null;
-    }
-
     if (this.audioEl) {
       this.audioEl.pause();
       if (
