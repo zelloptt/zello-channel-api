@@ -91,7 +91,6 @@ class PCMPlayer {
 
   private muted = false;
   private destroyed = false;
-  private touchUnlockAbort: AbortController | null = null;
 
   constructor(options?: PCMPlayerOptions, onEndedCallback?: OnEndedCallback) {
     this.options = { ...DEFAULT_OPTIONS, ...options };
@@ -466,26 +465,16 @@ class PCMPlayer {
   private webAudioTouchUnlock(context: AudioContext): Promise<boolean> {
     return new Promise((resolve, reject) => {
       if (context.state === 'suspended' && 'ontouchstart' in window) {
-        this.touchUnlockAbort = new AbortController();
-        const signal = this.touchUnlockAbort.signal;
-
         const unlock = () => {
           context.resume().then(
             () => {
               document.body.removeEventListener('touchstart', unlock);
               document.body.removeEventListener('touchend', unlock);
-              this.touchUnlockAbort = null;
               resolve(true);
             },
             (reason) => reject(reason)
           );
         };
-
-        signal.addEventListener('abort', () => {
-          document.body.removeEventListener('touchstart', unlock);
-          document.body.removeEventListener('touchend', unlock);
-          resolve(false);
-        });
 
         document.body.addEventListener('touchstart', unlock, false);
         document.body.addEventListener('touchend', unlock, false);
