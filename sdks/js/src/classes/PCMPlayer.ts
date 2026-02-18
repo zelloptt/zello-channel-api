@@ -34,12 +34,15 @@ const ENCODING_TYPED_ARRAYS: Record<string, SupportedTypedArrayConstructor> = {
 const FADE_SAMPLES = 50;
 const DEFAULT_ENCODING = '16bitInt';
 
-const DEFAULT_OPTIONS = {
+const DEFAULT_OPTIONS: Required<PCMPlayerOptions> = {
   encoding: DEFAULT_ENCODING,
   channels: 1,
   sampleRate: 8000,
   flushingTime: 1000,
-  gain: 1
+  gain: 1,
+  useAudioElement: false,
+  outputDeviceId: '',
+  autoResume: false,
 };
 
 /**
@@ -63,13 +66,7 @@ const DEFAULT_OPTIONS = {
  *  - All public methods are safe to call before init() or after destroy().
  */
 class PCMPlayer {
-  private readonly options: Required<
-    Pick<
-      PCMPlayerOptions,
-      'encoding' | 'channels' | 'sampleRate' | 'flushingTime' | 'gain'
-    >
-  > &
-    Pick<PCMPlayerOptions, 'useAudioElement' | 'outputDeviceId' | 'autoResume'>;
+  private readonly options: Required<PCMPlayerOptions>;
 
   private readonly onEndedCallback: OnEndedCallback | null;
   private readonly maxValue: number;
