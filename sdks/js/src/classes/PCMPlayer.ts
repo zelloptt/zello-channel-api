@@ -123,10 +123,10 @@ class PCMPlayer {
     this.audioCtx = new AudioCtx();
 
     if (this.options.autoResume) {
-      this.audioCtx?.resume();
+      await this.audioCtx.resume();
+    } else {
+      await this.webAudioTouchUnlock(this.audioCtx);
     }
-
-    await this.webAudioTouchUnlock(this.audioCtx);
 
     if (!this.audioCtx) {
       return;
