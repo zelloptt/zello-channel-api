@@ -19,7 +19,8 @@ class Encoder extends Emitter {
       blob.append(encoderWorkerSrc);
       blob = blob.getBlob();
     }
-    this.encoderWorker = new window.Worker(URL.createObjectURL(blob));
+    this.encoderWorkerUrl = URL.createObjectURL(blob);
+    this.encoderWorker = new window.Worker(this.encoderWorkerUrl);
     this.encoderWorker.addEventListener('message', (e) => {
       if (!e.data) {
         return;
@@ -70,6 +71,9 @@ class Encoder extends Emitter {
   }
 
   destroy() {
+    if (!this.encoderWorker) {
+      return;
+    }
     // This destroys the opus memory allocations, not the worker
     this.encoderWorker.postMessage({
       command: 'destroy'
@@ -78,11 +82,25 @@ class Encoder extends Emitter {
     this.encoderWorker.postMessage({
       command: 'close'
     });
+    this.terminateTimeout = setTimeout(() => {
+      this.onClose();
+    }, 300);
   }
 
   onClose() {
+    if (this.terminateTimeout) {
+      clearTimeout(this.terminateTimeout);
+      this.terminateTimeout = null;
+    }
     this.removeAllListeners();
-    this.encoderWorker = undefined;
+    if (this.encoderWorker) {
+      this.encoderWorker.terminate();
+      this.encoderWorker = null;
+    }
+    if (this.encoderWorkerUrl) {
+      URL.revokeObjectURL(this.encoderWorkerUrl);
+      this.encoderWorkerUrl = null;
+    }
   }
 }
 

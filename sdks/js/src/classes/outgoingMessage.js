@@ -149,11 +149,19 @@ outgoingMessage.then(function(result) {
   */
   stop(userCallback) {
     this.stopRecording();
+    this.destroy();
     return this.session.stopStream({
       stream_id: this.currentMessageId
     }, userCallback);
   }
 
+  destroy() {
+    if (this.encoder && Utils.isFunction(this.encoder.destroy)) {
+      this.encoder.destroy();
+      this.encoder = null;
+    }
+    this.removeAllListeners();
+  }
 
 /**
  * Starts an outgoing message
