@@ -38,6 +38,8 @@ class Encoder extends Emitter {
       if (data.type !== 'opus' || !data.data) {
         return;
       }
+      // data.data is a Uint8Array whose ownership was zero-copy transferred
+      // from the encoder worker via postMessage transferable objects
       this.emit(Constants.EVENT_DATA_ENCODED, data.data);
       this.ondata(data.data);
     });
