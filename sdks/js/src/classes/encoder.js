@@ -57,6 +57,9 @@ class Encoder extends Emitter {
   ondone() {}
 
   postMessage(message) {
+    if (!this.encoderWorker) {
+      return;
+    }
     this.encoderWorker.postMessage(JSON.parse(JSON.stringify(message)));
   }
 
@@ -64,6 +67,9 @@ class Encoder extends Emitter {
    * @param {array} data array of 1 or 2 buffers for each PCM channel
    * **/
   encode(data) {
+    if (!this.encoderWorker) {
+      return;
+    }
     this.encoderWorker.postMessage({
       command: "encode",
       buffers: data

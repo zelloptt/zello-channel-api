@@ -78,6 +78,9 @@ class OutgoingMessage extends Emitter {
     }
 
     this.options.recorder.prototype.ondata = (data) => {
+      if (!this.encoder) {
+        return;
+      }
       /**
        * Outgoing message pcm data from recorder is ready to be encoded
        *
@@ -88,6 +91,12 @@ class OutgoingMessage extends Emitter {
       this.encoder.encode(data);
     };
     this.options.recorder.prototype.onready = () => {
+      if (this.destroyed) {
+        if (this.recorder && Utils.isFunction(this.recorder.stop)) {
+          this.recorder.stop();
+        }
+        return;
+      }
       this.sendEncoderInitMessage();
       if (this.options.autoStart) {
         this.start();
@@ -148,7 +157,6 @@ outgoingMessage.then(function(result) {
 });
   */
   stop(userCallback) {
-    this.stopRecording();
     this.destroy();
     return this.session.stopStream({
       stream_id: this.currentMessageId
@@ -156,9 +164,13 @@ outgoingMessage.then(function(result) {
   }
 
   destroy() {
+    this.destroyed = true;
     if (this.encoder && Utils.isFunction(this.encoder.destroy)) {
       this.encoder.destroy();
       this.encoder = null;
+    }
+    if (this.recorder && Utils.isFunction(this.recorder.stop)) {
+      this.recorder.stop();
     }
     this.removeAllListeners();
   }
