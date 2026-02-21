@@ -92,7 +92,7 @@ class OutgoingMessage extends Emitter {
     };
     this.options.recorder.prototype.onready = () => {
       if (this.destroyed) {
-        if (this.recorder && Utils.isFunction(this.recorder.stop)) {
+        if (this.recorder) {
           this.recorder.stop();
         }
         return;
@@ -120,12 +120,6 @@ class OutgoingMessage extends Emitter {
       command: 'init',
       originalSampleRate: recorderSampleRate
     }, this.options));
-  }
-
-  stopRecording() {
-    if (this.recorder && this.recorder.stop) {
-      this.recorder.stop();
-    }
   }
 
   startRecording() {
@@ -209,9 +203,7 @@ outgoingMessage.then(function(result) {
         this.startRecording();
       })
       .catch(() => {
-        /* The default recorder is started on OutgoingMessage instance creation
-         * once recorder's init() method is called */
-        this.stopRecording();
+        this.destroy();
       });
   }
 
