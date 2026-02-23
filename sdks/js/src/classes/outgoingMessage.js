@@ -93,6 +93,11 @@ class OutgoingMessage extends Emitter {
     this.options.recorder.prototype.onready = () => {
       if (this.destroyed) {
         if (this.recorder) {
+          // This is necessary to fix a race condition where
+          // the recorder is stopped before it has started.
+          // This appears to be a no-op in the recorder code,
+          // which results in the recorder not actually stopping.
+          // This is the first chance we have to stop the recorder.
           this.recorder.stop();
         }
         return;
