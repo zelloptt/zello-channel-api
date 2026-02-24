@@ -18,7 +18,8 @@ const Utils = require('./utils');
   connectRetryTimeoutMs: 1000,
   connectTimeoutMs: 60000,
   autoSendAudio: true,
-  noPersistentPlayer: false
+  noPersistentPlayer: false,
+  language: 'en'
 );
  **/
 class Session extends Emitter {
@@ -322,6 +323,9 @@ session.connect(function(err, result) {
     }
     if (this.options.platformType) {
       params.platform_type = this.options.platformType;
+    }
+    if (this.options.language) {
+      params.language = this.options.language;
     }
 
     if (this.options.features) {

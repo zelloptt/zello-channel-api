@@ -47,8 +47,16 @@ module.exports = {
     libraryTarget: 'umd',
     path: path.resolve(__dirname, 'dist')
   },
+  resolve: {
+    extensions: ['.ts', '.js']
+  },
   module: {
     rules: [
+      {
+        test: /\.ts$/,
+        exclude: /node_modules/,
+        use: 'ts-loader'
+      },
       {
         test: /\.js$/,
         exclude: /node_modules/,

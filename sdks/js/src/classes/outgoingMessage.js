@@ -78,6 +78,9 @@ class OutgoingMessage extends Emitter {
     }
 
     this.options.recorder.prototype.ondata = (data) => {
+      if (!this.encoder) {
+        return;
+      }
       /**
        * Outgoing message pcm data from recorder is ready to be encoded
        *
@@ -88,6 +91,17 @@ class OutgoingMessage extends Emitter {
       this.encoder.encode(data);
     };
     this.options.recorder.prototype.onready = () => {
+      if (this.destroyed) {
+        if (this.recorder) {
+          // This is necessary to fix a race condition where
+          // the recorder is stopped before it has started.
+          // This appears to be a no-op in the recorder code,
+          // which results in the recorder not actually stopping.
+          // This is the first chance we have to stop the recorder.
+          this.recorder.stop();
+        }
+        return;
+      }
       this.sendEncoderInitMessage();
       if (this.options.autoStart) {
         this.start();
@@ -111,12 +125,6 @@ class OutgoingMessage extends Emitter {
       command: 'init',
       originalSampleRate: recorderSampleRate
     }, this.options));
-  }
-
-  stopRecording() {
-    if (this.recorder && this.recorder.stop) {
-      this.recorder.stop();
-    }
   }
 
   startRecording() {
@@ -148,12 +156,23 @@ outgoingMessage.then(function(result) {
 });
   */
   stop(userCallback) {
-    this.stopRecording();
+    this.destroy();
     return this.session.stopStream({
       stream_id: this.currentMessageId
     }, userCallback);
   }
 
+  destroy() {
+    this.destroyed = true;
+    if (this.encoder && Utils.isFunction(this.encoder.destroy)) {
+      this.encoder.destroy();
+      this.encoder = null;
+    }
+    if (this.recorder && Utils.isFunction(this.recorder.stop)) {
+      this.recorder.stop();
+    }
+    this.removeAllListeners();
+  }
 
 /**
  * Starts an outgoing message
@@ -189,9 +208,7 @@ outgoingMessage.then(function(result) {
         this.startRecording();
       })
       .catch(() => {
-        /* The default recorder is started on OutgoingMessage instance creation
-         * once recorder's init() method is called */
-        this.stopRecording();
+        this.destroy();
       });
   }
 
