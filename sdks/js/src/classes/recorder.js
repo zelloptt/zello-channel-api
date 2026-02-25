@@ -240,10 +240,7 @@ class Recorder {
     this.initAudioContext();
     return this.initAudioGraph().then(() => {
       return this.initSourceNode().then((sourceNode) => {
-        this.state = RecorderState.Recording;
         this.sourceNode = sourceNode;
-        this.sourceNode.connect(this.monitorGainNode);
-        this.sourceNode.connect(this.recordingGainNode);
         this.onready();
       });
     })
@@ -290,7 +287,14 @@ class Recorder {
     }
   }
 
-  start() {}
+  start() {
+    if (this.state !== RecorderState.Inactive || !this.sourceNode) {
+      return;
+    }
+    this.state = RecorderState.Recording;
+    this.sourceNode.connect(this.monitorGainNode);
+    this.sourceNode.connect(this.recordingGainNode);
+  }
 
   /**
    * Emit recorded data portion to let <code>OutgoingMessage</code> instance get recorder data.
