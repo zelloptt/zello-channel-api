@@ -3,6 +3,8 @@ const Promise = require('q');
 const Constants = require('./constants');
 const Utils = require('./utils');
 
+const MIN_HEARTBEAT_INTERVAL_MS = 5000;
+
 /**
  * @classdesc Session class to start a session with the Zello server and interact with it using
  * the <a href="https://github.com/zelloptt/zello-channel-api">Zello Channel API</a>
@@ -47,7 +49,8 @@ class Session extends Emitter {
     this.connectAttempts = this.maxConnectAttempts;
     this.connectRetryTimeoutMs = this.options.connectRetryTimeoutMs;
     this.connectTimeoutMs = this.options.connectTimeoutMs;
-    this.heartbeatIntervalMs = this.options.clientPing?.intervalMs;
+    const intervalMs = this.options.clientPing?.intervalMs;
+    this.heartbeatIntervalMs = (typeof intervalMs === 'number' && Number.isFinite(intervalMs)) ? Math.max(MIN_HEARTBEAT_INTERVAL_MS, intervalMs) : undefined;;
     this.heartbeatConsecutiveMissedPongsThreshold = this.options.clientPing?.consecutiveMissedPongsThreshold;
     this.heartbeatEnabled = !!this.heartbeatIntervalMs && !!this.heartbeatConsecutiveMissedPongsThreshold;
     this.selfDisconnect = false;
@@ -510,14 +513,7 @@ session.connect(function(err, result) {
   }
 
   wsMessageHandler(data) {
-    if (this.heartbeatEnabled && data instanceof ArrayBuffer) {
-      const u8 = new Uint8Array(data);
-      if (u8.length === 1 && u8[0] === Constants.MESSAGE_TYPE_PONG) {
-        this.handleServerPong();
-        return;
-      }
-    }
-
+    this.handleServerPong();
     let jsonData = null;
     try {
       jsonData = JSON.parse(data);
