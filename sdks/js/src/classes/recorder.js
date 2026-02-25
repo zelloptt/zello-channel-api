@@ -290,6 +290,12 @@ class Recorder {
     }
   }
 
+  /**
+   * Connects the internal gain nodes to start recording. Must be called
+   * after init. May throw exceptions from the underlyling AudioNode.connect
+   *
+   * @method Recorder#start
+   */
   start() {
     if (this.state !== RecorderState.Ready || !this.sourceNode) {
       return;
