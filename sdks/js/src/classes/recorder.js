@@ -1,5 +1,6 @@
 const RecorderState = Object.freeze({
   Inactive: "inactive",
+  Ready: "ready",
   Recording: "recording",
   Paused: "paused"
 });
@@ -121,6 +122,7 @@ class Recorder {
       this.recordingGainNode = this.audioContext.createGain();
       this.setRecordingGain(this.options.recordingGain);
       this.recordingGainNode.connect(this.scriptProcessorNode);
+      this.state = RecorderState.Ready;
       resolve();
     })
   }
@@ -241,6 +243,7 @@ class Recorder {
     return this.initAudioGraph().then(() => {
       return this.initSourceNode().then((sourceNode) => {
         this.sourceNode = sourceNode;
+        this.state = RecorderState.Ready;
         this.onready();
       });
     })
@@ -288,7 +291,7 @@ class Recorder {
   }
 
   start() {
-    if (this.state !== RecorderState.Inactive || !this.sourceNode) {
+    if (this.state !== RecorderState.Ready || !this.sourceNode) {
       return;
     }
     this.state = RecorderState.Recording;
