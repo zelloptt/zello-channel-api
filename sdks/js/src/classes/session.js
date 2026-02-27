@@ -50,7 +50,7 @@ class Session extends Emitter {
     this.connectRetryTimeoutMs = this.options.connectRetryTimeoutMs;
     this.connectTimeoutMs = this.options.connectTimeoutMs;
     const intervalMs = this.options.clientPing?.intervalMs;
-    this.heartbeatIntervalMs = (typeof intervalMs === 'number' && Number.isFinite(intervalMs)) ? Math.max(MIN_HEARTBEAT_INTERVAL_MS, intervalMs) : undefined;;
+    this.heartbeatIntervalMs = (typeof intervalMs === 'number' && Number.isFinite(intervalMs)) ? Math.max(MIN_HEARTBEAT_INTERVAL_MS, intervalMs) : undefined;
     this.heartbeatConsecutiveMissedPongsThreshold = this.options.clientPing?.consecutiveMissedPongsThreshold;
     this.heartbeatEnabled = !!this.heartbeatIntervalMs && !!this.heartbeatConsecutiveMissedPongsThreshold;
     this.selfDisconnect = false;
@@ -64,6 +64,7 @@ class Session extends Emitter {
     this.heartbeatTimer = null;
     this.heartbeatAwaitingServerPong = false;
     this.heartbeatMissedPongs = 0;
+    this.heartbeatFailureTriggered = false;
 
     if (this.options.enableLogging) {
       this.log = Utils.enableLogging();
@@ -254,36 +255,56 @@ session.connect(function(err, result) {
     if (!this.heartbeatEnabled) {
       return;
     }
+
     this.stopHeartbeat();
+    this.heartbeatFailureTriggered = false;
+    this.scheduleHeartbeatTick();
+  }
 
-    this.heartbeatTimer = setInterval(() => {
-      if (!this.wsConnection || this.wsConnection.readyState !== WebSocket.OPEN) {
-        return;
-      }
+  scheduleHeartbeatTick() {
+    if (!this.heartbeatEnabled || this.heartbeatFailureTriggered) {
+      return;
+    }
 
-      if (this.heartbeatAwaitingServerPong) {
-        this.heartbeatMissedPongs += 1;
-      } else {
-        this.heartbeatAwaitingServerPong = true;
-        try {
-          this.wsConnection.send(new Uint8Array([Constants.MESSAGE_TYPE_PING]));
-        } catch (e) {
-          // If send fails, treat like missed pong
-          this.heartbeatMissedPongs += 1;
-        }
-      }
-
-      if (this.heartbeatMissedPongs >= this.heartbeatConsecutiveMissedPongsThreshold) {
-        this.emit(Constants.EVENT_SESSION_CONNECTION_LOST, 'heartbeat timeout');
-      }
+    this.heartbeatTimer = setTimeout(() => {
+      this.heartbeatTimer = null;
+      this.heartbeatTick();
     }, this.heartbeatIntervalMs);
+  }
+
+  heartbeatTick() {
+    if (!this.wsConnection || this.wsConnection.readyState !== WebSocket.OPEN) {
+      return this.scheduleHeartbeatTick();
+    }
+
+    if (this.heartbeatAwaitingServerPong) {
+      this.heartbeatMissedPongs += 1;
+    } else {
+      this.heartbeatAwaitingServerPong = true;
+      try {
+        this.wsConnection.send(new Uint8Array([Constants.MESSAGE_TYPE_PING]));
+      } catch (e) {
+        this.heartbeatMissedPongs += 1;
+      }
+    }
+
+    if (this.heartbeatMissedPongs >= this.heartbeatConsecutiveMissedPongsThreshold) {
+      this.heartbeatFailureTriggered = true;
+
+      this.emit(Constants.EVENT_SESSION_CONNECTION_LOST, 'heartbeat timeout');
+
+      return; // do NOT reschedule
+    }
+
+    this.scheduleHeartbeatTick();
   }
 
   stopHeartbeat() {
     if (this.heartbeatTimer) {
-      clearInterval(this.heartbeatTimer);
+      clearTimeout(this.heartbeatTimer);
       this.heartbeatTimer = null;
     }
+    this.heartbeatFailureTriggered = false;
     this.heartbeatAwaitingServerPong = false;
     this.heartbeatMissedPongs = 0;
   }
