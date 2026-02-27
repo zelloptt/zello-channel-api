@@ -310,7 +310,7 @@ session.connect(function(err, result) {
   }
 
   handleServerPong() {
-    if (!this.heartbeatEnabled) {
+    if (!this.heartbeatEnabled || this.heartbeatFailureTriggered) {
       return;
     }
     this.heartbeatAwaitingServerPong = false;
