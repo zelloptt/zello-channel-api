@@ -51,8 +51,8 @@ class Session extends Emitter {
     this.connectTimeoutMs = this.options.connectTimeoutMs;
     const intervalMs = this.options.clientPing?.intervalMs;
     this.heartbeatIntervalMs = (typeof intervalMs === 'number' && Number.isFinite(intervalMs)) ? Math.max(MIN_HEARTBEAT_INTERVAL_MS, intervalMs) : undefined;
-    this.heartbeatConsecutiveMissedPongsThreshold = this.options.clientPing?.consecutiveMissedPongsThreshold;
-    this.heartbeatEnabled = !!this.heartbeatIntervalMs && !!this.heartbeatConsecutiveMissedPongsThreshold;
+    this.heartbeatConsecutiveMissedAcksThreshold = this.options.clientPing?.consecutiveMissedPongsThreshold;
+    this.heartbeatEnabled = !!this.heartbeatIntervalMs && !!this.heartbeatConsecutiveMissedAcksThreshold;
     this.selfDisconnect = false;
     this.incomingMessages = {};
     this.activeOutgoingMessage = null;
@@ -62,8 +62,8 @@ class Session extends Emitter {
     this.connectTimeout = null;
     this.channelConfigurationError = false;
     this.heartbeatTimer = null;
-    this.heartbeatAwaitingServerPong = false;
-    this.heartbeatMissedPongs = 0;
+    this.heartbeatAwaitingServerAck = false;
+    this.heartbeatMissedAck = 0;
     this.heartbeatFailureTriggered = false;
 
     if (this.options.enableLogging) {
@@ -165,6 +165,7 @@ session.connect(function(err, result) {
          * @event Session#session_connect
          */
         this.emit(Constants.EVENT_SESSION_CONNECT);
+        this.startHeartbeat();
         dfd.resolve(result);
       })
       .catch((err) => {
@@ -214,7 +215,6 @@ session.connect(function(err, result) {
 
     this.wsConnection.addEventListener('open', () => {
       this.clearConnectTimeout();
-      this.startHeartbeat();
       return dfd.resolve();
     });
 
@@ -277,22 +277,17 @@ session.connect(function(err, result) {
       return this.scheduleHeartbeatTick();
     }
 
-    if (this.heartbeatAwaitingServerPong) {
-      this.heartbeatMissedPongs += 1;
+    if (this.heartbeatAwaitingServerAck) {
+      this.heartbeatMissedAck += 1;
     } else {
-      this.heartbeatAwaitingServerPong = true;
-      try {
-        this.wsConnection.send(new Uint8Array([Constants.MESSAGE_TYPE_PING]));
-      } catch (e) {
-        this.heartbeatMissedPongs += 1;
-      }
+      this.heartbeatAwaitingServerAck = true;
+      this.sendCommandWithCallback('keepalive', {})
     }
 
-    if (this.heartbeatMissedPongs >= this.heartbeatConsecutiveMissedPongsThreshold) {
+    if (this.heartbeatMissedAck >= this.heartbeatConsecutiveMissedAcksThreshold) {
       this.heartbeatFailureTriggered = true;
 
       this.emit(Constants.EVENT_SESSION_CONNECTION_LOST, 'heartbeat timeout');
-
       return; // do NOT reschedule
     }
 
@@ -305,16 +300,16 @@ session.connect(function(err, result) {
       this.heartbeatTimer = null;
     }
     this.heartbeatFailureTriggered = false;
-    this.heartbeatAwaitingServerPong = false;
-    this.heartbeatMissedPongs = 0;
+    this.heartbeatAwaitingServerAck = false;
+    this.heartbeatMissedAck = 0;
   }
 
-  handleServerPong() {
+  handleKeepaliveAck() {
     if (!this.heartbeatEnabled || this.heartbeatFailureTriggered) {
       return;
     }
-    this.heartbeatAwaitingServerPong = false;
-    this.heartbeatMissedPongs = 0;
+    this.heartbeatAwaitingServerAck = false;
+    this.heartbeatMissedAck = 0;
   }
 
   doLogon(refreshToken = '') {
@@ -534,7 +529,7 @@ session.connect(function(err, result) {
   }
 
   wsMessageHandler(data) {
-    this.handleServerPong();
+    this.handleKeepaliveAck();
     let jsonData = null;
     try {
       jsonData = JSON.parse(data);
