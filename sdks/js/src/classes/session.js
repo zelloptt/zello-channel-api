@@ -52,7 +52,7 @@ class Session extends Emitter {
     this.connectTimeoutMs = this.options.connectTimeoutMs;
     const intervalMs = this.options.clientPing?.intervalMs;
     this.heartbeatIntervalMs =
-      intervalMs == undefined
+      intervalMs === undefined
         ? DEFAULT_HEARTBEAT_INTERVAL_MS
         : (typeof intervalMs === 'number' && Number.isFinite(intervalMs))
           ? Math.max(MIN_HEARTBEAT_INTERVAL_MS, intervalMs)
