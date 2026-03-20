@@ -3,7 +3,7 @@ const Promise = require('q');
 const Constants = require('./constants');
 const Utils = require('./utils');
 
-const MIN_HEARTBEAT_INTERVAL_MS = 5000;
+const MIN_HEARTBEAT_INTERVAL_MS = 30000;
 
 /**
  * @classdesc Session class to start a session with the Zello server and interact with it using
