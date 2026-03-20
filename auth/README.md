@@ -1,5 +1,8 @@
 ## Channel API Authentication
 
+> __Note__: The following applies only to the Zello Friends and Family platform. If you are using the Channel API with a 
+Zello Work account, you should omit the `auth_token` property from your `logon` command.
+
 The Zello Channel API relies on the [JWT](https://jwt.io/introduction/) standard
 to identify and validate connection requests.
 
@@ -19,16 +22,17 @@ and expiration.  For example:
 JWTs for the Zello Channel API use RSA encryption (`"typ": "RS256"`) and so must be signed by a private key.
 
 Both the issuer and the private key are available through the key management tools
-in the [developer portal](https://developers.zello.com).  If you are building a client
-for the ZelloWork Channel API, you can manage keys through your admin console.
+in the [developer portal](https://developers.zello.com).
 
 Because your private keys must remain private at all times, you should implement 
 token generation on the server side, passing newly created tokens only to your authorized
-clients, which in turn will pass them to the Zello channel API.
+clients, which in turn will pass them to the Zello Channel API.
 
-![auth flow](auth_flow.png)
+<div style="background-color: #ffffff;">
+  <img src="auth_flow.png" alt="auth flow" />
+</div>
 
-Once you have a token, pass it in the `auth_token` field of the Zello Channel API [logon](https://github.com/zelloptt/zello-channel-api/blob/master/API.md#logon-1) request
+Once you have a token, pass it in the `auth_token` field of the Zello Channel API [logon](https://github.com/zelloptt/zello-channel-api/blob/master/API.md#logon-1) request.
 
 We have included sample code demonstrating how to create JWTs in [PHP](php),
-[node JS](js), and [golang](go).
+[Node.js](js), and [Golang](go).

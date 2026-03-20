@@ -6,17 +6,17 @@ Version 1.0
 
 ## Overview
 
-This document is intended for developers interested in implementation of their own Zello Channel API client connecting to Zello channels. If you want integrate Zello into your iOS or Android app, check out the [mobile SDKs](sdks) instead.
+This document is intended for developers interested in implementation of their own Zello Channel API client connecting to Zello channels. If you want to integrate Zello into your iOS or Android app, check out the [Zello SDK](https://sdk.zello.com/) instead.
 
-This API supports subset of Zello features and currently focused on sending and receiving channel voice messages. See [Supported features](#supported-features) for the complete list.
+This API supports a subset of Zello features and is currently focused on sending and receiving channel voice messages. See [Supported features](#supported-features) for the complete list.
 
-To access the API you will need valid account credentials and/or a valid access token, based on the [JWT](https://jwt.io/) standard. See [Authentication](#authentication).
+To access the API you will need valid account credentials and (for Zello Friends and Family) a valid access token, based on the [JWT](https://jwt.io/) standard. See [Authentication](#authentication).
 
 ## API entry points
-| Service | WebSocket URL
-|---|---
-| Consumer Zello | wss://zello.io/ws
-| Zello Work | wss://zellowork.io/ws/`network name`
+| Service                 | WebSocket URL
+|-------------------------|---
+| Zello Friends and Family  | wss://zello.io/ws
+| Zello Work              | wss://zellowork.io/ws/`network name`
 | Zello Enterprise Server | wss://`your server domain`/ws/mesh
 
 Note that the protocol only supports secure connections over TLS.
@@ -29,15 +29,15 @@ Anonymous accounts:
 
 * No need to provide username or password
 * Can access unrestricted channels in listen only mode
-* Only supported with consumer Zello
-* A valid [auth token](AUTH.md) is required
+* Only supported with Zello Friends and Family
+* A valid [auth token](AUTH.md) is required for Zello Friends and Family
 
 Named accounts:
 
 * Must include a valid username and password
 * Have full access to authorized channels
-* Supported for both Zello Work and consumer Zello
-* A valid [auth token](AUTH.md) is required for consumer Zello
+* Supported for both Zello Work and Zello Friends and Family
+* A valid [auth token](AUTH.md) is required for Zello Friends and Family
 
 ## Connection keepalive
 The API monitors connectivity by sending a [WebSocket Ping frame](https://datatracker.ietf.org/doc/html/rfc6455#section-5.5.2) to the client every 30 seconds. The WebSocket client must respond to the Ping frame with a Pong frame. If a client takes longer than 30 seconds to respond with a Pong frame, the API terminates the connection.
@@ -68,19 +68,48 @@ Connecting to multiple channels (up to 100) is currently supported for Zello Wor
 |-----------------|---|---
 | `command`       | string | `logon`
 | `seq`           | integer | Command sequence number
-| `auth_token`    | string | (optional) API authentication token. If omitted `refresh_token` is required when connecting to consumer Zello. See [Authentication](#authentication)
-| `refresh_token` | string | (optional) API refresh token. If omitted `auth_token ` is required when connecting to consumer Zello. See [Authentication](#authentication)
-| `username`      | string | (optional) Username to logon with. If not provided the client will connect anonymously. See [Authentication](#authentication)
-| `password`      | string | (optional) Password to logon with. Required if username is provided.
+| `auth_token`    | string | (Zello Friends and Family only) API authentication token. If omitted `refresh_token` is required. See [Authentication](#authentication).
+| `refresh_token` | string | (Zello Friends and Family only) API refresh token. If omitted `auth_token ` is required. See [Authentication](#authentication).
+| `username`      | string | (optional for Zello Friends and Family) Username to logon with. If not provided the client will connect anonymously. See [Authentication](#authentication).
+| `password`      | string | (optional for Zello Friends and Family) Password to logon with. Required if username is provided.
 | `channels`      | array of strings | The list of names of the channels to connect to. 
-| `listen_only`   | boolean | (optional) Set to `true` to connect in listen-only mode.
+| `listen_only`   | boolean | (optional; supported on Zello Friends and Family only) Set to `true` to connect in listen-only mode.
 | `version`       | string | (optional) Client version string. If not provided, the server will use the Channel API server version.
 | `platform_type` | string | (optional) Client platform type, any string
 | `platform_name` | string | (optional) Client platform name, any string. If includes `Gateway` or `Kiosk` (case-insensitive), the Zello Alarms service will track the online status of this client.
 | `language`      | string | (optional) Client ISO 639-1 language code. Required for translation channels.
 
-#### Request:
+### Zello Work
 
+#### Request:
+```json
+{
+  "command": "logon",
+  "seq": 1,
+  "username": "sherlock",
+  "password": "secret",
+  "channels": ["Baker Street 221B", "Reichenbach Falls"]
+}
+``` 
+#### Response:
+
+```json
+{
+  "seq": 1,
+  "success": true
+}
+```
+or
+
+```json
+{
+  "seq": 1,
+  "error": "error code"
+}
+```
+### Zello Friends and Family
+
+#### Request:
 ```json
 {
   "command": "logon",
@@ -583,14 +612,14 @@ Indicates incoming shared location from the channel.
 |Error Code | Description
 |---|---
 |unknown command | Server didn't recognize the command received from the client.
-|internal server error | An internal error occured within the server. If the error persists please contact us at support@zello.com
-|invalid json | The command received included malformed JSON
+|internal server error | An internal error occured within the server. If the error persists please contact us at support@zello.com.
+|invalid json | The command received included malformed JSON.
 |invalid request | The server couldn't recognize command format.
 |not authorized | Username, password or token are not valid.
 |not logged in | Server received a command before successful `logon`.
 |not enough params | The command doesn't include some of the required attributes.
-|server closed connection | The connection to Zello network was closed. You can try re-connecting.
-|channel is not ready | Channel you are trying to talk to is not yet connected. Wait for channel `online` status before sending a message
+|server closed connection | The connection to Zello network was closed. You can try reconnecting.
+|channel is not ready | Channel you are trying to talk to is not yet connected. Wait for channel `online` status before sending a message.
 |listen only connection | The client tried to send a message over listen-only connection.
 |failed to start stream | Unable to start the stream for unknown reason. You can try again later.
 |failed to stop stream | Unable to stop the stream for unknown reason. This error is safe to ignore.
@@ -602,14 +631,14 @@ Indicates incoming shared location from the channel.
 ## Supported features
 
 
-|Feature|Consumer Zello|Zello Work
-|---|---|---
-|Access channels using authorized user credentials | Supported | Supported
-|Access channels anonymously in listen only mode | Supported | Not supported
-|Send and receive voice messages | Supported | Supported
-|Interoperability with Zello apps on Android, iOS, and PC | Supported | Supported
-|Create and access ad hoc channels anonymously | Planned | Planned
-|Send and receive images | Supported | Supported
-|Send and receive text messages | Supported | Supported
-|Send and receive locations | Supported | Supported
-|Send and receive emergency alerts | - | Planned
+|Feature| Zello Friends and Family |Zello Work
+|---|------------------------|---
+|Access channels using authorized user credentials | Supported              | Supported
+|Access channels anonymously in listen only mode | Supported              | Not supported
+|Send and receive voice messages | Supported              | Supported
+|Interoperability with Zello apps on Android, iOS, and PC | Supported              | Supported
+|Create and access ad hoc channels anonymously | Planned                | Planned
+|Send and receive images | Supported              | Supported
+|Send and receive text messages | Supported              | Supported
+|Send and receive locations | Supported              | Supported
+|Send and receive emergency alerts | -                      | Planned
