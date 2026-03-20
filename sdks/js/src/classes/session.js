@@ -3,6 +3,9 @@ const Promise = require('q');
 const Constants = require('./constants');
 const Utils = require('./utils');
 
+const MIN_HEARTBEAT_INTERVAL_MS = 10 * 1000;
+const DEFAULT_HEARTBEAT_INTERVAL_MS = 30 * 1000;
+
 /**
  * @classdesc Session class to start a session with the Zello server and interact with it using
  * the <a href="https://github.com/zelloptt/zello-channel-api">Zello Channel API</a>
@@ -47,6 +50,15 @@ class Session extends Emitter {
     this.connectAttempts = this.maxConnectAttempts;
     this.connectRetryTimeoutMs = this.options.connectRetryTimeoutMs;
     this.connectTimeoutMs = this.options.connectTimeoutMs;
+    const intervalMs = this.options.clientPing?.intervalMs;
+    this.heartbeatIntervalMs =
+      intervalMs === undefined
+        ? DEFAULT_HEARTBEAT_INTERVAL_MS
+        : (typeof intervalMs === 'number' && Number.isFinite(intervalMs))
+          ? Math.max(MIN_HEARTBEAT_INTERVAL_MS, intervalMs)
+          : DEFAULT_HEARTBEAT_INTERVAL_MS;
+    this.heartbeatConsecutiveMissedAcksThreshold = this.options.clientPing?.consecutiveMissedPongsThreshold;
+    this.heartbeatEnabled = !!this.heartbeatIntervalMs && !!this.heartbeatConsecutiveMissedAcksThreshold;
     this.selfDisconnect = false;
     this.incomingMessages = {};
     this.activeOutgoingMessage = null;
@@ -55,6 +67,10 @@ class Session extends Emitter {
     this.reconnectTimeout = null;
     this.connectTimeout = null;
     this.channelConfigurationError = false;
+    this.heartbeatTimer = null;
+    this.heartbeatAwaitingServerAck = false;
+    this.heartbeatMissedAck = 0;
+    this.heartbeatFailureTriggered = false;
 
     if (this.options.enableLogging) {
       this.log = Utils.enableLogging();
@@ -155,6 +171,7 @@ session.connect(function(err, result) {
          * @event Session#session_connect
          */
         this.emit(Constants.EVENT_SESSION_CONNECT);
+        this.startHeartbeat();
         dfd.resolve(result);
       })
       .catch((err) => {
@@ -218,6 +235,7 @@ session.connect(function(err, result) {
 
     this.wsConnection.addEventListener('close', (closeEvent) => {
       this.clearConnectTimeout();
+      this.stopHeartbeat();
       if (this.selfDisconnect) {
         this.selfDisconnect = false;
         return;
@@ -237,6 +255,67 @@ session.connect(function(err, result) {
       }
     });
     return dfd.promise;
+  }
+
+  startHeartbeat() {
+    if (!this.heartbeatEnabled) {
+      return;
+    }
+
+    this.stopHeartbeat();
+    this.heartbeatFailureTriggered = false;
+    this.scheduleHeartbeatTick();
+  }
+
+  scheduleHeartbeatTick() {
+    if (!this.heartbeatEnabled || this.heartbeatFailureTriggered) {
+      return;
+    }
+
+    this.heartbeatTimer = setTimeout(() => {
+      this.heartbeatTimer = null;
+      this.heartbeatTick();
+    }, this.heartbeatIntervalMs);
+  }
+
+  heartbeatTick() {
+    if (!this.wsConnection || this.wsConnection.readyState !== WebSocket.OPEN) {
+      return this.scheduleHeartbeatTick();
+    }
+
+    if (this.heartbeatAwaitingServerAck) {
+      this.heartbeatMissedAck += 1;
+    } else {
+      this.heartbeatAwaitingServerAck = true;
+      this.sendCommandWithCallback('keepalive', {})
+    }
+
+    if (this.heartbeatMissedAck >= this.heartbeatConsecutiveMissedAcksThreshold) {
+      this.heartbeatFailureTriggered = true;
+
+      this.emit(Constants.EVENT_SESSION_CONNECTION_LOST, 'heartbeat timeout');
+      return; // do NOT reschedule
+    }
+
+    this.scheduleHeartbeatTick();
+  }
+
+  stopHeartbeat() {
+    if (this.heartbeatTimer) {
+      clearTimeout(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
+    this.heartbeatFailureTriggered = false;
+    this.heartbeatAwaitingServerAck = false;
+    this.heartbeatMissedAck = 0;
+  }
+
+  handleKeepaliveAck() {
+    if (!this.heartbeatEnabled || this.heartbeatFailureTriggered) {
+      return;
+    }
+    this.heartbeatAwaitingServerAck = false;
+    this.heartbeatMissedAck = 0;
   }
 
   doLogon(refreshToken = '') {
@@ -297,6 +376,7 @@ session.connect(function(err, result) {
   disconnect() {
     this.selfDisconnect = true;
     this.clearConnectTimeout();
+    this.stopHeartbeat();
     if (this.wsConnection) {
       this.wsConnection.close();
     }
@@ -455,6 +535,7 @@ session.connect(function(err, result) {
   }
 
   wsMessageHandler(data) {
+    this.handleKeepaliveAck();
     let jsonData = null;
     try {
       jsonData = JSON.parse(data);
