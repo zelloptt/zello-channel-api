@@ -3,7 +3,8 @@ const Promise = require('q');
 const Constants = require('./constants');
 const Utils = require('./utils');
 
-const MIN_HEARTBEAT_INTERVAL_MS = 30000;
+const MIN_HEARTBEAT_INTERVAL_MS = 10 * 1000;
+const DEFAULT_HEARTBEAT_INTERVAL_MS = 30 * 1000;
 
 /**
  * @classdesc Session class to start a session with the Zello server and interact with it using
@@ -50,7 +51,12 @@ class Session extends Emitter {
     this.connectRetryTimeoutMs = this.options.connectRetryTimeoutMs;
     this.connectTimeoutMs = this.options.connectTimeoutMs;
     const intervalMs = this.options.clientPing?.intervalMs;
-    this.heartbeatIntervalMs = (typeof intervalMs === 'number' && Number.isFinite(intervalMs)) ? Math.max(MIN_HEARTBEAT_INTERVAL_MS, intervalMs) : undefined;
+    this.heartbeatIntervalMs =
+      intervalMs == undefined
+        ? DEFAULT_HEARTBEAT_INTERVAL_MS
+        : (typeof intervalMs === 'number' && Number.isFinite(intervalMs))
+          ? Math.max(MIN_HEARTBEAT_INTERVAL_MS, intervalMs)
+          : DEFAULT_HEARTBEAT_INTERVAL_MS;
     this.heartbeatConsecutiveMissedAcksThreshold = this.options.clientPing?.consecutiveMissedPongsThreshold;
     this.heartbeatEnabled = !!this.heartbeatIntervalMs && !!this.heartbeatConsecutiveMissedAcksThreshold;
     this.selfDisconnect = false;
