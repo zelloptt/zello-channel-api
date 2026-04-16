@@ -68,7 +68,7 @@ const DEFAULT_OPTIONS: Required<PCMPlayerOptions> = {
 class PCMPlayer {
   private readonly options: Required<PCMPlayerOptions>;
 
-  private readonly onEndedCallback: OnEndedCallback | null;
+  private onEndedCallback: OnEndedCallback | null;
   private readonly maxValue: number;
   private readonly typedArrayCtor: SupportedTypedArrayConstructor;
 
@@ -88,6 +88,14 @@ class PCMPlayer {
 
   private muted = false;
   private destroyed = false;
+
+  /**
+   * AbortController used to cancel an in-flight {@link webAudioTouchUnlock}
+   * promise when {@link destroy} runs before the first user gesture. Non-null
+   * only while a touch unlock is pending; cleared on resolution, rejection,
+   * or abort.
+   */
+  private touchUnlockAbort: AbortController | null = null;
 
   constructor(options?: PCMPlayerOptions, onEndedCallback?: OnEndedCallback) {
     this.options = { ...DEFAULT_OPTIONS, ...options };
@@ -202,6 +210,23 @@ class PCMPlayer {
   }
 
   /**
+   * Replaces the onEnded callback. The callback is invoked with the
+   * captured feed counter each time a scheduled audio buffer finishes
+   * playing.
+   *
+   * The callback is captured into a local at the moment each buffer is
+   * scheduled in {@link flush}, so reassigning it never retargets buffers
+   * that are already in flight. New buffers scheduled after the call use
+   * the new callback. This makes it safe to swap the handler mid-session
+   * when reusing a single player across multiple logical owners.
+   *
+   * @param onEndedCallback The new onEnded callback, or null to clear it.
+   */
+  public setOnEnded(onEndedCallback: OnEndedCallback | null) {
+    this.onEndedCallback = onEndedCallback;
+  }
+
+  /**
    * Mutes or unmutes the player. When muted, calls to feed() are ignored.
    * @param isMuted Whether the player should be muted.
    */
@@ -230,6 +255,11 @@ class PCMPlayer {
     this.destroyed = true;
 
     this.reset();
+
+    if (this.touchUnlockAbort) {
+      this.touchUnlockAbort.abort();
+      this.touchUnlockAbort = null;
+    }
 
     if (this.flushTimer !== null) {
       clearTimeout(this.flushTimer);
@@ -456,23 +486,42 @@ class PCMPlayer {
 
   private webAudioTouchUnlock(context: AudioContext): Promise<boolean> {
     return new Promise((resolve, reject) => {
-      if (context.state === 'suspended' && 'ontouchstart' in window) {
-        const unlock = () => {
-          context.resume().then(
-            () => {
-              document.body.removeEventListener('touchstart', unlock);
-              document.body.removeEventListener('touchend', unlock);
-              resolve(true);
-            },
-            (reason) => reject(reason)
-          );
-        };
-
-        document.body.addEventListener('touchstart', unlock, false);
-        document.body.addEventListener('touchend', unlock, false);
-      } else {
+      if (context.state !== 'suspended' || !('ontouchstart' in window)) {
         resolve(false);
+        return;
       }
+
+      const abort = new AbortController();
+      this.touchUnlockAbort = abort;
+
+      const cleanup = () => {
+        document.body.removeEventListener('touchstart', unlock);
+        document.body.removeEventListener('touchend', unlock);
+        if (this.touchUnlockAbort === abort) {
+          this.touchUnlockAbort = null;
+        }
+      };
+
+      const unlock = () => {
+        context.resume().then(
+          () => {
+            cleanup();
+            resolve(true);
+          },
+          (reason) => {
+            cleanup();
+            reject(reason);
+          }
+        );
+      };
+
+      abort.signal.addEventListener('abort', () => {
+        cleanup();
+        resolve(false);
+      });
+
+      document.body.addEventListener('touchstart', unlock, false);
+      document.body.addEventListener('touchend', unlock, false);
     });
   }
 }

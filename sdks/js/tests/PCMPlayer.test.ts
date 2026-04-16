@@ -820,6 +820,82 @@ describe('PCMPlayer', () => {
   });
 
   // =========================================================================
+  // setOnEnded()
+  // =========================================================================
+
+  describe('setOnEnded', () => {
+    test('replaces the onEnded callback', () => {
+      const initial = jest.fn();
+      const next = jest.fn();
+      const player = new PCMPlayer({}, initial);
+      expect(player['onEndedCallback']).toBe(initial);
+
+      player.setOnEnded(next);
+      expect(player['onEndedCallback']).toBe(next);
+    });
+
+    test('clears the onEnded callback when passed null', () => {
+      const initial = jest.fn();
+      const player = new PCMPlayer({}, initial);
+
+      player.setOnEnded(null);
+      expect(player['onEndedCallback']).toBeNull();
+    });
+
+    test('can install a callback on a player constructed without one', () => {
+      const callback = jest.fn();
+      const player = new PCMPlayer();
+      expect(player['onEndedCallback']).toBeNull();
+
+      player.setOnEnded(callback);
+      expect(player['onEndedCallback']).toBe(callback);
+    });
+
+    test('new callback receives subsequent buffer-ended events', async () => {
+      jest.useRealTimers();
+      const firstCallback = jest.fn();
+      const secondCallback = jest.fn();
+      const player = await createInitializedPlayer(
+        { encoding: '32bitFloat', flushingTime: 50 },
+        firstCallback
+      );
+
+      player.setOnEnded(secondCallback);
+
+      player.feed(createFloat32Samples(100));
+      player.feed(createFloat32Samples(100));
+      player['flush']();
+
+      await new Promise((r) => setTimeout(r, 50));
+
+      expect(secondCallback).toHaveBeenCalledWith(2);
+      expect(firstCallback).not.toHaveBeenCalled();
+      player.destroy();
+    });
+
+    test('does not retarget buffers that were already scheduled', async () => {
+      jest.useRealTimers();
+      const firstCallback = jest.fn();
+      const secondCallback = jest.fn();
+      const player = await createInitializedPlayer(
+        { encoding: '32bitFloat', flushingTime: 50 },
+        firstCallback
+      );
+
+      player.feed(createFloat32Samples(100));
+      player['flush']();
+
+      player.setOnEnded(secondCallback);
+
+      await new Promise((r) => setTimeout(r, 50));
+
+      expect(firstCallback).toHaveBeenCalledWith(1);
+      expect(secondCallback).not.toHaveBeenCalled();
+      player.destroy();
+    });
+  });
+
+  // =========================================================================
   // mute()
   // =========================================================================
 
@@ -1168,6 +1244,43 @@ describe('PCMPlayer', () => {
       const result = await unlockPromise;
       expect(result).toBe(false);
 
+      expect(removeListenerSpy).toHaveBeenCalledWith(
+        'touchstart',
+        expect.any(Function)
+      );
+      expect(removeListenerSpy).toHaveBeenCalledWith(
+        'touchend',
+        expect.any(Function)
+      );
+
+      if (!hadOntouchstart) {
+        delete (window as any).ontouchstart;
+      }
+      removeListenerSpy.mockRestore();
+    });
+
+    test('destroy aborts a pending touch unlock and clears the listeners', async () => {
+      jest.useRealTimers();
+      const player = new PCMPlayer();
+      const ctx = new MockAudioContext() as unknown as AudioContext;
+      (ctx as any).state = 'suspended';
+
+      const hadOntouchstart = 'ontouchstart' in window;
+      (window as any).ontouchstart = null;
+
+      const removeListenerSpy = jest.spyOn(
+        document.body,
+        'removeEventListener'
+      );
+
+      const unlockPromise = player['webAudioTouchUnlock'](ctx);
+      expect(player['touchUnlockAbort']).not.toBeNull();
+
+      player.destroy();
+
+      const result = await unlockPromise;
+      expect(result).toBe(false);
+      expect(player['touchUnlockAbort']).toBeNull();
       expect(removeListenerSpy).toHaveBeenCalledWith(
         'touchstart',
         expect.any(Function)
