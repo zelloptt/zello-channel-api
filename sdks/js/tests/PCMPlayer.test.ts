@@ -966,6 +966,7 @@ describe('PCMPlayer', () => {
       player.destroy();
       expect(() => player.setFlushingTime(50)).not.toThrow();
       expect(player['flushTimer']).toBeNull();
+      expect(player['options'].flushingTime).toBe(1000);
     });
   });
 

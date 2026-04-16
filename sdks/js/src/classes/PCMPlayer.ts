@@ -239,11 +239,14 @@ class PCMPlayer {
    * @param flushingTime The new flush cadence in milliseconds.
    */
   public setFlushingTime(flushingTime: number) {
+    if (this.destroyed) {
+      return;
+    }
     if (!Number.isFinite(flushingTime) || flushingTime <= 0) {
       return;
     }
     this.options.flushingTime = flushingTime;
-    if (this.destroyed || !this.audioCtx) {
+    if (!this.audioCtx) {
       return;
     }
     const elapsedMs = Date.now() - this.startTimestampMs;
