@@ -896,6 +896,80 @@ describe('PCMPlayer', () => {
   });
 
   // =========================================================================
+  // setFlushingTime()
+  // =========================================================================
+
+  describe('setFlushingTime', () => {
+    test('updates the flushingTime option before init', () => {
+      const player = new PCMPlayer({ flushingTime: 1000 });
+      player.setFlushingTime(50);
+      expect(player['options'].flushingTime).toBe(50);
+    });
+
+    test('does not schedule a flush timer before init', () => {
+      const player = new PCMPlayer({ flushingTime: 1000 });
+      player.setFlushingTime(50);
+      expect(player['flushTimer']).toBeNull();
+    });
+
+    test('ignores non-finite values', () => {
+      const player = new PCMPlayer({ flushingTime: 1000 });
+      player.setFlushingTime(Number.NaN);
+      expect(player['options'].flushingTime).toBe(1000);
+      player.setFlushingTime(Number.POSITIVE_INFINITY);
+      expect(player['options'].flushingTime).toBe(1000);
+    });
+
+    test('ignores zero and negative values', () => {
+      const player = new PCMPlayer({ flushingTime: 1000 });
+      player.setFlushingTime(0);
+      expect(player['options'].flushingTime).toBe(1000);
+      player.setFlushingTime(-100);
+      expect(player['options'].flushingTime).toBe(1000);
+    });
+
+    test('reschedules the pending flush timer at the new cadence', async () => {
+      jest.useFakeTimers();
+      const player = await createInitializedPlayer({ flushingTime: 1000 });
+      const oldTimer = player['flushTimer'];
+      expect(oldTimer).not.toBeNull();
+
+      player.setFlushingTime(50);
+
+      expect(player['flushTimer']).not.toBeNull();
+      expect(player['flushTimer']).not.toBe(oldTimer);
+      expect(player['options'].flushingTime).toBe(50);
+      player.destroy();
+      jest.useRealTimers();
+    });
+
+    test('causes subsequent flushes to fire at the new cadence', async () => {
+      jest.useRealTimers();
+      const callback = jest.fn();
+      const player = await createInitializedPlayer(
+        { encoding: '32bitFloat', flushingTime: 10000 },
+        callback
+      );
+
+      player.setFlushingTime(30);
+
+      player.feed(createFloat32Samples(100));
+
+      await new Promise((r) => setTimeout(r, 80));
+
+      expect(callback).toHaveBeenCalled();
+      player.destroy();
+    });
+
+    test('does nothing after destroy', async () => {
+      const player = await createInitializedPlayer({ flushingTime: 1000 });
+      player.destroy();
+      expect(() => player.setFlushingTime(50)).not.toThrow();
+      expect(player['flushTimer']).toBeNull();
+    });
+  });
+
+  // =========================================================================
   // mute()
   // =========================================================================
 

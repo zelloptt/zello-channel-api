@@ -227,6 +227,35 @@ class PCMPlayer {
   }
 
   /**
+   * Updates the flush cadence in milliseconds. Cancels any pending flush
+   * timer and reschedules one at the new cadence, re-anchoring the
+   * drift-correction clock so the next flush fires one new-cadence tick
+   * from now rather than catching up or stalling at the old rate.
+   *
+   * If called before {@link init}, only the option is updated and the
+   * first flush scheduled by init() uses the new value. Non-positive or
+   * non-finite values are ignored.
+   *
+   * @param flushingTime The new flush cadence in milliseconds.
+   */
+  public setFlushingTime(flushingTime: number) {
+    if (!Number.isFinite(flushingTime) || flushingTime <= 0) {
+      return;
+    }
+    this.options.flushingTime = flushingTime;
+    if (this.destroyed || !this.audioCtx) {
+      return;
+    }
+    const elapsedMs = Date.now() - this.startTimestampMs;
+    this.flushTimeSyncMs = elapsedMs + flushingTime;
+    if (this.flushTimer !== null) {
+      clearTimeout(this.flushTimer);
+      this.flushTimer = null;
+    }
+    this.scheduleFlush(flushingTime);
+  }
+
+  /**
    * Mutes or unmutes the player. When muted, calls to feed() are ignored.
    * @param isMuted Whether the player should be muted.
    */
