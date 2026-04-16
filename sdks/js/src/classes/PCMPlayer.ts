@@ -240,9 +240,10 @@ class PCMPlayer {
    * drift-correction clock so the next flush fires one new-cadence tick
    * from now rather than catching up or stalling at the old rate.
    *
-   * If called before {@link init}, only the option is updated and the
-   * first flush scheduled by init() uses the new value. Non-positive or
-   * non-finite values are ignored.
+   * If called before {@link init} has finished (including while init is
+   * awaiting the first user gesture via {@link webAudioTouchUnlock}),
+   * only the option is updated and the first flush scheduled by init()
+   * uses the new value. Non-positive or non-finite values are ignored.
    *
    * @param flushingTime The new flush cadence in milliseconds.
    */
@@ -254,7 +255,12 @@ class PCMPlayer {
       return;
     }
     this.options.flushingTime = flushingTime;
-    if (!this.audioCtx) {
+    if (!this.gainNode) {
+      // `audioCtx` alone is not a reliable "initialized" signal because
+      // init() sets it early (before `await webAudioTouchUnlock`). Gate
+      // on `gainNode`, which init() only sets after the unlock resolves,
+      // so a call during the await does not schedule a flush that init()
+      // will later duplicate without clearing.
       return;
     }
     const elapsedMs = Date.now() - this.startTimestampMs;
@@ -280,8 +286,9 @@ class PCMPlayer {
    * but have not yet finished playing, cancelling both actively-playing
    * audio and audio queued to play in the future. Each source's
    * `onended` handler is cleared before `stop()` so no stale
-   * {@link OnEndedCallback} fires against the caller after reset. The
-   * next flush re-anchors {@link startTime} to `audioCtx.currentTime`.
+   * {@link OnEndedCallback} fires against the caller after reset. If
+   * `audioCtx` is present, `reset()` immediately re-anchors
+   * {@link startTime} to `audioCtx.currentTime`.
    *
    * This makes `reset()` a true "cancel playback and start fresh"
    * operation for consumers that reuse a single player across multiple

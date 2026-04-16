@@ -912,6 +912,22 @@ describe('PCMPlayer', () => {
       expect(player['flushTimer']).toBeNull();
     });
 
+    test('does not schedule while init is mid-flight (audioCtx set, gainNode not yet set)', () => {
+      // Simulates the race where init() has created the AudioContext but
+      // is still awaiting webAudioTouchUnlock, so gainNode is null. A
+      // setFlushingTime in that window must only update the option; if it
+      // also scheduled a flush timer, init() would queue a second one on
+      // resume without clearing the first and drive two concurrent flush
+      // loops.
+      const player = new PCMPlayer({ flushingTime: 1000 });
+      (player as unknown as { audioCtx: unknown }).audioCtx = {
+        currentTime: 0
+      };
+      player.setFlushingTime(50);
+      expect(player['options'].flushingTime).toBe(50);
+      expect(player['flushTimer']).toBeNull();
+    });
+
     test('ignores non-finite values', () => {
       const player = new PCMPlayer({ flushingTime: 1000 });
       player.setFlushingTime(Number.NaN);
