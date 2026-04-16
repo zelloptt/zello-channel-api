@@ -502,7 +502,12 @@ class PCMPlayer {
         }
       };
 
+      let didUnlock = false;
       const unlock = () => {
+        if (didUnlock) {
+          return;
+        }
+        didUnlock = true;
         context.resume().then(
           () => {
             cleanup();
@@ -515,10 +520,14 @@ class PCMPlayer {
         );
       };
 
-      abort.signal.addEventListener('abort', () => {
-        cleanup();
-        resolve(false);
-      });
+      abort.signal.addEventListener(
+        'abort',
+        () => {
+          cleanup();
+          resolve(false);
+        },
+        { once: true }
+      );
 
       document.body.addEventListener('touchstart', unlock, false);
       document.body.addEventListener('touchend', unlock, false);

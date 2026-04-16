@@ -1222,6 +1222,29 @@ describe('PCMPlayer', () => {
       removeListenerSpy.mockRestore();
     });
 
+    test('only resumes the context once per gesture even if both touch events fire', async () => {
+      jest.useRealTimers();
+      const player = new PCMPlayer();
+      const ctx = new MockAudioContext() as unknown as AudioContext;
+      (ctx as any).state = 'suspended';
+
+      const hadOntouchstart = 'ontouchstart' in window;
+      (window as any).ontouchstart = null;
+
+      const unlockPromise = player['webAudioTouchUnlock'](ctx);
+
+      document.body.dispatchEvent(new Event('touchstart'));
+      document.body.dispatchEvent(new Event('touchend'));
+
+      const result = await unlockPromise;
+      expect(result).toBe(true);
+      expect(ctx.resume).toHaveBeenCalledTimes(1);
+
+      if (!hadOntouchstart) {
+        delete (window as any).ontouchstart;
+      }
+    });
+
     test('cleans up touch listeners when aborted via destroy', async () => {
       jest.useRealTimers();
       const player = new PCMPlayer();
