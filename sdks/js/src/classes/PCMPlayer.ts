@@ -90,6 +90,14 @@ class PCMPlayer {
   private destroyed = false;
 
   /**
+   * BufferSourceNodes that have been scheduled on the audio timeline and
+   * have not yet fired their `onended` event. Tracked so {@link reset} can
+   * stop them immediately, cancelling audio that is either actively
+   * playing or scheduled to play in the future.
+   */
+  private activeSources: Set<AudioBufferSourceNode> = new Set();
+
+  /**
    * AbortController used to cancel an in-flight {@link webAudioTouchUnlock}
    * promise when {@link destroy} runs before the first user gesture. Non-null
    * only while a touch unlock is pending; cleared on resolution, rejection,
@@ -267,9 +275,44 @@ class PCMPlayer {
   }
 
   /**
-   * Clears all buffered sample data and resets the feed counter.
+   * Clears all buffered sample data and resets the feed counter. Also
+   * stops any BufferSourceNodes that were scheduled on the audio timeline
+   * but have not yet finished playing, cancelling both actively-playing
+   * audio and audio queued to play in the future. Each source's
+   * `onended` handler is cleared before `stop()` so no stale
+   * {@link OnEndedCallback} fires against the caller after reset. The
+   * next flush re-anchors {@link startTime} to `audioCtx.currentTime`.
+   *
+   * This makes `reset()` a true "cancel playback and start fresh"
+   * operation for consumers that reuse a single player across multiple
+   * logical owners.
    */
   public reset() {
+    this.clearBuffers();
+    for (const source of this.activeSources) {
+      source.onended = null;
+      try {
+        source.stop();
+      } catch {
+        // stop() throws InvalidStateError if the source never started.
+        // All tracked sources were started via source.start() in flush(),
+        // so this is defensive.
+      }
+      source.disconnect();
+    }
+    this.activeSources.clear();
+    if (this.audioCtx) {
+      this.startTime = this.audioCtx.currentTime;
+    }
+  }
+
+  /**
+   * Clears pending input buffers without touching scheduled playback.
+   * Used internally by {@link flush} to drain chunks after they have
+   * been concatenated into an AudioBuffer. Public {@link reset} builds
+   * on this to also cancel scheduled audio.
+   */
+  private clearBuffers() {
     this.chunks = [];
     this.totalSamples = 0;
     this.feedCounter = 0;
@@ -350,7 +393,7 @@ class PCMPlayer {
     const samples = this.concatenateChunks();
     const capturedFeedCount = this.feedCounter;
 
-    this.reset();
+    this.clearBuffers();
 
     const { channels, sampleRate } = this.options;
     const length = (samples.length / channels) | 0;
@@ -374,8 +417,11 @@ class PCMPlayer {
     source.connect(this.gainNode);
     source.start(this.startTime);
 
+    this.activeSources.add(source);
+
     const callback = this.onEndedCallback;
     source.onended = () => {
+      this.activeSources.delete(source);
       source.disconnect();
       if (callback) {
         callback(capturedFeedCount);

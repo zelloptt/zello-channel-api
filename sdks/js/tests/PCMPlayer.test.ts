@@ -1032,6 +1032,108 @@ describe('PCMPlayer', () => {
       expect(player['flushTimer']).not.toBeNull();
       player.destroy();
     });
+
+    test('stops and disconnects scheduled BufferSourceNodes', async () => {
+      jest.useRealTimers();
+      const player = await createInitializedPlayer({ encoding: '32bitFloat' });
+      player.feed(createFloat32Samples(100));
+      player['flush']();
+      player.feed(createFloat32Samples(100));
+      player['flush']();
+
+      const ctx = player['audioCtx'] as unknown as MockAudioContext;
+      const sources = ctx.createBufferSource.mock.results.map(
+        (r) => r.value as MockAudioBufferSourceNode
+      );
+      expect(sources.length).toBe(2);
+
+      player.reset();
+
+      for (const source of sources) {
+        expect(source.stop).toHaveBeenCalledTimes(1);
+        expect(source.disconnect).toHaveBeenCalledTimes(1);
+      }
+      expect(player['activeSources'].size).toBe(0);
+      player.destroy();
+    });
+
+    test('does not fire the onEnded callback for stopped sources', async () => {
+      jest.useRealTimers();
+      const callback = jest.fn();
+      const player = await createInitializedPlayer(
+        { encoding: '32bitFloat' },
+        callback
+      );
+      player.feed(createFloat32Samples(100));
+      player['flush']();
+
+      player.reset();
+
+      await new Promise((r) => setTimeout(r, 20));
+      expect(callback).not.toHaveBeenCalled();
+      player.destroy();
+    });
+
+    test('re-anchors startTime to audioCtx.currentTime', async () => {
+      const player = await createInitializedPlayer({ encoding: '32bitFloat' });
+      const ctx = player['audioCtx'] as unknown as MockAudioContext;
+      ctx.currentTime = 5.5;
+      player['startTime'] = 10;
+
+      player.reset();
+
+      expect(player['startTime']).toBe(5.5);
+      player.destroy();
+    });
+
+    test('removes sources from activeSources as they end naturally', async () => {
+      jest.useRealTimers();
+      const player = await createInitializedPlayer({ encoding: '32bitFloat' });
+      player.feed(createFloat32Samples(100));
+      player['flush']();
+      expect(player['activeSources'].size).toBe(1);
+
+      await new Promise((r) => setTimeout(r, 20));
+
+      expect(player['activeSources'].size).toBe(0);
+      player.destroy();
+    });
+  });
+
+  // =========================================================================
+  // flush() regression: does not cancel previously-scheduled sources
+  // =========================================================================
+
+  describe('flush does not cancel previously scheduled sources', () => {
+    // Guards against a regression where flush() delegated its internal
+    // input-buffer clear to reset(), which also stops scheduled audio.
+    // That caused every flush tick to cancel all in-flight playback, so
+    // long messages (e.g. 3 s history clips) played back choppy and never
+    // reached completion.
+    test('back-to-back flushes leave earlier sources running', () => {
+      const ctx = new MockAudioContext();
+      (window as any).AudioContext = ctx.constructor as any;
+      const player = new PCMPlayer({ encoding: '32bitFloat' });
+      return player.init().then(() => {
+        const audioCtx =
+          player['audioCtx'] as unknown as MockAudioContext;
+
+        player.feed(createFloat32Samples(100));
+        player['flush']();
+        const sourceA = audioCtx.createBufferSource.mock.results[0]
+          .value as MockAudioBufferSourceNode;
+
+        player.feed(createFloat32Samples(100));
+        player['flush']();
+        const sourceB = audioCtx.createBufferSource.mock.results[1]
+          .value as MockAudioBufferSourceNode;
+
+        expect(sourceA.stop).not.toHaveBeenCalled();
+        expect(sourceB.stop).not.toHaveBeenCalled();
+
+        player.destroy();
+      });
+    });
   });
 
   // =========================================================================
