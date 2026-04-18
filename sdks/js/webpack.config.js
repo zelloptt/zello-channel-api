@@ -59,7 +59,7 @@ module.exports = {
       },
       {
         test: /\.js$/,
-        exclude: /node_modules/,
+        exclude: [/node_modules/, /\.worker\.js$/],
         use: {
           loader: 'babel-loader',
           options: {
@@ -90,11 +90,13 @@ module.exports = {
         type: 'asset/source'
       },
       {
-        test: /\.worker\.js/,
-        loader: 'workerize-loader',
-        options: {
-          inline: true
-        }
+        // Load .worker.js files as raw strings so the importing module can
+        // manage the Blob URL lifecycle itself (create -> new Worker(url) ->
+        // revokeObjectURL). Previously this rule used workerize-loader with
+        // `inline: true`, whose generated wrapper interpolated the blob URL
+        // expression twice and leaked one URL per constructed Worker.
+        test: /\.worker\.js$/,
+        type: 'asset/source'
       }
     ]
   },
