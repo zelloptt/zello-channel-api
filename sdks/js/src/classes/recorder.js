@@ -240,7 +240,9 @@ class Recorder {
       return this.initSourceNode().then((sourceNode) => {
         if (this.state !== RecorderState.Recording || !this.audioContext) {
           try { sourceNode.disconnect(); } catch (_) {}
-          return;
+          const err = new Error('Recorder torn down during changeInputDevice');
+          err.code = 'RecorderTornDown';
+          throw err;
         }
         this.sourceNode = sourceNode;
         this.sourceNode.connect(this.monitorGainNode);
@@ -259,7 +261,9 @@ class Recorder {
       return this.initSourceNode().then((sourceNode) => {
         if (this.state !== RecorderState.Inactive || !this.audioContext) {
           try { sourceNode.disconnect(); } catch (_) {}
-          return;
+          const err = new Error('Recorder torn down during init');
+          err.code = 'RecorderTornDown';
+          throw err;
         }
         this.state = RecorderState.Recording;
         this.sourceNode = sourceNode;
