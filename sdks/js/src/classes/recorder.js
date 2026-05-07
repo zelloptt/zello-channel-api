@@ -26,6 +26,7 @@ class Recorder {
     }, options);
     this.encoder = encoder;
     this.state = RecorderState.Inactive;
+    this.streamGeneration = 0;
   }
 
   static getAudioContext() {
@@ -41,6 +42,7 @@ class Recorder {
   }
 
   clearStream() {
+    this.streamGeneration++;
     if (this.stream) {
       if (this.stream.getTracks) {
         this.stream.getTracks().forEach(function(track) {
@@ -137,7 +139,11 @@ class Recorder {
       return this.initScriptProcessor();
     }
 
+    const generation = this.streamGeneration;
     return this.audioContext.audioWorklet.addModule(new URL('./recorderWorklet.js', import.meta.url)).then(() => {
+      if (this.streamGeneration !== generation || !this.audioContext) {
+        return;
+      }
       this.audioWorkletNode = new AudioWorkletNode(
         this.audioContext,
         'recorder-processor',
@@ -179,7 +185,14 @@ class Recorder {
     if (this.stream && this.sourceNode) {
       return global.Promise.resolve(this.sourceNode);
     }
+    const generation = this.streamGeneration;
     return global.navigator.mediaDevices.getUserMedia(this.options.mediaConstraints).then((stream) => {
+      if (this.streamGeneration !== generation || !this.audioContext) {
+        stream.getTracks().forEach((t) => t.stop());
+        const err = new Error('Recorder torn down during init');
+        err.code = 'RecorderTornDown';
+        throw err;
+      }
       this.stream = stream;
       const sourceNode = this.audioContext.createMediaStreamSource(stream);
       this.options.log?.(`mic has ${sourceNode.channelCount} channels and ${sourceNode.numberOfOutputs} outputs`);
@@ -225,6 +238,10 @@ class Recorder {
     this.initAudioContext();
     return this.initAudioGraph(true).then(() => {
       return this.initSourceNode().then((sourceNode) => {
+        if (this.state !== RecorderState.Recording || !this.audioContext) {
+          try { sourceNode.disconnect(); } catch (_) {}
+          return;
+        }
         this.sourceNode = sourceNode;
         this.sourceNode.connect(this.monitorGainNode);
         this.sourceNode.connect(this.recordingGainNode);
@@ -240,6 +257,10 @@ class Recorder {
     this.initAudioContext();
     return this.initAudioGraph().then(() => {
       return this.initSourceNode().then((sourceNode) => {
+        if (this.state !== RecorderState.Inactive || !this.audioContext) {
+          try { sourceNode.disconnect(); } catch (_) {}
+          return;
+        }
         this.state = RecorderState.Recording;
         this.sourceNode = sourceNode;
         this.sourceNode.connect(this.monitorGainNode);
