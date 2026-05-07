@@ -189,7 +189,7 @@ class Recorder {
     return global.navigator.mediaDevices.getUserMedia(this.options.mediaConstraints).then((stream) => {
       if (this.streamGeneration !== generation || !this.audioContext) {
         stream.getTracks().forEach((t) => t.stop());
-        const err = new Error('Recorder torn down during init');
+        const err = new Error('Recorder torn down during init source node');
         err.code = 'RecorderTornDown';
         throw err;
       }
