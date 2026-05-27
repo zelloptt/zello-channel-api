@@ -165,6 +165,17 @@ describe('Recorder teardown race', () => {
     expect(stream.getTracks()[0].stop).toHaveBeenCalledTimes(1);
   });
 
+  test('changeInputDevice() resolves to a promise when not recording', async () => {
+    installGlobals();
+    const recorder = makeRecorder();
+    recorder.state = 'inactive';
+
+    const result = recorder.changeInputDevice('device-xyz');
+
+    expect(typeof result.then).toBe('function');
+    await expect(result).resolves.toBeUndefined();
+  });
+
   test('init() succeeds without stopping tracks when no teardown fires', async () => {
     const gum = installGlobals();
     const stream = new MockMediaStream();
