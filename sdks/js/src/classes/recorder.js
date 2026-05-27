@@ -230,7 +230,7 @@ class Recorder {
 
   changeInputDevice(deviceId) {
     if (this.state !== RecorderState.Recording) {
-      return;
+      return global.Promise.resolve();
     }
     this.options.mediaConstraints.audio = {deviceId: {exact: deviceId}};
     this.disconnectNodes();
