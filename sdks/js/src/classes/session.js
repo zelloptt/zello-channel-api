@@ -730,6 +730,87 @@ var outgoingMessage = session.startVoiceMessage({
     );
   }
 
+  /**
+   * Retrieves the dispatch calls visible to this session: for a dispatcher,
+   * every pending call plus their own active ones; for a caller, their own.
+   *
+   * @param {function} [userCallback] callback that is fired with the calls list or an error.
+   * @return {promise} promise that resolves with <code>{success, calls}</code> where each call is
+   *                   <code>{id, user, status, dispatcher, initiator, messages}</code> and each message is
+   *                   <code>{message_id, type, author, ts, packet_duration}</code>; rejects on error.
+   * @example
+   *
+   session.getDispatchCalls().then(function(result) {
+     console.log(result.calls);
+   });
+   **/
+  getDispatchCalls(userCallback = null) {
+    const options = {
+      channel: this.options.channel
+    };
+    return this.sendCommandWithCallback(
+      'get_dispatch_calls',
+      options,
+      userCallback
+    );
+  }
+
+  /**
+   * Takes a pending dispatch call, making this session's user its dispatcher.
+   *
+   * @param {Number} callId the ID of the pending dispatch call to take.
+   * @param {function} [userCallback] callback that is fired on the call being taken or an error.
+   * @return {promise} promise that resolves with <code>{success, call}</code> once the call is taken
+   *                   and rejects if taking it failed. A call another dispatcher already holds
+   *                   fails with error <code>'taken'</code>, and the response names them in
+   *                   <code>dispatcher</code>.
+   * @example
+   *
+   session.takeDispatchCall(123456789);
+   **/
+  takeDispatchCall(callId, userCallback = null) {
+    const options = {
+      call_id: callId,
+      channel: this.options.channel
+    };
+    return this.sendCommandWithCallback(
+      'take_dispatch_call',
+      options,
+      userCallback
+    );
+  }
+
+  /**
+   * Plays back one message from a pending or taken dispatch call. The server
+   * downloads the recorded audio and delivers it like any incoming voice
+   * message: <code>incoming_voice_will_start</code> fires with a message whose
+   * data carries <code>call_id</code> and <code>message_id</code>, followed by
+   * the audio and <code>incoming_voice_did_stop</code>.
+   *
+   * @param {Number} callId the ID of the dispatch call the message belongs to.
+   * @param {Number} messageId the ID of the message to play, from the call's
+   *                 <code>messages</code> list returned by <code>getDispatchCalls</code>.
+   * @param {function} [userCallback] callback that is fired on playback starting or an error.
+   * @return {promise} promise that resolves with <code>{success, stream_id}</code> once playback
+   *                   starts and rejects if it failed. One playback runs at a time; a second
+   *                   request while one is running fails with error <code>'busy'</code>.
+   * @example
+   *
+   session.playDispatchMessage(123456789, 411);
+   **/
+  playDispatchMessage(callId, messageId, userCallback = null) {
+    const options = {
+      call_id: callId,
+      message_id: messageId,
+      channel: this.options.channel
+    };
+    return this.sendCommandWithCallback(
+      'play_dispatch_message',
+      options,
+      userCallback
+    );
+  }
+
   sendCommandWithCallback(command, options, userCallback = null) {
     options.seq = this.getSeq();
     options.command = command;
