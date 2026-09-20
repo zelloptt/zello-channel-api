@@ -88,6 +88,25 @@ describe('takeDispatchCall', () => {
   });
 });
 
+describe('short aliases', () => {
+  test.each([
+    ['getCalls', 'getDispatchCalls', []],
+    ['takeCall', 'takeDispatchCall', [171234]],
+    ['endCall', 'endDispatchCall', [171234]],
+    ['playMessage', 'playDispatchMessage', [171234, 411]]
+  ])('%s delegates to %s', (alias, method, args) => {
+    const callback = () => {};
+    const stub = {
+      [method]: jest.fn(() => 'the-promise')
+    };
+
+    const result = Session.prototype[alias].call(stub, ...args, callback);
+
+    expect(stub[method]).toHaveBeenCalledWith(...args, callback);
+    expect(result).toBe('the-promise');
+  });
+});
+
 describe('playDispatchMessage', () => {
   test('sends the call and message ids with the command', () => {
     const { stub, sent } = makeStub();

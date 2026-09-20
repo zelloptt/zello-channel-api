@@ -811,6 +811,44 @@ var outgoingMessage = session.startVoiceMessage({
     );
   }
 
+  /*
+   * Dispatch calls are the only calls in the Channel API, so the call methods
+   * also answer to short names without the dispatch qualifier. The wire
+   * commands stay dispatch-qualified.
+   */
+
+  /**
+   * Alias of <code>getDispatchCalls</code>.
+   * @see Session#getDispatchCalls
+   **/
+  getCalls(userCallback = null) {
+    return this.getDispatchCalls(userCallback);
+  }
+
+  /**
+   * Alias of <code>takeDispatchCall</code>.
+   * @see Session#takeDispatchCall
+   **/
+  takeCall(callId, userCallback = null) {
+    return this.takeDispatchCall(callId, userCallback);
+  }
+
+  /**
+   * Alias of <code>endDispatchCall</code>.
+   * @see Session#endDispatchCall
+   **/
+  endCall(callId, userCallback = null) {
+    return this.endDispatchCall(callId, userCallback);
+  }
+
+  /**
+   * Alias of <code>playDispatchMessage</code>.
+   * @see Session#playDispatchMessage
+   **/
+  playMessage(callId, messageId, userCallback = null) {
+    return this.playDispatchMessage(callId, messageId, userCallback);
+  }
+
   sendCommandWithCallback(command, options, userCallback = null) {
     options.seq = this.getSeq();
     options.command = command;
