@@ -389,6 +389,8 @@ Sends user's location to the channel.
 
 On a channel configured as a dispatch channel, audio from a regular channel user opens a *call*: it enters a queue as `pending`, a dispatcher takes it to make it `active`, and from then on the two talk one-on-one until the call is ended. The commands below let an API client act as the dispatcher; queue changes are delivered to all parties through the [`on_dispatch_call_status`](#on_dispatch_call_status) event. Taking, playing back, and ending calls require the authenticated user to hold the dispatcher role in the channel.
 
+Each command also answers to an unqualified alias — `get_calls`, `take_call`, `end_call`, and `play_message` — with identical behavior and responses. The dispatch-qualified names are canonical.
+
 ### `get_dispatch_calls`
 
 Retrieves the dispatch calls visible to this session: for a dispatcher, every pending call plus their own active ones; for a regular user, their own calls.
