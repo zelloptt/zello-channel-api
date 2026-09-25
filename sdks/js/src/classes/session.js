@@ -771,6 +771,24 @@ var outgoingMessage = session.startVoiceMessage({
   }
 
   /**
+   * Fetches the contact list of the logged-in user: the users it can reach
+   * (with display names and last known presence) and the channels it belongs
+   * to. Not available to anonymous or listen-only sessions.
+   *
+   * @param {function} [userCallback] callback that is fired with the contact list or an error
+   * @return {promise} promise that resolves with <code>{ users, channels }</code> and rejects if
+   *                   the server refused the request
+   * @example
+   * session.getContacts().then(({ users, channels }) => {
+   *   users.forEach((u) => console.log(u.username, u.display_name, u.status));
+   *   channels.forEach((c) => console.log(c.name, c.dispatch, c.team));
+   * });
+   **/
+  getContacts(userCallback = null) {
+    return this.sendCommandWithCallback('get_contacts', {}, userCallback);
+  }
+
+  /**
    * Reads the channel's stored history. Available on Zello Work networks with
    * offline channel messages enabled; <code>status</code> events report it as
    * <code>history_supported</code>. The server keeps the last 24 hours, at most

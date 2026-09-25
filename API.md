@@ -601,6 +601,73 @@ Fetches one stored image to this connection, delivered the same way as a live on
 
 The response precedes the `on_image` event. One fetch runs at a time per connection; a second request is answered with `busy`. A `message_id` that is not an image entry is answered with `message not playable`, and one the server no longer holds with `no message`.
 
+## Contacts
+
+### `get_contacts`
+Returns the contact list of the logged-in user as Zello delivers it: every user the account can reach and every channel it belongs to, including team channels. The list is a snapshot; call again after reconnecting or when the network's users or channels change. Anonymous and listen-only sessions have no contact list and receive `not supported`.
+
+| Name | Type | Value / Description
+|---|---|---
+| `command` | string | `get_contacts`
+| `seq` | integer | Command sequence number
+
+#### Request:
+```json
+{
+  "command": "get_contacts",
+  "seq": 5
+}
+```
+
+#### Response:
+```json
+{
+  "seq": 5,
+  "success": true,
+  "users": [
+    {
+      "username": "sherlock",
+      "display_name": "Sherlock Holmes",
+      "full_name": "Sherlock Holmes",
+      "job_title": "Consulting detective",
+      "status": "online",
+      "tags": ["Everyone", "Baker Street"]
+    },
+    {
+      "username": "watson",
+      "display_name": "watson",
+      "tags": ["Everyone"]
+    }
+  ],
+  "channels": [
+    { "name": "Baker Street", "dispatch": false, "team": true },
+    { "name": "Dispatch", "dispatch": true, "team": false },
+    { "name": "Everyone", "dispatch": false, "team": true }
+  ]
+}
+```
+
+Users are sorted by `display_name`, channels by `name`.
+
+##### `users` entries
+
+| Name | Type | Value / Description
+|---|---|---
+| `username` | string | The username
+| `display_name` | string | The name to show: the name set in the Zello Work console, then the profile display name, then the username
+| `full_name` | string | (optional) The name set in the Zello Work console
+| `job_title` | string | (optional) The job title set in the Zello Work console
+| `status` | string | (optional) Last known presence: `online`, `offline`, `away`, `busy`, `headphones` or `standby`. Absent until the server has received a status update for the user.
+| `tags` | array of strings | Names of the team channels the user belongs to
+
+##### `channels` entries
+
+| Name | Type | Value / Description
+|---|---|---
+| `name` | string | The channel name
+| `dispatch` | boolean | Whether the channel is a dispatch channel
+| `team` | boolean | Whether the channel is a team channel (derived from user tags) rather than a regular channel
+
 ## Events
 
 ### `on_channel_status`
@@ -892,7 +959,7 @@ Indicates incoming shared location from the channel.
 |failed to send data | An error occured while trying to send stream data packet.
 |invalid audio packet | Malformed audio packet is received.
 |invalid mentions | `send_text_message` carried a `mentions` value that is not an array of `{username, offset, length}` entries inside the text, or more than 50 of them.
-|not supported | The command needs a feature the client did not request on `logon` (for example `get_user_profiles` without `profiles`, or `send_text_message` with `mentions` without `mentions`), or one the network or channel does not offer (for example channel history on a network without offline channel messages).
+|not supported | The command needs a feature the client did not request on `logon` (for example `get_user_profiles` without `profiles`, or `send_text_message` with `mentions` without `mentions`), one the network or channel does not offer (for example channel history on a network without offline channel messages), or a contact list the session does not have (`get_contacts` on an anonymous session).
 |too many users | `get_user_profiles` was sent with more than 50 user names.
 |busy | Another request of the same kind is still in progress on this connection. Retry once it completes.
 |no message | The server no longer holds the requested history message.
