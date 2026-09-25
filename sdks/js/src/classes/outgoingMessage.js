@@ -157,9 +157,13 @@ outgoingMessage.then(function(result) {
   */
   stop(userCallback) {
     this.destroy();
-    return this.session.stopStream({
+    const params = {
       stream_id: this.currentMessageId
-    }, userCallback);
+    };
+    if (Array.isArray(this.options.subscribedChannels) && this.options.channel) {
+      params.channel = this.options.channel;
+    }
+    return this.session.stopStream(params, userCallback);
   }
 
   destroy() {
@@ -200,6 +204,9 @@ outgoingMessage.then(function(result) {
     }
     if (this.instanceOptions.retransmissionDuration !== undefined) {
       params.retransmissionDuration = this.instanceOptions.retransmissionDuration;
+    }
+    if (Array.isArray(this.options.subscribedChannels) && this.options.channel) {
+      params.channel = this.options.channel;
     }
     this.session
       .startStream(params, this.userCallback)

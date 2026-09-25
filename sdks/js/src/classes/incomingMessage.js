@@ -19,6 +19,9 @@ class IncomingMessage extends Emitter {
   constructor(messageData, session) {
     super();
     this.streamId = messageData.stream_id;
+    // Name of the Zello channel this stream belongs to. Kept off options.channels,
+    // which is the decoder's audio channel count.
+    this.channel = messageData.channel;
     this.codecDetails = Utils.parseCodedHeader(messageData.codec_header);
     this.messageDidStart = false;
     this.messageStartTime = 0;
