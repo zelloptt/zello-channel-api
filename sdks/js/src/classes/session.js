@@ -25,7 +25,8 @@ const DEFAULT_HEARTBEAT_INTERVAL_MS = 30 * 1000;
   language: 'en',
   features: {
     transcriptions: true,
-    profiles: true
+    profiles: true,
+    mentions: true
   }
 );
  **/
@@ -495,7 +496,11 @@ session.connect(function(err, result) {
         break;
       case 'on_text_message':
         /**
-         * Incoming channel text message
+         * Incoming channel text message. For a session created with
+         * <code>features: { mentions: true }</code>, a message the sender attached
+         * mentions to carries a <code>mentions</code> array of
+         * <code>{username, offset, length}</code> entries locating each mention
+         * in <code>text</code> (UTF-16 code units); it is absent otherwise.
          * @event Session#incoming_text_message
          * @param json textMessage textMessage JSON
          */
@@ -710,6 +715,16 @@ var outgoingMessage = session.startVoiceMessage({
    * @param {object} options options for outgoing text message.
    * @property {String} options.text message text
    * @property {String} [options.for] optional username to send this text message to
+   * @property {Array<{username: String, offset: Number, length: Number}>} [options.mentions]
+   *                              optional users mentioned in the text. Requires the session to be
+   *                              created with <code>features: { mentions: true }</code>, otherwise
+   *                              the server rejects the message with <code>not supported</code>.
+   *                              <code>offset</code> and <code>length</code> locate the mention
+   *                              inside <code>text</code> (UTF-16 code units, plain JavaScript
+   *                              string indices). The server relays the array to every recipient
+   *                              that opted in, on the <code>incoming_text_message</code> event,
+   *                              and rejects the message with <code>invalid mentions</code> if an
+   *                              entry is malformed or falls outside the text. At most 50 entries
    *
    * @param {function} [userCallback] callback that is fired on message being send or failed to be sent
    * @return {promise} promise that resolves once session successfully send a text message and rejects if
@@ -718,6 +733,11 @@ var outgoingMessage = session.startVoiceMessage({
    * session.sendTextMessage({
    *   text: 'Hello Zello!',
    *   for: 'username',
+   * });
+   * @example
+   * session.sendTextMessage({
+   *   text: '@holmes meet me at the falls',
+   *   mentions: [{ username: 'holmes', offset: 0, length: 7 }],
    * });
    **/
   sendTextMessage(options = {}, userCallback = null) {

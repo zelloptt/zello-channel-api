@@ -143,7 +143,7 @@ the <a href="https://github.com/zelloptt/zello-channel-api">Zello Channel API</a
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line32">line 32</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line33">line 33</a>
     </li></ul></dd>
     
 
@@ -211,7 +211,8 @@ the <a href="https://github.com/zelloptt/zello-channel-api">Zello Channel API</a
   language: 'en',
   features: {
     transcriptions: true,
-    profiles: true
+    profiles: true,
+    mentions: true
   }
 );</code></pre>
 
@@ -364,7 +365,7 @@ the <a href="https://github.com/zelloptt/zello-channel-api">Zello Channel API</a
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line129">line 129</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line130">line 130</a>
     </li></ul></dd>
     
 
@@ -495,7 +496,7 @@ session.connect(function(err, result) {
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line380">line 380</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line381">line 381</a>
     </li></ul></dd>
     
 
@@ -687,7 +688,7 @@ session.connect(function(err, result) {
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line874">line 874</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line894">line 894</a>
     </li></ul></dd>
     
 
@@ -1008,7 +1009,7 @@ voice entry with <code>playHistoryMessage</code> and fetch an image with
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line780">line 780</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line800">line 800</a>
     </li></ul></dd>
     
 
@@ -1371,7 +1372,7 @@ the thumbnail and full image follow on that instance.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line850">line 850</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line870">line 870</a>
     </li></ul></dd>
     
 
@@ -1600,7 +1601,7 @@ event, cached ones right away and the rest once the server has fetched them.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line746">line 746</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line766">line 766</a>
     </li></ul></dd>
     
 
@@ -1958,7 +1959,7 @@ data carries <code>message_id</code>, followed by the audio and
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line812">line 812</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line832">line 832</a>
     </li></ul></dd>
     
 
@@ -2225,7 +2226,7 @@ data carries <code>message_id</code>, followed by the audio and
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line701">line 701</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line706">line 706</a>
     </li></ul></dd>
     
 
@@ -2503,6 +2504,45 @@ data carries <code>message_id</code>, followed by the audio and
         </tr>
 
     
+
+        <tr>
+            
+                <td class="name"><code>options.mentions</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Array.&lt;{username: String, offset: Number, length: Number}></span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">optional users mentioned in the text. Requires the session to be
+                             created with <code>features: { mentions: true }</code>, otherwise
+                             the server rejects the message with <code>not supported</code>.
+                             <code>offset</code> and <code>length</code> locate the mention
+                             inside <code>text</code> (UTF-16 code units, plain JavaScript
+                             string indices). The server relays the array to every recipient
+                             that opted in, on the <code>incoming_text_message</code> event,
+                             and rejects the message with <code>invalid mentions</code> if an
+                             entry is malformed or falls outside the text. At most 50 entries</td>
+        </tr>
+
+    
     </tbody>
 </table>
 
@@ -2538,7 +2578,7 @@ data carries <code>message_id</code>, followed by the audio and
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line723">line 723</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line743">line 743</a>
     </li></ul></dd>
     
 
@@ -2590,11 +2630,16 @@ data carries <code>message_id</code>, followed by the audio and
 
 
 
-    <h5>Example</h5>
+    <h5>Examples</h5>
     
     <pre class="prettyprint"><code>session.sendTextMessage({
   text: 'Hello Zello!',
   for: 'username',
+});</code></pre>
+
+    <pre class="prettyprint"><code>session.sendTextMessage({
+  text: '@holmes meet me at the falls',
+  mentions: [{ username: 'holmes', offset: 0, length: 7 }],
 });</code></pre>
 
 
@@ -2823,7 +2868,7 @@ data carries <code>message_id</code>, followed by the audio and
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line608">line 608</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line613">line 613</a>
     </li></ul></dd>
     
 
@@ -3045,7 +3090,7 @@ Options can also include <code>recorder</code> and <code>encoder</code> override
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line646">line 646</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line651">line 651</a>
     </li></ul></dd>
     
 
@@ -3397,7 +3442,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line542">line 542</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line547">line 547</a>
     </li></ul></dd>
     
 
@@ -3534,7 +3579,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line424">line 424</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line425">line 425</a>
     </li></ul></dd>
     
 
@@ -3671,7 +3716,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line513">line 513</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line518">line 518</a>
     </li></ul></dd>
     
 
@@ -3803,7 +3848,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line505">line 505</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line510">line 510</a>
     </li></ul></dd>
     
 
@@ -3847,7 +3892,11 @@ var outgoingMessage = session.startVoiceMessage({
 
 
 <div class="description">
-    Incoming channel text message
+    Incoming channel text message. For a session created with
+<code>features: { mentions: true }</code>, a message the sender attached
+mentions to carries a <code>mentions</code> array of
+<code>{username, offset, length}</code> entries locating each mention
+in <code>text</code> (UTF-16 code units); it is absent otherwise.
 </div>
 
 
@@ -3935,7 +3984,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line497">line 497</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line498">line 498</a>
     </li></ul></dd>
     
 
@@ -4170,7 +4219,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line393">line 393</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line394">line 394</a>
     </li></ul></dd>
     
 
@@ -4330,7 +4379,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line671">line 671</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line676">line 676</a>
     </li></ul></dd>
     
 
@@ -4467,7 +4516,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line661">line 661</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line666">line 666</a>
     </li></ul></dd>
     
 
@@ -4604,7 +4653,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line489">line 489</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line490">line 490</a>
     </li></ul></dd>
     
 
@@ -4764,7 +4813,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line469">line 469</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line470">line 470</a>
     </li></ul></dd>
     
 
@@ -4901,7 +4950,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line459">line 459</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line460">line 460</a>
     </li></ul></dd>
     
 
@@ -5038,7 +5087,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line480">line 480</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line481">line 481</a>
     </li></ul></dd>
     
 
@@ -5126,7 +5175,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line173">line 173</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line174">line 174</a>
     </li></ul></dd>
     
 
@@ -5263,7 +5312,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line249">line 249</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line250">line 250</a>
     </li></ul></dd>
     
 
@@ -5400,7 +5449,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line198">line 198</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line199">line 199</a>
     </li></ul></dd>
     
 
@@ -5537,7 +5586,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line193">line 193</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line194">line 194</a>
     </li></ul></dd>
     
 
@@ -5625,7 +5674,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line158">line 158</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line159">line 159</a>
     </li></ul></dd>
     
 
@@ -5860,7 +5909,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line432">line 432</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line433">line 433</a>
     </li></ul></dd>
     
 
@@ -6178,7 +6227,7 @@ produces the event, with the picture fields absent.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line525">line 525</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line530">line 530</a>
     </li></ul></dd>
     
 
@@ -6226,7 +6275,7 @@ produces the event, with the picture fields absent.
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Sep 25 2026 07:21:54 GMT-0500 (Central Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Sep 25 2026 10:23:22 GMT-0500 (Central Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>

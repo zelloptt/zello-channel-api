@@ -78,7 +78,7 @@ Connecting to multiple channels (up to 100) is currently supported for Zello Wor
 | `platform_type` | string | (optional) Client platform type, any string
 | `platform_name` | string | (optional) Client platform name, any string. If includes `Gateway` or `Kiosk` (case-insensitive), the Zello Alarms service will track the online status of this client.
 | `language`      | string | (optional) Client ISO 639-1 language code. Required for translation channels.
-| `features`      | object | (optional) Feature flags object. Include `transcriptions` as a boolean (for example `{"transcriptions": true}`) to enable voice message transcriptions; when enabled, the server emits `on_transcription` events for voice streams. Include `profiles` as a boolean to receive user profiles (display name and picture); when enabled, the server emits `on_user_profile` events and accepts `get_user_profiles`. Unknown flags are ignored.
+| `features`      | object | (optional) Feature flags object. Include `transcriptions` as a boolean (for example `{"transcriptions": true}`) to enable voice message transcriptions; when enabled, the server emits `on_transcription` events for voice streams. Include `profiles` as a boolean to receive user profiles (display name and picture); when enabled, the server emits `on_user_profile` events and accepts `get_user_profiles`. Include `mentions` as a boolean to use [text message mentions](#mentions); when enabled, `send_text_message` accepts `mentions` and `on_text_message` carries it. Unknown flags are ignored.
 
 ### Zello Work
 
@@ -92,7 +92,8 @@ Connecting to multiple channels (up to 100) is currently supported for Zello Wor
   "channels": ["Baker Street 221B", "Reichenbach Falls"],
   "features": {
     "transcriptions": true,
-    "profiles": true
+    "profiles": true,
+    "mentions": true
   }
 }
 ``` 
@@ -327,6 +328,7 @@ Sends a new text message to the channel.
 | `channel` | string | The channel to send the message to
 | `text` | string | Message text. 30 Kb maximum
 | `for` | string | Optional username to send text message to. Other users in the channel won't be receiving this text message
+| `mentions` | array | Optional list of users mentioned in the text, see [Mentions](#mentions). Requires the `mentions` feature on `logon`. 50 entries maximum
 
 #### Request:
 ```json
@@ -344,6 +346,34 @@ Sends a new text message to the channel.
 {
   "seq": 3,
   "success": true
+}
+```
+
+### Mentions
+
+A text message can name other users of the channel. The `text` stays plain (write the name inline however you like, `@holmes` is the convention) and `mentions` tells receiving clients where each mention sits and whom it refers to, so they can highlight it or notify the user.
+
+Mentions are opt-in: log on with `features` including `"mentions": true`. Without it, a `send_text_message` that carries `mentions` is rejected with `not supported`, and `on_text_message` never includes the field, so a client that does not know about mentions keeps seeing plain text. Each entry:
+
+| Name | Type | Value / Description
+|---|---|---
+| `username` | string | The username of the mentioned user
+| `offset` | integer | Index of the first character of the mention in `text`, counted in UTF-16 code units (JavaScript string indices)
+| `length` | integer | Number of UTF-16 code units the mention spans
+
+The server checks the shape of every entry and that each span falls inside `text`, and rejects the message with `invalid mentions` otherwise. It does not check that the users exist or are members of the channel, and mentions do not change who receives the message or how it is delivered: they are passed through exactly as sent, on [`on_text_message`](#on_text_message), to every recipient that requested the `mentions` feature.
+
+#### Request:
+```json
+{
+  "command": "send_text_message",
+  "seq": 4,
+  "channel": "Reichenbach Falls",
+  "text": "@holmes and @watson meet me at the falls",
+  "mentions": [
+    { "username": "holmes", "offset": 0, "length": 7 },
+    { "username": "watson", "offset": 12, "length": 7 }
+  ]
 }
 ```
 
@@ -780,6 +810,7 @@ Indicates incoming text message from the channel.
 | `for ` | string\|boolean | The username of the recipient of the text message if it was sent with `for` parameter, `false` otherwise
 | `message_id` | integer | The id of the text message
 | `text` | string | Message text
+| `mentions` | array | The users mentioned in the text, as sent with the message (see [Mentions](#mentions)). Only sent to clients that requested the `mentions` feature on `logon`, and absent when the message carries none
 
 #### Example:
 
@@ -791,6 +822,23 @@ Indicates incoming text message from the channel.
   "for": false,
   "message_id": 16777216,
   "text": "Hello Zello!"
+}
+```
+
+#### Example with mentions:
+
+```json
+{
+  "command": "on_text_message",
+  "channel": "test",
+  "from": "alex",
+  "for": false,
+  "message_id": 16777217,
+  "text": "@holmes and @watson meet me at the falls",
+  "mentions": [
+    { "username": "holmes", "offset": 0, "length": 7 },
+    { "username": "watson", "offset": 12, "length": 7 }
+  ]
 }
 ```
 
@@ -843,7 +891,8 @@ Indicates incoming shared location from the channel.
 |failed to stop stream | Unable to stop the stream for unknown reason. This error is safe to ignore.
 |failed to send data | An error occured while trying to send stream data packet.
 |invalid audio packet | Malformed audio packet is received.
-|not supported | The command needs a feature the client did not request on `logon` (for example `get_user_profiles` without `profiles`), or one the network or channel does not offer (for example channel history on a network without offline channel messages).
+|invalid mentions | `send_text_message` carried a `mentions` value that is not an array of `{username, offset, length}` entries inside the text, or more than 50 of them.
+|not supported | The command needs a feature the client did not request on `logon` (for example `get_user_profiles` without `profiles`, or `send_text_message` with `mentions` without `mentions`), or one the network or channel does not offer (for example channel history on a network without offline channel messages).
 |too many users | `get_user_profiles` was sent with more than 50 user names.
 |busy | Another request of the same kind is still in progress on this connection. Retry once it completes.
 |no message | The server no longer holds the requested history message.
