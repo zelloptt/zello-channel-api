@@ -78,7 +78,7 @@ Connecting to multiple channels (up to 100) is currently supported for Zello Wor
 | `platform_type` | string | (optional) Client platform type, any string
 | `platform_name` | string | (optional) Client platform name, any string. If includes `Gateway` or `Kiosk` (case-insensitive), the Zello Alarms service will track the online status of this client.
 | `language`      | string | (optional) Client ISO 639-1 language code. Required for translation channels.
-| `features`      | object | (optional) Feature flags object. Include `transcriptions` as a boolean (for example `{"transcriptions": true}`) to enable voice message transcriptions; when enabled, the server emits `on_transcription` events for voice streams.
+| `features`      | object | (optional) Feature flags object. Include `transcriptions` as a boolean (for example `{"transcriptions": true}`) to enable voice message transcriptions; when enabled, the server emits `on_transcription` events for voice streams. Include `profiles` as a boolean to receive user profiles (display name and picture); when enabled, the server emits `on_user_profile` events and accepts `get_user_profiles`. Unknown flags are ignored.
 
 ### Zello Work
 
@@ -91,7 +91,8 @@ Connecting to multiple channels (up to 100) is currently supported for Zello Wor
   "password": "secret",
   "channels": ["Baker Street 221B", "Reichenbach Falls"],
   "features": {
-    "transcriptions": true
+    "transcriptions": true,
+    "profiles": true
   }
 }
 ``` 
@@ -385,6 +386,43 @@ Sends user's location to the channel.
 }
 ```
 
+## User profiles
+Log on with `features` including `"profiles": true` and the server keeps the client informed about the users it encounters: every message author, every connected member of a dispatch channel, and every contact whose status the session receives produces an [`on_user_profile`](#on_user_profile) event. The event is sent after the message it relates to, so audio is never delayed by a profile lookup. Profiles are cached per connection and refreshed as they change.
+
+### `get_user_profiles`
+Requests the profiles of specific users, for example the members of a channel the client wants to render before any of them talks. The response only acknowledges the request; each profile arrives as a separate `on_user_profile` event, cached ones right away and the rest once fetched. Users the server knows nothing about still produce an event, without picture fields, so the client can stop waiting.
+
+| Name | Type | Value / Description
+|---|---|---
+| `command` | string | `get_user_profiles`
+| `seq` | integer | Command sequence number
+| `users` | array of strings | User names to look up, at most 50 per request. Duplicates are ignored.
+
+#### Request:
+```json
+{
+  "command": "get_user_profiles",
+  "seq": 4,
+  "users": ["sherlock", "watson"]
+}
+```
+
+#### Response:
+```json
+{
+  "seq": 4,
+  "success": true
+}
+```
+or
+```json
+{
+  "seq": 4,
+  "error": "not supported"
+}
+```
+when the client did not request the `profiles` feature on `logon`.
+
 ## Events
 
 ### `on_channel_status`
@@ -490,6 +528,33 @@ Request transcriptions by including `features` on `logon` with `transcriptions` 
 | `language `     | string           | The ISO 639-1 language code of the transcription
 | `truncated `    | boolean          | Whether the transcription is partial or for the whole message
 | `translations ` | array of objects | (optional) Translations of this transcription. Each object contains two strings, `language` and `message`
+
+### `on_user_profile`
+Carries the profile of a user. Sent only when the client requested the `profiles` feature on `logon`. See [User profiles](#user-profiles) for what triggers it. `display_name` is always present and follows the same rules Zello apps use: the name set in the Zello Work console, then the profile display name, then the username. Picture fields are omitted when the user has no picture.
+
+#### Attributes
+
+| Name                    | Type    | Value / Description
+|-------------------------|---------|---
+| `command`               | string  | `on_user_profile`
+| `username`              | string  | The username the profile belongs to
+| `display_name`          | string  | The name to show for the user
+| `profile_picture`       | string  | (optional) URL of the profile picture
+| `profile_picture_thumb` | string  | (optional) URL of the profile picture thumbnail
+| `profile_ts`            | integer | (optional) Profile timestamp; absent when the user has no profile
+
+#### Example:
+
+```json
+{
+  "command": "on_user_profile",
+  "username": "sherlock",
+  "display_name": "Sherlock Holmes",
+  "profile_picture": "https://example.com/profiles/sherlock.jpg",
+  "profile_picture_thumb": "https://example.com/profiles/sherlock_thumb.jpg",
+  "profile_ts": 1758700000
+}
+```
 
 ### `on_error`
 Indicates a server error.
@@ -628,6 +693,8 @@ Indicates incoming shared location from the channel.
 |failed to stop stream | Unable to stop the stream for unknown reason. This error is safe to ignore.
 |failed to send data | An error occured while trying to send stream data packet.
 |invalid audio packet | Malformed audio packet is received.
+|not supported | The command needs a feature the client did not request on `logon` (for example `get_user_profiles` without `profiles`).
+|too many users | `get_user_profiles` was sent with more than 50 user names.
 
 
 

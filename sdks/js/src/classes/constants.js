@@ -78,6 +78,7 @@ module.exports = {
 
   EVENT_DISPATCH_CALL_STATUS: 'dispatch_call_status',
   EVENT_TRANSCRIPTION: 'transcription',
+  EVENT_USER_PROFILE: 'user_profile',
 
   MAX_OUTGOING_IMAGE_SCALE_PX: 1280,
   OUTGOING_IMAGE_THUMBNAIL_SCALE_PX: 90,

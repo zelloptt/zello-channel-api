@@ -22,7 +22,11 @@ const DEFAULT_HEARTBEAT_INTERVAL_MS = 30 * 1000;
   connectTimeoutMs: 60000,
   autoSendAudio: true,
   noPersistentPlayer: false,
-  language: 'en'
+  language: 'en',
+  features: {
+    transcriptions: true,
+    profiles: true
+  }
 );
  **/
 class Session extends Emitter {
@@ -517,6 +521,23 @@ session.connect(function(err, result) {
       case 'on_transcription':
         this.emit(Constants.EVENT_TRANSCRIPTION, jsonData);
         break;
+      case 'on_user_profile':
+        /**
+         * Profile of a user the session has encountered (a message author, a
+         * channel member, a contact) or asked for with <code>getUserProfiles</code>.
+         * Delivered only when the session was created with
+         * <code>features: { profiles: true }</code>. A user without a profile still
+         * produces the event, with the picture fields absent.
+         * @event Session#user_profile
+         * @param json profile user profile JSON object
+         * @property {string} username user name the profile belongs to.
+         * @property {string} display_name name to show for the user.
+         * @property {string} [profile_picture] profile picture URL.
+         * @property {string} [profile_picture_thumb] profile picture thumbnail URL.
+         * @property {number} [profile_ts] profile timestamp, absent when the user has no profile.
+         */
+        this.emit(Constants.EVENT_USER_PROFILE, jsonData);
+        break;
       case 'on_dispatch_call_status':
         /**
          * Incoming dispatch call status change information
@@ -705,6 +726,28 @@ var outgoingMessage = session.startVoiceMessage({
 
   sendLocation(options = {}, userCallback = null) {
     return this.sendCommandWithCallback('send_location', options, userCallback)
+  }
+
+  /**
+   * Requests the profiles of the given users. Requires the session to be created
+   * with <code>features: { profiles: true }</code>. The command only acknowledges
+   * the request: each profile arrives as a separate <code>user_profile</code>
+   * event, cached ones right away and the rest once the server has fetched them.
+   *
+   * @param {Array<String>} usernames user names to look up, at most 50 per request
+   * @param {function} [userCallback] callback that is fired once the request is acknowledged or rejected
+   * @return {promise} promise that resolves once the server accepted the request and rejects if it was refused
+   * @example
+   * session.on('user_profile', (profile) => {
+   *   console.log(profile.username, profile.display_name, profile.profile_picture);
+   * });
+   * session.getUserProfiles(['sherlock', 'watson']);
+   **/
+  getUserProfiles(usernames = [], userCallback = null) {
+    const options = {
+      users: Array.isArray(usernames) ? usernames : [usernames]
+    };
+    return this.sendCommandWithCallback('get_user_profiles', options, userCallback);
   }
 
   /**
