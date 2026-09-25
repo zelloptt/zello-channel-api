@@ -46,7 +46,7 @@ describe('Session multiple channels', () => {
   it('accepts a subscription list without a single channel', () => {
     expect(() => {
       Session.validateInitialOptions(Object.assign({
-        subscribedChannels: ['Front', 'Back']
+        channelsList: ['Front', 'Back']
       }, credentials));
     }).not.toThrow();
   });
@@ -54,7 +54,7 @@ describe('Session multiple channels', () => {
   it('rejects an empty subscription list', () => {
     expect(() => {
       Session.validateInitialOptions(Object.assign({
-        subscribedChannels: []
+        channelsList: []
       }, credentials));
     }).toThrow(Constants.ERROR_NOT_ENOUGH_PARAMS);
   });
@@ -62,7 +62,7 @@ describe('Session multiple channels', () => {
   it('logs on with channels and leaves the single channel off the command', () => {
     const names = ['Front', 'Back'];
     const session = bareSession({
-      subscribedChannels: names,
+      channelsList: names,
       channel: ''
     });
     session.doLogon();
@@ -81,7 +81,7 @@ describe('Session multiple channels', () => {
 
   it('does not treat one offline channel as a session failure when several are joined', () => {
     const session = bareSession({
-      subscribedChannels: ['Front', 'Back'],
+      channelsList: ['Front', 'Back'],
       channel: ''
     });
     session.jsonDataHandler({
@@ -106,9 +106,9 @@ describe('Session multiple channels', () => {
     expect(session.channelConfigurationError).toBe(true);
   });
 
-  it('stamps the selected channel onto a text message only while several channels are joined', () => {
+  it('stamps the selected channel onto a text message', () => {
     const multi = bareSession({
-      subscribedChannels: ['Front', 'Back'],
+      channelsList: ['Front', 'Back'],
       channel: 'Back'
     });
     multi.sendTextMessage({ text: 'help' });
@@ -116,7 +116,7 @@ describe('Session multiple channels', () => {
 
     const single = bareSession({ channel: 'Front' });
     single.sendTextMessage({ text: 'help' });
-    expect(single.sent[0].channel).toBeUndefined();
+    expect(single.sent[0].channel).toBe('Front');
   });
 });
 
@@ -139,9 +139,9 @@ describe('OutgoingMessage channel routing', () => {
     return message;
   };
 
-  it('names the channel on start and stop only for a multi-channel session', async () => {
+  it('names the channel on start and stop for one channel and for several', async () => {
     const multi = startMessage({
-      subscribedChannels: ['Front', 'Back'],
+      channelsList: ['Front', 'Back'],
       channel: 'Back'
     });
     multi.start();
@@ -153,9 +153,9 @@ describe('OutgoingMessage channel routing', () => {
     const single = startMessage({ channel: 'Front' });
     single.start();
     await Promise.resolve();
-    expect(single.session.startStream.mock.calls[0][0].channel).toBeUndefined();
+    expect(single.session.startStream.mock.calls[0][0].channel).toBe('Front');
     single.stop();
-    expect(single.session.stopStream.mock.calls[0][0].channel).toBeUndefined();
+    expect(single.session.stopStream.mock.calls[0][0].channel).toBe('Front');
   });
 });
 
@@ -168,7 +168,7 @@ describe('IncomingMessage channel', () => {
     }, {
       log: () => {},
       options: {
-        subscribedChannels: ['Front', 'Back'],
+        channelsList: ['Front', 'Back'],
         channels: 1
       }
     });

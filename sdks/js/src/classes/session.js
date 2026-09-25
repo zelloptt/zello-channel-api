@@ -29,7 +29,7 @@ class Session extends Emitter {
   /**
    * @param {object} options session options. Options can also include <code>player</code>, <code>decoder</code>, <code>recorder</code> and <code>encoder</code> overrides.
    * <code>options.channel</code> joins one channel.
-   * <code>options.subscribedChannels</code> is an optional list of Zello Work channel names to join on this connection. A non-empty list is sent as <code>channels</code> on logon instead of <code>channel</code>. Do not put that list in <code>options.channels</code>; that field is the audio channel count.
+   * <code>options.channelsList</code> is an optional list of Zello Work channel names to join on this connection. A non-empty list is sent as <code>channels</code> on logon instead of <code>channel</code>. Do not put that list in <code>options.channels</code>; that field is the audio channel count.
    * @return {ZCC.Session} <code>ZCC.Session</code> instance
    **/
   constructor(options) {
@@ -86,15 +86,15 @@ class Session extends Emitter {
   }
 
   static validateInitialOptions(initialOptions) {
-    const hasSubscribedChannels = Boolean(
+    const hasChannelsList = Boolean(
       initialOptions &&
-      Array.isArray(initialOptions.subscribedChannels) &&
-      initialOptions.subscribedChannels.length
+      Array.isArray(initialOptions.channelsList) &&
+      initialOptions.channelsList.length
     );
     if (
       !initialOptions ||
       !initialOptions.serverUrl ||
-      !(initialOptions.channel || hasSubscribedChannels) ||
+      !(initialOptions.channel || hasChannelsList) ||
       (initialOptions.username && !initialOptions.password && !initialOptions.authToken) ||
       (!initialOptions.authToken && !initialOptions.username)
     ) {
@@ -331,8 +331,8 @@ session.connect(function(err, result) {
       'command': 'logon',
       'seq': this.getSeq()
     };
-    if (Array.isArray(this.options.subscribedChannels) && this.options.subscribedChannels.length) {
-      params.channels = this.options.subscribedChannels.slice();
+    if (Array.isArray(this.options.channelsList) && this.options.channelsList.length) {
+      params.channels = this.options.channelsList.slice();
     } else {
       params.channel = this.options.channel;
     }
@@ -452,8 +452,8 @@ session.connect(function(err, result) {
               break;
             case Constants.SN_STATUS_OFFLINE:
               if (jsonData.error && jsonData.error_type === Constants.ERROR_TYPE_CONFIGURATION) {
-                const multipleChannels = Array.isArray(this.options.subscribedChannels) &&
-                  this.options.subscribedChannels.length > 1;
+                const multipleChannels = Array.isArray(this.options.channelsList) &&
+                  this.options.channelsList.length > 1;
                 if (!multipleChannels) {
                   this.channelConfigurationError = true;
                 }
@@ -715,7 +715,7 @@ var outgoingMessage = session.startVoiceMessage({
    * });
    **/
   sendTextMessage(options = {}, userCallback = null) {
-    if (Array.isArray(this.options.subscribedChannels) && !options.channel && this.options.channel) {
+    if (!options.channel && this.options.channel) {
       options.channel = this.options.channel;
     }
     return this.sendCommandWithCallback('send_text_message', options, userCallback);

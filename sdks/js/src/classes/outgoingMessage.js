@@ -160,7 +160,7 @@ outgoingMessage.then(function(result) {
     const params = {
       stream_id: this.currentMessageId
     };
-    if (Array.isArray(this.options.subscribedChannels) && this.options.channel) {
+    if (this.options.channel) {
       params.channel = this.options.channel;
     }
     return this.session.stopStream(params, userCallback);
@@ -205,7 +205,7 @@ outgoingMessage.then(function(result) {
     if (this.instanceOptions.retransmissionDuration !== undefined) {
       params.retransmissionDuration = this.instanceOptions.retransmissionDuration;
     }
-    if (Array.isArray(this.options.subscribedChannels) && this.options.channel) {
+    if (this.options.channel) {
       params.channel = this.options.channel;
     }
     this.session
