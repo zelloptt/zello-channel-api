@@ -779,6 +779,116 @@ var outgoingMessage = session.startVoiceMessage({
   }
 
   /**
+   * Reads the channel's stored history. Available on Zello Work networks with
+   * offline channel messages enabled; &lt;code>status&lt;/code> events report it as
+   * &lt;code>history_supported&lt;/code>. The server keeps the last 24 hours, at most
+   * 50 messages per request, and this method returns metadata only: replay a
+   * voice entry with &lt;code>playHistoryMessage&lt;/code> and fetch an image with
+   * &lt;code>getHistoryImage&lt;/code>.
+   *
+   * @param {object} [options] history options
+   * @property {Number} [options.since] Unix timestamp in milliseconds of the newest message the client
+   *                    already holds; omit or pass 0 for everything the server kept
+   * @property {String} [options.channel] channel to read, defaults to the session channel
+   * @param {function} [userCallback] callback that is fired with the history or an error
+   * @return {promise} promise that resolves with &lt;code>{success, channel, messages}&lt;/code>, oldest message
+   *                   first, each carrying &lt;code>type&lt;/code> (&lt;code>audio&lt;/code>, &lt;code>text&lt;/code>,
+   *                   &lt;code>image&lt;/code>, &lt;code>location&lt;/code> or &lt;code>alert&lt;/code>),
+   *                   &lt;code>message_id&lt;/code>, &lt;code>from&lt;/code>, &lt;code>ts&lt;/code> and the type's own
+   *                   fields; rejects on error, with &lt;code>'busy'&lt;/code> while another history request
+   *                   is still in flight and &lt;code>'not supported'&lt;/code> where history is unavailable
+   * @example
+   *
+   session.getHistory({ since: 1758300000000 }).then(function(result) {
+     result.messages.forEach(function(message) {
+       console.log(message.type, message.from, message.ts);
+     });
+   });
+   **/
+  getHistory(options = {}, userCallback = null) {
+    if (typeof options === 'function') {
+      userCallback = options;
+      options = {};
+    }
+    const params = Object.assign({ channel: this.options.channel }, options);
+    return this.sendCommandWithCallback('get_history', params, userCallback);
+  }
+
+  /**
+   * Replays one stored voice message from the channel history. The server
+   * downloads the recorded audio and delivers it like any incoming voice
+   * message: &lt;code>incoming_voice_will_start&lt;/code> fires with a message whose
+   * data carries &lt;code>message_id&lt;/code>, followed by the audio and
+   * &lt;code>incoming_voice_did_stop&lt;/code>. The stream id equals the message id.
+   *
+   * @param {Number} messageId the &lt;code>message_id&lt;/code> of an &lt;code>audio&lt;/code> entry
+   *                 returned by &lt;code>getHistory&lt;/code>
+   * @param {object} [options] playback options
+   * @property {Number} [options.since] cursor to re-read the history with when the message is not in the
+   *                    most recent &lt;code>getHistory&lt;/code> result for the channel
+   * @property {String} [options.channel] channel the message belongs to, defaults to the session channel
+   * @param {function} [userCallback] callback that is fired on playback starting or an error
+   * @return {promise} promise that resolves with &lt;code>{success, message_id, stream_id}&lt;/code> once
+   *                   playback starts and rejects if it failed. One playback runs at a time; a second
+   *                   request while one is running fails with &lt;code>'busy'&lt;/code>, an entry that is not
+   *                   audio with &lt;code>'message not playable'&lt;/code>, and one the server no longer holds
+   *                   with &lt;code>'no message'&lt;/code>
+   * @example
+   *
+   session.playHistoryMessage(22695);
+   **/
+  playHistoryMessage(messageId, options = {}, userCallback = null) {
+    if (typeof options === 'function') {
+      userCallback = options;
+      options = {};
+    }
+    const params = Object.assign(
+      { channel: this.options.channel },
+      options,
+      { message_id: messageId }
+    );
+    return this.sendCommandWithCallback('play_history_message', params, userCallback);
+  }
+
+  /**
+   * Fetches one stored image from the channel history. The server downloads
+   * it and delivers it like a live one: &lt;code>incoming_image&lt;/code> fires with an
+   * &lt;code>IncomingImage&lt;/code> whose data carries the &lt;code>message_id&lt;/code>, and
+   * the thumbnail and full image follow on that instance.
+   *
+   * @param {Number} messageId the &lt;code>message_id&lt;/code> of an &lt;code>image&lt;/code> entry
+   *                 returned by &lt;code>getHistory&lt;/code>
+   * @param {object} [options] fetch options
+   * @property {Number} [options.since] cursor to re-read the history with when the message is not in the
+   *                    most recent &lt;code>getHistory&lt;/code> result for the channel
+   * @property {String} [options.channel] channel the message belongs to, defaults to the session channel
+   * @param {function} [userCallback] callback that is fired once the fetch is accepted or on an error
+   * @return {promise} promise that resolves with &lt;code>{success, message_id}&lt;/code> just before the
+   *                   &lt;code>incoming_image&lt;/code> event and rejects if it failed. One fetch runs at a
+   *                   time; a second request while one is running fails with &lt;code>'busy'&lt;/code>, an
+   *                   entry that is not an image with &lt;code>'message not playable'&lt;/code>, and one the
+   *                   server no longer holds with &lt;code>'no message'&lt;/code>
+   * @example
+   *
+   session.on('incoming_image', function(image) {
+     image.on('image', function(data) { console.log(image.messageData.message_id, data.length); });
+   });
+   session.getHistoryImage(22710);
+   **/
+  getHistoryImage(messageId, options = {}, userCallback = null) {
+    if (typeof options === 'function') {
+      userCallback = options;
+      options = {};
+    }
+    const params = Object.assign(
+      { channel: this.options.channel },
+      options,
+      { message_id: messageId }
+    );
+    return this.sendCommandWithCallback('get_history_image', params, userCallback);
+  }
+
+  /**
    * Stops an ongoing dispatch call
    *
    * @param {Number} callId the ID of the ongoing dispatch call to be over.
@@ -841,7 +951,7 @@ module.exports = Session;
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Sep 25 2026 07:10:30 GMT-0500 (Central Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Sep 25 2026 07:21:54 GMT-0500 (Central Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>

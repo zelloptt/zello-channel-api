@@ -423,6 +423,154 @@ or
 ```
 when the client did not request the `profiles` feature on `logon`.
 
+## Channel history
+
+On a Zello Work network with offline channel messages enabled, the server keeps the last 24 hours of a channel's traffic, up to 50 messages per request. Nothing is delivered automatically: an API client asks for it. `get_history` returns the metadata, and the two companion commands bring one message's media back over the socket in the same form a live message would take. Dispatch channels keep no history, and anonymous or kiosk sessions cannot read it. `on_channel_status` reports `history_supported` so a client knows whether to ask.
+
+### `get_history`
+
+Lists the stored messages of a channel newer than a cursor, oldest first.
+
+#### Attributes
+
+| Name | Type | Value / Description
+|---|---|---
+| `command` | string | `get_history`
+| `seq` | integer | Command sequence number
+| `channel` | string | The name of the channel
+| `since` | integer | (optional) Unix timestamp in milliseconds of the newest message the client already holds. Messages from the next whole second onward are returned. Omit or pass `0` for everything the server kept
+
+#### Request:
+```json
+{
+  "command": "get_history",
+  "seq": 9,
+  "channel": "Ops",
+  "since": 1758300000000
+}
+```
+
+#### Response:
+```json
+{
+  "seq": 9,
+  "success": true,
+  "channel": "Ops",
+  "messages": [
+    {
+      "type": "audio",
+      "message_id": 22695,
+      "from": "alex",
+      "ts": 1758300001,
+      "packet_duration": 60,
+      "playable": true,
+      "transcription": "Loading dock is clear"
+    },
+    {
+      "type": "text",
+      "message_id": 22701,
+      "from": "kim",
+      "ts": 1758300042,
+      "text": "On my way"
+    },
+    {
+      "type": "image",
+      "message_id": 22710,
+      "from": "kim",
+      "ts": 1758300050,
+      "source": "camera",
+      "width": 591,
+      "height": 1280,
+      "content_type": "jpeg",
+      "available": true
+    }
+  ]
+}
+```
+
+Every message carries `type`, `message_id`, `from`, `ts` (Unix timestamp in seconds) and, when the original was sent with one, `for`. The rest depends on `type`:
+
+| Type | Fields
+|---|---
+| `audio` | `packet_duration`, `playable` (whether `play_history_message` can replay it), and `transcription` with `language` when the network transcribed it
+| `text` | `text`
+| `image` | `width`, `height`, `source`, `content_type`, `text` (optional caption), `available` (whether `get_history_image` can fetch it)
+| `location` | `latitude`, `longitude`, `formatted_address`, `accuracy`
+| `alert` | `text`, `scope` (`all` or `connected`)
+
+The server keeps at most 50 messages per request, newest first, so a busy channel may return fewer than 24 hours of traffic. Only one history command may be in flight on a connection at a time; a second one is answered with `busy`.
+
+### `play_history_message`
+
+Replays one stored voice message to this connection. The message plays exactly like a live incoming stream: [`on_stream_start`](#on_stream_start) with `message_id` set, binary audio packets paced at `packet_duration`, then [`on_stream_stop`](#on_stream_stop). The `stream_id` equals the `message_id`.
+
+#### Attributes
+
+| Name | Type | Value / Description
+|---|---|---
+| `command` | string | `play_history_message`
+| `seq` | integer | Command sequence number
+| `channel` | string | The name of the channel
+| `message_id` | integer | The `message_id` of an `audio` entry returned by `get_history`
+| `since` | integer | (optional) Cursor to re-read the history with when the message is not in the most recent `get_history` result for the channel
+
+#### Request:
+```json
+{
+  "command": "play_history_message",
+  "seq": 10,
+  "channel": "Ops",
+  "message_id": 22695
+}
+```
+
+#### Response:
+```json
+{
+  "seq": 10,
+  "success": true,
+  "message_id": 22695,
+  "stream_id": 22695
+}
+```
+
+The response is sent when the stream starts. One playback runs at a time per connection; a second request is answered with `busy`. A `message_id` that is not an audio entry is answered with `message not playable`, and one the server no longer holds with `no message`.
+
+### `get_history_image`
+
+Fetches one stored image to this connection, delivered the same way as a live one: [`on_image`](#on_image) followed by the thumbnail and full image [binary packets](#receiving-images-data).
+
+#### Attributes
+
+| Name | Type | Value / Description
+|---|---|---
+| `command` | string | `get_history_image`
+| `seq` | integer | Command sequence number
+| `channel` | string | The name of the channel
+| `message_id` | integer | The `message_id` of an `image` entry returned by `get_history`
+| `since` | integer | (optional) Cursor to re-read the history with when the message is not in the most recent `get_history` result for the channel
+
+#### Request:
+```json
+{
+  "command": "get_history_image",
+  "seq": 11,
+  "channel": "Ops",
+  "message_id": 22710
+}
+```
+
+#### Response:
+```json
+{
+  "seq": 11,
+  "success": true,
+  "message_id": 22710
+}
+```
+
+The response precedes the `on_image` event. One fetch runs at a time per connection; a second request is answered with `busy`. A `message_id` that is not an image entry is answered with `message not playable`, and one the server no longer holds with `no message`.
+
 ## Events
 
 ### `on_channel_status`
@@ -440,6 +588,7 @@ Indicates there was a change in channel status, which may include channel being 
 | `images_supported` | boolean | Channel will accept image messages.
 | `texting_supported` | boolean | Channel will accept text messages.
 | `locations_supported` | boolean | Channel will accept locations.
+| `history_supported` | boolean | Channel history can be read with [`get_history`](#get_history). Zello Work only.
 | `error` | string | Includes error description, when channel disconnected due to error. 
 | `error_type` | string | `unknown`, `configuration` Indicates error type. When set to `configuration` indicates that current channel configuration doesn't allow connecting using the channel API credentials used.
 
@@ -477,6 +626,7 @@ Indicates the start of the new incoming stream. This event corresponds to `start
 | `for `                  | string  | The username of the recipient of the message if it was sent with `for` parameter 
 | `translations_enabled ` | boolean | (optional) Whether translations are enabled for this channel
 | `language `             | string  | (optional) The ISO 639-1 language code of the sender
+| `message_id `           | integer | (optional) Present when the stream is a `play_history_message` playback: the played message's id, equal to `stream_id`
 
 #### Example:
 
@@ -693,8 +843,13 @@ Indicates incoming shared location from the channel.
 |failed to stop stream | Unable to stop the stream for unknown reason. This error is safe to ignore.
 |failed to send data | An error occured while trying to send stream data packet.
 |invalid audio packet | Malformed audio packet is received.
-|not supported | The command needs a feature the client did not request on `logon` (for example `get_user_profiles` without `profiles`).
+|not supported | The command needs a feature the client did not request on `logon` (for example `get_user_profiles` without `profiles`), or one the network or channel does not offer (for example channel history on a network without offline channel messages).
 |too many users | `get_user_profiles` was sent with more than 50 user names.
+|busy | Another request of the same kind is still in progress on this connection. Retry once it completes.
+|no message | The server no longer holds the requested history message.
+|message not playable | The requested history message is not of a kind the command can deliver.
+|download failed | The server could not fetch the stored media for the message.
+|decrypt failed | The server could not decrypt the stored media for the message.
 
 
 
@@ -712,3 +867,4 @@ Indicates incoming shared location from the channel.
 |Send and receive text messages | Supported              | Supported
 |Send and receive locations | Supported              | Supported
 |Send and receive emergency alerts | -                      | Planned
+|Read channel history (offline channel messages) | Not supported          | Supported
