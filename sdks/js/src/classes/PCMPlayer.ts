@@ -34,6 +34,12 @@ const ENCODING_TYPED_ARRAYS: Record<string, SupportedTypedArrayConstructor> = {
 const FADE_SAMPLES = 50;
 const DEFAULT_ENCODING = '16bitInt';
 
+/**
+ * Gestures that can carry user activation. A touch `pointerdown` does not,
+ * so the listeners stay armed until one of them actually starts the context.
+ */
+const RESUME_GESTURE_EVENTS = ['pointerdown', 'pointerup', 'click', 'touchend', 'keydown'] as const;
+
 const DEFAULT_OPTIONS: Required<PCMPlayerOptions> = {
   encoding: DEFAULT_ENCODING,
   channels: 1,
@@ -126,11 +132,12 @@ class PCMPlayer {
    * Initializes the AudioContext, GainNode, and flush timer.
    * Must be called (and awaited) before feeding data.
    *
-   * Note: On mobile browsers (iOS/Safari) the AudioContext may start in a
-   * "suspended" state. This method installs touch event listeners that will
-   * resume the context on the first user interaction. Callers should ensure
-   * init() is invoked in response to a user gesture (e.g. a button tap) so
-   * the context can be resumed immediately.
+   * Note: Browsers create the AudioContext suspended when the page has had
+   * no user gesture yet. This method installs gesture listeners that resume
+   * the context on the first gesture the browser accepts, and {@link flush}
+   * holds samples until then. Apps can also call {@link resume} from their
+   * own gesture handlers so playback does not depend on which DOM event
+   * reaches the listeners first.
    */
   public async init(): Promise<void> {
     if (this.destroyed) {
@@ -273,6 +280,20 @@ class PCMPlayer {
   }
 
   /**
+   * Resumes the AudioContext if the browser left it suspended and plays any
+   * samples held in the meantime. Call it from the app's own user gesture
+   * handler (a button press, a tap) so the browser's autoplay policy lets
+   * the context start. A no-op when the context is already running, before
+   * {@link init}, or after {@link destroy}.
+   */
+  public resume(): Promise<void> {
+    if (this.destroyed || !this.audioCtx || this.audioCtx.state !== 'suspended') {
+      return Promise.resolve();
+    }
+    return this.audioCtx.resume().then(() => this.onContextResumed());
+  }
+
+  /**
    * Mutes or unmutes the player. When muted, calls to feed() are ignored.
    * @param isMuted Whether the player should be muted.
    */
@@ -392,10 +413,11 @@ class PCMPlayer {
 
     // A suspended context keeps currentTime frozen. Scheduling into that
     // timeline plays only after the context resumes, which can be long
-    // after the message arrived. Hold the samples and play them once the
-    // context is running.
+    // after the message arrived. Hold the samples, keep asking, and keep the
+    // gesture listeners armed so the next tap can unlock the context.
     if (this.audioCtx.state === 'suspended') {
-      void this.audioCtx.resume();
+      this.audioCtx.resume().then(() => this.onContextResumed());
+      this.installResumeOnGesture();
       return;
     }
 
@@ -559,36 +581,61 @@ class PCMPlayer {
     }
   }
 
+  /**
+   * Plays samples held while the context was suspended and disarms the
+   * gesture listeners. Runs after any resume() the browser accepted, whether
+   * it came from a gesture listener, a flush retry, or {@link resume}.
+   */
+  private onContextResumed(): void {
+    if (this.destroyed || !this.audioCtx || this.audioCtx.state === 'suspended') {
+      return;
+    }
+    this.removeResumeOnGesture();
+    if (!this.gainNode) {
+      // init() has not finished; its first flush plays whatever was fed.
+      return;
+    }
+    this.clearFlushTimer();
+    this.flush();
+  }
+
+  /**
+   * Arms capture-phase gesture listeners on the document that try to resume
+   * a suspended context. They stay armed until the context actually runs:
+   * the browser may refuse the attempt from a touch `pointerdown` and accept
+   * the one from the `pointerup` or `click` of the same tap. Capture phase
+   * so an app handler that stops propagation cannot hide the gesture.
+   */
   private installResumeOnGesture(): void {
-    if (!this.audioCtx || this.resumeOnGesture || typeof document === 'undefined' || !document.body) {
+    if (!this.audioCtx || this.resumeOnGesture || typeof document === 'undefined') {
       return;
     }
     const resume = () => {
-      this.removeResumeOnGesture();
-      if (!this.audioCtx || this.audioCtx.state !== 'suspended') {
+      if (this.destroyed || !this.audioCtx) {
+        this.removeResumeOnGesture();
         return;
       }
-      this.audioCtx.resume().then(() => {
-        if (this.destroyed || !this.gainNode) {
-          return;
-        }
-        this.clearFlushTimer();
-        this.flush();
-      });
+      if (this.audioCtx.state !== 'suspended') {
+        this.onContextResumed();
+        return;
+      }
+      this.audioCtx.resume().then(() => this.onContextResumed());
     };
     this.resumeOnGesture = resume;
-    document.body.addEventListener('pointerdown', resume);
-    document.body.addEventListener('click', resume);
+    for (const type of RESUME_GESTURE_EVENTS) {
+      document.addEventListener(type, resume, true);
+    }
   }
 
   private removeResumeOnGesture(): void {
-    if (!this.resumeOnGesture || typeof document === 'undefined' || !document.body) {
-      this.resumeOnGesture = null;
+    const resume = this.resumeOnGesture;
+    this.resumeOnGesture = null;
+    if (!resume || typeof document === 'undefined') {
       return;
     }
-    document.body.removeEventListener('pointerdown', this.resumeOnGesture);
-    document.body.removeEventListener('click', this.resumeOnGesture);
-    this.resumeOnGesture = null;
+    for (const type of RESUME_GESTURE_EVENTS) {
+      document.removeEventListener(type, resume, true);
+    }
   }
 
   private createAudioElement() {
@@ -632,12 +679,10 @@ class PCMPlayer {
         }
       };
 
-      let didUnlock = false;
+      // No latch: a touchstart carries no user activation, so the browser
+      // can refuse its resume() and accept the one from the touchend of the
+      // same tap. Every touch event retries until one is accepted.
       const unlock = () => {
-        if (didUnlock) {
-          return;
-        }
-        didUnlock = true;
         context.resume().then(
           () => {
             cleanup();

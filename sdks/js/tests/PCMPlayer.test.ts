@@ -663,6 +663,136 @@ describe('PCMPlayer', () => {
   });
 
   // =========================================================================
+  // Gesture-driven resume
+  // =========================================================================
+
+  describe('resume on gesture', () => {
+    const GESTURES = ['pointerdown', 'pointerup', 'click', 'touchend', 'keydown'];
+
+    async function createSuspendedPlayer() {
+      const player = await createInitializedPlayer({
+        encoding: '32bitFloat',
+        flushingTime: 100,
+        sampleRate: 8000,
+        channels: 1
+      });
+      const ctx = player['audioCtx'] as unknown as MockAudioContext;
+      ctx.state = 'suspended';
+      return { player, ctx };
+    }
+
+    function acceptResume(ctx: MockAudioContext) {
+      ctx.resume = jest.fn().mockImplementation(() => {
+        ctx.state = 'running';
+        return Promise.resolve();
+      });
+    }
+
+    async function settleMicrotasks() {
+      await Promise.resolve();
+      await Promise.resolve();
+    }
+
+    test('arms capture-phase document listeners on init', async () => {
+      const addSpy = jest.spyOn(document, 'addEventListener');
+      const player = await createInitializedPlayer();
+      for (const type of GESTURES) {
+        expect(addSpy).toHaveBeenCalledWith(type, expect.any(Function), true);
+      }
+      player.destroy();
+      addSpy.mockRestore();
+    });
+
+    test('stays armed while the browser refuses to resume', async () => {
+      const { player, ctx } = await createSuspendedPlayer();
+      ctx.resume = jest.fn().mockReturnValue(new Promise(() => undefined));
+
+      document.dispatchEvent(new Event('pointerdown'));
+      expect(ctx.resume).toHaveBeenCalledTimes(1);
+      expect(player['resumeOnGesture']).not.toBeNull();
+
+      document.dispatchEvent(new Event('pointerup'));
+      expect(ctx.resume).toHaveBeenCalledTimes(2);
+      expect(player['resumeOnGesture']).not.toBeNull();
+      player.destroy();
+    });
+
+    test('plays held samples and disarms once a gesture resumes the context', async () => {
+      const { player, ctx } = await createSuspendedPlayer();
+      player.feed(createFloat32Samples(800));
+      jest.advanceTimersByTime(100);
+      expect(ctx.createBuffer).not.toHaveBeenCalled();
+
+      acceptResume(ctx);
+      document.dispatchEvent(new Event('click'));
+      await settleMicrotasks();
+
+      expect(ctx.createBuffer).toHaveBeenCalledWith(1, 800, 8000);
+      expect(player['resumeOnGesture']).toBeNull();
+      player.destroy();
+    });
+
+    test('re-arms when a flush finds the context suspended again', async () => {
+      const player = await createInitializedPlayer({
+        encoding: '32bitFloat',
+        flushingTime: 100,
+        sampleRate: 8000,
+        channels: 1
+      });
+      const ctx = player['audioCtx'] as unknown as MockAudioContext;
+
+      document.dispatchEvent(new Event('pointerdown'));
+      expect(player['resumeOnGesture']).toBeNull();
+
+      ctx.state = 'suspended';
+      player.feed(createFloat32Samples(800));
+      jest.runOnlyPendingTimers();
+
+      expect(player['resumeOnGesture']).not.toBeNull();
+      expect(player['totalSamples']).toBe(800);
+      player.destroy();
+    });
+
+    test('resume() plays held samples when called from the app', async () => {
+      const { player, ctx } = await createSuspendedPlayer();
+      player.feed(createFloat32Samples(800));
+      jest.advanceTimersByTime(100);
+      expect(ctx.createBuffer).not.toHaveBeenCalled();
+
+      acceptResume(ctx);
+      await player.resume();
+
+      expect(ctx.createBuffer).toHaveBeenCalledWith(1, 800, 8000);
+      expect(player['resumeOnGesture']).toBeNull();
+      player.destroy();
+    });
+
+    test('resume() is a no-op before init, while running, and after destroy', async () => {
+      const fresh = new PCMPlayer();
+      await expect(fresh.resume()).resolves.toBeUndefined();
+
+      const player = await createInitializedPlayer();
+      const ctx = player['audioCtx'] as unknown as MockAudioContext;
+      await player.resume();
+      expect(ctx.resume).not.toHaveBeenCalled();
+
+      player.destroy();
+      await expect(player.resume()).resolves.toBeUndefined();
+    });
+
+    test('destroy removes the gesture listeners', async () => {
+      const removeSpy = jest.spyOn(document, 'removeEventListener');
+      const player = await createInitializedPlayer();
+      player.destroy();
+      for (const type of GESTURES) {
+        expect(removeSpy).toHaveBeenCalledWith(type, expect.any(Function), true);
+      }
+      expect(player['resumeOnGesture']).toBeNull();
+      removeSpy.mockRestore();
+    });
+  });
+
+  // =========================================================================
   // Fade-in / fade-out
   // =========================================================================
 
@@ -1433,11 +1563,16 @@ describe('PCMPlayer', () => {
       removeListenerSpy.mockRestore();
     });
 
-    test('only resumes the context once per gesture even if both touch events fire', async () => {
+    test('retries on touchend when the touchstart resume was refused', async () => {
       jest.useRealTimers();
       const player = new PCMPlayer();
       const ctx = new MockAudioContext() as unknown as AudioContext;
       (ctx as any).state = 'suspended';
+      // A refused resume() never settles in Chrome; the touchend retry is accepted.
+      (ctx as any).resume = jest
+        .fn()
+        .mockReturnValueOnce(new Promise(() => undefined))
+        .mockResolvedValueOnce(undefined);
 
       const hadOntouchstart = 'ontouchstart' in window;
       (window as any).ontouchstart = null;
@@ -1449,7 +1584,7 @@ describe('PCMPlayer', () => {
 
       const result = await unlockPromise;
       expect(result).toBe(true);
-      expect(ctx.resume).toHaveBeenCalledTimes(1);
+      expect(ctx.resume).toHaveBeenCalledTimes(2);
 
       if (!hadOntouchstart) {
         delete (window as any).ontouchstart;
