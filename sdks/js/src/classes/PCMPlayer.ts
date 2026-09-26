@@ -105,6 +105,8 @@ class PCMPlayer {
    */
   private touchUnlockAbort: AbortController | null = null;
 
+  private resumeOnGesture: (() => void) | null = null;
+
   constructor(options?: PCMPlayerOptions, onEndedCallback?: OnEndedCallback) {
     this.options = { ...DEFAULT_OPTIONS, ...options };
     if (!this.isValidGain(this.options.gain)) {
@@ -161,6 +163,7 @@ class PCMPlayer {
     this.startTimestampMs = Date.now();
     this.flushTimeSyncMs = this.options.flushingTime;
     this.scheduleFlush(this.flushTimeSyncMs);
+    this.installResumeOnGesture();
   }
 
   /**
@@ -342,6 +345,7 @@ class PCMPlayer {
       this.touchUnlockAbort.abort();
       this.touchUnlockAbort = null;
     }
+    this.removeResumeOnGesture();
 
     if (this.flushTimer !== null) {
       clearTimeout(this.flushTimer);
@@ -392,6 +396,15 @@ class PCMPlayer {
       delayMs = this.options.flushingTime;
     }
     this.scheduleFlush(delayMs);
+
+    // A suspended context keeps currentTime frozen. Scheduling into that
+    // timeline plays only after the context resumes, which can be long
+    // after the message arrived. Hold the samples and play them once the
+    // context is running.
+    if (this.audioCtx.state === 'suspended') {
+      void this.audioCtx.resume();
+      return;
+    }
 
     if (this.totalSamples === 0) {
       return;
@@ -544,6 +557,41 @@ class PCMPlayer {
 
   private scheduleFlush(delayMs: number) {
     this.flushTimer = setTimeout(() => this.flush(), delayMs);
+  }
+
+  private installResumeOnGesture(): void {
+    if (!this.audioCtx || this.resumeOnGesture || typeof document === 'undefined' || !document.body) {
+      return;
+    }
+    const resume = () => {
+      this.removeResumeOnGesture();
+      if (!this.audioCtx || this.audioCtx.state !== 'suspended') {
+        return;
+      }
+      this.audioCtx.resume().then(() => {
+        if (this.destroyed || !this.gainNode) {
+          return;
+        }
+        if (this.flushTimer !== null) {
+          clearTimeout(this.flushTimer);
+          this.flushTimer = null;
+        }
+        this.flush();
+      });
+    };
+    this.resumeOnGesture = resume;
+    document.body.addEventListener('pointerdown', resume);
+    document.body.addEventListener('click', resume);
+  }
+
+  private removeResumeOnGesture(): void {
+    if (!this.resumeOnGesture || typeof document === 'undefined' || !document.body) {
+      this.resumeOnGesture = null;
+      return;
+    }
+    document.body.removeEventListener('pointerdown', this.resumeOnGesture);
+    document.body.removeEventListener('click', this.resumeOnGesture);
+    this.resumeOnGesture = null;
   }
 
   private createAudioElement() {

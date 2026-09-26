@@ -104,7 +104,10 @@ class OutgoingMessage extends Emitter {
       }
       this.sendEncoderInitMessage();
       if (this.options.autoStart) {
-        this.start();
+        const started = this.start();
+        if (started && typeof started.catch === 'function') {
+          started.catch(() => {});
+        }
       }
     };
     this.recorder = new this.options.recorder(this.options, this.encoder);
@@ -157,12 +160,17 @@ outgoingMessage.then(function(result) {
   */
   stop(userCallback) {
     this.destroy();
-    const params = {
-      stream_id: this.currentMessageId
-    };
-    if (this.options.channel) {
-      params.channel = this.options.channel;
+    if (!this.activeChannel) {
+      const err = new Error(Constants.ERROR_NOT_ENOUGH_PARAMS);
+      if (typeof userCallback === 'function') {
+        userCallback(err);
+      }
+      return Promise.reject(err);
     }
+    const params = {
+      stream_id: this.currentMessageId,
+      channel: this.activeChannel
+    };
     return this.session.stopStream(params, userCallback);
   }
 
@@ -184,11 +192,23 @@ outgoingMessage.then(function(result) {
  * when instance is created by <code>session.startVoiceMessage</code>
  * **/
   start() {
+    let channel;
+    try {
+      channel = this.session.resolveChannel(this.instanceOptions.channel);
+    } catch (err) {
+      this.destroy();
+      if (typeof this.userCallback === 'function') {
+        this.userCallback(err);
+      }
+      return Promise.reject(err);
+    }
+    this.activeChannel = channel;
     const params = {
       'type': 'audio',
       'codec': 'opus',
       'codec_header': Utils.buildCodecHeader(this.options.encoderSampleRate, 1, this.options.encoderFrameSize),
-      'packet_duration': this.options.encoderFrameSize
+      'packet_duration': this.options.encoderFrameSize,
+      'channel': channel
     };
     if (this.instanceOptions.for) {
       params.for = this.options.for;
@@ -205,18 +225,17 @@ outgoingMessage.then(function(result) {
     if (this.instanceOptions.retransmissionDuration !== undefined) {
       params.retransmissionDuration = this.instanceOptions.retransmissionDuration;
     }
-    if (this.options.channel) {
-      params.channel = this.options.channel;
-    }
-    this.session
+    const started = this.session
       .startStream(params, this.userCallback)
       .then((result) => {
         this.currentMessageId = result.stream_id;
         this.startRecording();
-      })
-      .catch(() => {
-        this.destroy();
+        return result;
       });
+    started.catch(() => {
+      this.destroy();
+    });
+    return started;
   }
 
   static get talkPriorityLow() {

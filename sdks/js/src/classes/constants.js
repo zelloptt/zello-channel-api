@@ -1,5 +1,6 @@
 module.exports = {
   ERROR_NOT_ENOUGH_PARAMS: 'Not enough parameters',
+  ERROR_CHANNEL_NOT_IN_LIST: 'Channel is not in the channels list',
   ERROR_INVALID_SERVER_PROTOCOL: 'Invalid server protocol, use ws:// or wss://',
   ERROR_UNSUPPORTED: "Your browser does not support all required APIs.\n" +
     "Read more here https://github.com/zelloptt/zello-channel-api",

@@ -26,6 +26,12 @@ class IncomingMessage extends Emitter {
     this.packetCount = 0;
     this.isPlaybackComplete = false;
     let library = Utils.getLoadedLibrary();
+    // options.channels on the session is the list of joined Zello channel
+    // names. The audio stack uses channels as a count of 1 or 2.
+    const sessionOptions = Object.assign({}, session.options);
+    if (Array.isArray(sessionOptions.channels)) {
+      delete sessionOptions.channels;
+    }
     this.options =
       Object.assign({
         encoding: '32bitFloat',
@@ -35,7 +41,7 @@ class IncomingMessage extends Emitter {
         burstJitter: 1000,
         log: session.log
       },
-      session.options,
+      sessionOptions,
       {messageData: messageData}
     );
 
@@ -171,7 +177,15 @@ class IncomingMessage extends Emitter {
     if (!this.options.decoder) {
       return;
     }
-    this.decoder = new this.options.decoder(this.options);
+    // The Opus worker is started with postMessage. Functions on the session
+    // options, including log and the player, cannot be cloned.
+    const decoderOptions = Object.assign({}, this.options);
+    Object.keys(decoderOptions).forEach((key) => {
+      if (typeof decoderOptions[key] === 'function') {
+        delete decoderOptions[key];
+      }
+    });
+    this.decoder = new this.options.decoder(decoderOptions);
     this.decoder.ondata = (pcmData) => {
       if (!pcmData) {
         return;
@@ -191,6 +205,9 @@ class IncomingMessage extends Emitter {
       if (IncomingMessage.PersistentPlayer && !this.options.noPersistentPlayer) {
         this.player = IncomingMessage.PersistentPlayer;
         this.player.setSampleRate(this.options.sampleRate);
+        if (typeof this.player.setFlushingTime === 'function') {
+          this.player.setFlushingTime(this.options.flushingTime);
+        }
       } else if (this.options.player) {
         this.player = new this.options.player(this.options);
         if (!this.options.noPersistentPlayer) {

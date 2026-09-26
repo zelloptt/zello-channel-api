@@ -20,9 +20,6 @@ const MainTemplate = require('./templates/template.ejs');
 });
  session.connect()
  .then(function() {
-  return session.logon();
-})
- .then(function(data) {
   var widget = new ZCC.Widget({
     widget: {
       headless: true
@@ -44,9 +41,6 @@ const MainTemplate = require('./templates/template.ejs');
 });
  session.connect()
  .then(function() {
-  return session.logon();
-})
- .then(function(data) {
   var widget = new ZCC.Widget({
     widget: {
       headless: false,
