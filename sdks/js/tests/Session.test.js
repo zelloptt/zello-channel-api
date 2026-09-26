@@ -195,12 +195,10 @@ describe('OutgoingMessage channel routing', () => {
     message.startRecording = () => {};
     message.destroy = () => {};
     message.currentMessageId = 9;
-    message.session = {
-      options: sessionOptions,
-      resolveChannel: Session.prototype.resolveChannel,
+    message.session = Object.assign(bareSession(sessionOptions), {
       startStream: jest.fn(() => Promise.resolve({ stream_id: 9 })),
       stopStream: jest.fn()
-    };
+    });
     return message;
   };
 
@@ -237,26 +235,18 @@ describe('OutgoingMessage channel routing', () => {
 });
 
 describe('OutgoingImage channel routing', () => {
-  const sendImage = (sessionOptions, callOptions = {}) => {
+  const sendImage = (sessionOptions, instanceOptions = {}) => {
     const image = Object.create(OutgoingImage.prototype);
-    image.callOptions = callOptions;
-    image.options = Object.assign({}, sessionOptions, callOptions);
+    image.instanceOptions = instanceOptions;
+    image.options = Object.assign({}, sessionOptions, instanceOptions);
     image.thumbnailData = new Uint8Array([1]);
     image.fullImageData = new Uint8Array([2]);
     image.fullImageWidth = 1;
     image.fullImageHeight = 1;
     image.source = 'library';
-    image.sent = null;
-    image.session = {
-      options: sessionOptions,
-      resolveChannel: Session.prototype.resolveChannel,
-      getSeq: () => 1,
-      sendCommand: (params) => {
-        image.sent = params;
-      }
-    };
+    image.session = bareSession(sessionOptions);
     image.send();
-    return image;
+    return image.session.sent[0];
   };
 
   it('prefers the image channel and otherwise uses the session default', () => {
@@ -266,13 +256,13 @@ describe('OutgoingImage channel routing', () => {
     }, {
       channel: 'Front'
     });
-    expect(explicit.sent.channel).toBe('Front');
+    expect(explicit.channel).toBe('Front');
 
     const fallback = sendImage({
       channels: ['Front', 'Back'],
       channel: 'Back'
     });
-    expect(fallback.sent.channel).toBe('Back');
+    expect(fallback.channel).toBe('Back');
   });
 
   it('fails when the image has no channel and the session has no default', () => {
@@ -285,18 +275,20 @@ describe('OutgoingImage channel routing', () => {
 });
 
 describe('Incoming channel identity', () => {
+  const incomingSession = () => ({
+    log: () => {},
+    options: {
+      channels: ['Front', 'Back'],
+      channel: 'Back'
+    }
+  });
+
   it('keeps the Zello channel name off the playback channel count', () => {
     const message = new IncomingMessage({
       stream_id: 4,
       channel: 'Back',
       codec_header: codecHeader
-    }, {
-      log: () => {},
-      options: {
-        channels: ['Front', 'Back'],
-        channel: 'Back'
-      }
-    });
+    }, incomingSession());
     expect(message.channel).toBe('Back');
     expect(message.options.channels).toBe(1);
 
@@ -324,13 +316,7 @@ describe('Incoming channel identity', () => {
       stream_id: 5,
       channel: 'Back',
       codec_header: codecHeader
-    }, {
-      log: () => {},
-      options: {
-        channels: ['Front', 'Back'],
-        channel: 'Back'
-      }
-    });
+    }, incomingSession());
     await message.initPlayer();
     expect(setSampleRate).toHaveBeenCalledWith(24000);
     expect(setFlushingTime).toHaveBeenCalledWith(240);

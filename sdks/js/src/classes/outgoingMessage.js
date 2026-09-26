@@ -41,7 +41,7 @@ class OutgoingMessage extends Emitter {
     // start message explicitly if no recorder present.
     // if recorder is there it will start from Recorder.onready
     if (!this.recorder && this.options.autoStart) {
-      this.start();
+      this.start().catch(() => {});
     }
   }
 
@@ -104,10 +104,7 @@ class OutgoingMessage extends Emitter {
       }
       this.sendEncoderInitMessage();
       if (this.options.autoStart) {
-        const started = this.start();
-        if (started && typeof started.catch === 'function') {
-          started.catch(() => {});
-        }
+        this.start().catch(() => {});
       }
     };
     this.recorder = new this.options.recorder(this.options, this.encoder);
@@ -159,19 +156,22 @@ outgoingMessage.then(function(result) {
 });
   */
   stop(userCallback) {
-    this.destroy();
     if (!this.activeChannel) {
-      const err = new Error(Constants.ERROR_NOT_ENOUGH_PARAMS);
-      if (typeof userCallback === 'function') {
-        userCallback(err);
-      }
-      return Promise.reject(err);
+      return this.fail(new Error(Constants.ERROR_NOT_ENOUGH_PARAMS), userCallback);
     }
-    const params = {
+    this.destroy();
+    return this.session.stopStream({
       stream_id: this.currentMessageId,
       channel: this.activeChannel
-    };
-    return this.session.stopStream(params, userCallback);
+    }, userCallback);
+  }
+
+  fail(err, userCallback) {
+    this.destroy();
+    if (Utils.isFunction(userCallback)) {
+      userCallback(err);
+    }
+    return Promise.reject(err);
   }
 
   destroy() {
@@ -192,23 +192,17 @@ outgoingMessage.then(function(result) {
  * when instance is created by <code>session.startVoiceMessage</code>
  * **/
   start() {
-    let channel;
     try {
-      channel = this.session.resolveChannel(this.instanceOptions.channel);
+      this.activeChannel = this.session.resolveChannel(this.instanceOptions.channel);
     } catch (err) {
-      this.destroy();
-      if (typeof this.userCallback === 'function') {
-        this.userCallback(err);
-      }
-      return Promise.reject(err);
+      return this.fail(err, this.userCallback);
     }
-    this.activeChannel = channel;
     const params = {
       'type': 'audio',
       'codec': 'opus',
       'codec_header': Utils.buildCodecHeader(this.options.encoderSampleRate, 1, this.options.encoderFrameSize),
       'packet_duration': this.options.encoderFrameSize,
-      'channel': channel
+      'channel': this.activeChannel
     };
     if (this.instanceOptions.for) {
       params.for = this.options.for;

@@ -26,23 +26,18 @@ class IncomingMessage extends Emitter {
     this.packetCount = 0;
     this.isPlaybackComplete = false;
     let library = Utils.getLoadedLibrary();
-    // options.channels on the session is the list of joined Zello channel
-    // names. The audio stack uses channels as a count of 1 or 2.
-    const sessionOptions = Object.assign({}, session.options);
-    if (Array.isArray(sessionOptions.channels)) {
-      delete sessionOptions.channels;
-    }
+    // session.options.channels is the list of joined Zello channel names.
+    // The audio stack uses channels as a playback channel count.
     this.options =
       Object.assign({
         encoding: '32bitFloat',
-        channels: 1,
         sampleRate: IncomingMessage.detectSampleRate(this.codecDetails.rate),
         flushingTime: 240,
         burstJitter: 1000,
         log: session.log
       },
-      sessionOptions,
-      {messageData: messageData}
+      session.options,
+      {channels: 1, messageData: messageData}
     );
 
     if (this.options.decoder && !Utils.isFunction(this.options.decoder)) {
@@ -179,10 +174,10 @@ class IncomingMessage extends Emitter {
     }
     // The Opus worker is started with postMessage. Functions on the session
     // options, including log and the player, cannot be cloned.
-    const decoderOptions = Object.assign({}, this.options);
-    Object.keys(decoderOptions).forEach((key) => {
-      if (typeof decoderOptions[key] === 'function') {
-        delete decoderOptions[key];
+    const decoderOptions = {};
+    Object.keys(this.options).forEach((key) => {
+      if (!Utils.isFunction(this.options[key])) {
+        decoderOptions[key] = this.options[key];
       }
     });
     this.decoder = new this.options.decoder(decoderOptions);
@@ -205,7 +200,7 @@ class IncomingMessage extends Emitter {
       if (IncomingMessage.PersistentPlayer && !this.options.noPersistentPlayer) {
         this.player = IncomingMessage.PersistentPlayer;
         this.player.setSampleRate(this.options.sampleRate);
-        if (typeof this.player.setFlushingTime === 'function') {
+        if (Utils.isFunction(this.player.setFlushingTime)) {
           this.player.setFlushingTime(this.options.flushingTime);
         }
       } else if (this.options.player) {

@@ -6,6 +6,8 @@ const Utils = require('./utils');
 const MIN_HEARTBEAT_INTERVAL_MS = 10 * 1000;
 const DEFAULT_HEARTBEAT_INTERVAL_MS = 30 * 1000;
 
+const isChannelName = (value) => typeof value === 'string' && value.length > 0;
+
 /**
  * @classdesc Session class to start a session with the Zello server and interact with it using
  * the <a href="https://github.com/zelloptt/zello-channel-api">Zello Channel API</a>
@@ -43,13 +45,7 @@ class Session extends Emitter {
       autoSendAudio: true,
       noPersistentPlayer: false
     }, options);
-    const preparedChannels = Session.prepareChannels(this.options);
-    this.options.channels = preparedChannels.channels;
-    if (preparedChannels.channel) {
-      this.options.channel = preparedChannels.channel;
-    } else {
-      delete this.options.channel;
-    }
+    Object.assign(this.options, Session.prepareChannels(this.options));
     this.callbacks = {};
     this.wsConnection = null;
     this.refreshToken = null;
@@ -93,36 +89,21 @@ class Session extends Emitter {
   }
 
   static prepareChannels(options) {
-    const channel = options && typeof options.channel === 'string' ? options.channel : '';
-    const hasChannel = channel.length > 0;
-    const channelsOption = options ? options.channels : undefined;
-    if (channelsOption === undefined) {
-      if (!hasChannel) {
+    const channel = isChannelName(options.channel) ? options.channel : undefined;
+    const channels = options.channels;
+    if (channels === undefined) {
+      if (!channel) {
         throw new Error(Constants.ERROR_NOT_ENOUGH_PARAMS);
       }
-      return {
-        channel: channel,
-        channels: [channel]
-      };
+      return {channel: channel, channels: [channel]};
     }
-    if (!Array.isArray(channelsOption) || channelsOption.length === 0) {
+    if (!Array.isArray(channels) || channels.length === 0 || !channels.every(isChannelName)) {
       throw new Error(Constants.ERROR_NOT_ENOUGH_PARAMS);
     }
-    const channels = [];
-    for (let i = 0; i < channelsOption.length; i++) {
-      const name = channelsOption[i];
-      if (typeof name !== 'string' || name.length === 0) {
-        throw new Error(Constants.ERROR_NOT_ENOUGH_PARAMS);
-      }
-      channels.push(name);
-    }
-    if (hasChannel && channels.indexOf(channel) === -1) {
+    if (channel && channels.indexOf(channel) === -1) {
       throw new Error(Constants.ERROR_CHANNEL_NOT_IN_LIST);
     }
-    return {
-      channel: hasChannel ? channel : undefined,
-      channels: channels
-    };
+    return {channel: channel, channels: channels.slice()};
   }
 
   static validateInitialOptions(initialOptions) {
@@ -141,19 +122,18 @@ class Session extends Emitter {
   }
 
   resolveChannel(explicitChannel) {
-    if (typeof explicitChannel === 'string' && explicitChannel.length > 0) {
+    if (isChannelName(explicitChannel)) {
       return explicitChannel;
     }
-    if (typeof this.options.channel === 'string' && this.options.channel.length > 0) {
+    if (isChannelName(this.options.channel)) {
       return this.options.channel;
     }
     throw new Error(Constants.ERROR_NOT_ENOUGH_PARAMS);
   }
 
-  withChannel(options = {}, explicitChannel) {
-    const command = Object.assign({}, options);
-    command.channel = this.resolveChannel(explicitChannel);
-    return command;
+  sendChannelCommand(command, options, userCallback) {
+    const params = Object.assign({}, options, {channel: this.resolveChannel(options.channel)});
+    return this.sendCommandWithCallback(command, params, userCallback);
   }
 
   /**
@@ -380,9 +360,9 @@ session.connect(function(err, result) {
     let dfd = Promise.defer();
     let params = {
       'command': 'logon',
-      'seq': this.getSeq()
+      'seq': this.getSeq(),
+      'channels': this.options.channels.slice()
     };
-    params.channels = this.options.channels.slice();
 
     if (refreshToken) {
       params.refresh_token = refreshToken;
@@ -499,9 +479,7 @@ session.connect(function(err, result) {
               break;
             case Constants.SN_STATUS_OFFLINE:
               if (jsonData.error && jsonData.error_type === Constants.ERROR_TYPE_CONFIGURATION) {
-                const multipleChannels = Array.isArray(this.options.channels) &&
-                  this.options.channels.length > 1;
-                if (!multipleChannels) {
+                if (this.options.channels.length === 1) {
                   this.channelConfigurationError = true;
                 }
               }
@@ -647,19 +625,11 @@ session.connect(function(err, result) {
    * });
    */
   startStream(options = {}, userCallback = null) {
-    return this.sendCommandWithCallback(
-      'start_stream',
-      this.withChannel(options, options.channel),
-      userCallback
-    );
+    return this.sendChannelCommand('start_stream', options, userCallback);
   }
 
   stopStream(options = {}, userCallback = null) {
-    return this.sendCommandWithCallback(
-      'stop_stream',
-      this.withChannel(options, options.channel),
-      userCallback
-    );
+    return this.sendChannelCommand('stop_stream', options, userCallback);
   }
 
   /**
@@ -770,19 +740,11 @@ var outgoingMessage = session.startVoiceMessage({
    * });
    **/
   sendTextMessage(options = {}, userCallback = null) {
-    return this.sendCommandWithCallback(
-      'send_text_message',
-      this.withChannel(options, options.channel),
-      userCallback
-    );
+    return this.sendChannelCommand('send_text_message', options, userCallback);
   }
 
   sendLocation(options = {}, userCallback = null) {
-    return this.sendCommandWithCallback(
-      'send_location',
-      this.withChannel(options, options.channel),
-      userCallback
-    );
+    return this.sendChannelCommand('send_location', options, userCallback);
   }
 
   /**
@@ -797,15 +759,7 @@ var outgoingMessage = session.startVoiceMessage({
    session.endDispatchCall(123456789);
    **/
    endDispatchCall(callId, userCallback = null) {
-    const options = {
-      call_id: callId,
-      channel: this.resolveChannel()
-    };
-    return this.sendCommandWithCallback(
-      'end_dispatch_call',
-      options,
-      userCallback
-    );
+    return this.sendChannelCommand('end_dispatch_call', {call_id: callId}, userCallback);
   }
 
   sendCommandWithCallback(command, options, userCallback = null) {

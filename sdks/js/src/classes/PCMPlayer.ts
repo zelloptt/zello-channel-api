@@ -268,10 +268,7 @@ class PCMPlayer {
     }
     const elapsedMs = Date.now() - this.startTimestampMs;
     this.flushTimeSyncMs = elapsedMs + flushingTime;
-    if (this.flushTimer !== null) {
-      clearTimeout(this.flushTimer);
-      this.flushTimer = null;
-    }
+    this.clearFlushTimer();
     this.scheduleFlush(flushingTime);
   }
 
@@ -346,11 +343,7 @@ class PCMPlayer {
       this.touchUnlockAbort = null;
     }
     this.removeResumeOnGesture();
-
-    if (this.flushTimer !== null) {
-      clearTimeout(this.flushTimer);
-      this.flushTimer = null;
-    }
+    this.clearFlushTimer();
 
     if (this.audioEl) {
       this.audioEl.pause();
@@ -559,6 +552,13 @@ class PCMPlayer {
     this.flushTimer = setTimeout(() => this.flush(), delayMs);
   }
 
+  private clearFlushTimer(): void {
+    if (this.flushTimer !== null) {
+      clearTimeout(this.flushTimer);
+      this.flushTimer = null;
+    }
+  }
+
   private installResumeOnGesture(): void {
     if (!this.audioCtx || this.resumeOnGesture || typeof document === 'undefined' || !document.body) {
       return;
@@ -572,10 +572,7 @@ class PCMPlayer {
         if (this.destroyed || !this.gainNode) {
           return;
         }
-        if (this.flushTimer !== null) {
-          clearTimeout(this.flushTimer);
-          this.flushTimer = null;
-        }
+        this.clearFlushTimer();
         this.flush();
       });
     };
