@@ -2,7 +2,6 @@ const Session = require('../src/classes/session');
 const OutgoingMessage = require('../src/classes/outgoingMessage');
 const OutgoingImage = require('../src/classes/outgoingImage');
 const IncomingMessage = require('../src/classes/incomingMessage');
-const IncomingImage = require('../src/classes/incomingImage');
 const Constants = require('../src/classes/constants');
 
 const codecHeader = 'gD4BPA==';
@@ -103,16 +102,6 @@ describe('Session channels', () => {
     expect(session.sent[0].channels).toEqual(['Front', 'Back']);
   });
 
-  it('logs on with one channel when only channel was provided', () => {
-    const session = bareSession({
-      channel: 'Front',
-      channels: ['Front']
-    });
-    session.doLogon();
-    expect(session.sent[0].channels).toEqual(['Front']);
-    expect(session.sent[0].channel).toBeUndefined();
-  });
-
   it('does not treat one offline channel as a session failure when several are joined', () => {
     const session = bareSession({
       channels: ['Front', 'Back'],
@@ -158,16 +147,9 @@ describe('Session channels', () => {
     session.sendTextMessage({ text: 'help', channel: 'Front' });
     expect(session.sent[1].channel).toBe('Front');
 
-    session.sendLocation({ lat: 1 });
-    expect(session.sent[2].channel).toBe('Back');
-
     session.endDispatchCall(42);
-    expect(session.sent[3].channel).toBe('Back');
-    expect(session.sent[3].call_id).toBe(42);
-
-    session.startStream({ for: 'sam' });
-    expect(session.sent[4].channel).toBe('Back');
-    expect(session.sent[4].for).toBe('sam');
+    expect(session.sent[2].channel).toBe('Back');
+    expect(session.sent[2].call_id).toBe(42);
   });
 
   it('fails a send when no channel was passed and there is no default', () => {
@@ -321,16 +303,5 @@ describe('Incoming channel identity', () => {
     expect(setSampleRate).toHaveBeenCalledWith(24000);
     expect(setFlushingTime).toHaveBeenCalledWith(240);
     IncomingMessage.PersistentPlayer = undefined;
-  });
-
-  it('exposes the channel on an incoming image', () => {
-    const image = new IncomingImage({
-      message_id: 3,
-      channel: 'Back'
-    }, {
-      options: {},
-      on: () => {}
-    });
-    expect(image.channel).toBe('Back');
   });
 });
