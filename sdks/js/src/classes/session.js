@@ -781,7 +781,7 @@ var outgoingMessage = session.startVoiceMessage({
   endDispatchCall(callId, channelOrCallback = null, userCallback = null) {
     let channel;
     let callback = userCallback;
-    if (typeof channelOrCallback === 'function') {
+    if (Utils.isFunction(channelOrCallback)) {
       callback = channelOrCallback;
     } else if (isChannelName(channelOrCallback)) {
       channel = channelOrCallback;
