@@ -12,6 +12,7 @@ const HEIGHT = 'Height';
 class OutgoingImage extends Emitter {
   constructor(session, instanceOptions = {}) {
     super();
+    this.instanceOptions = instanceOptions;
     this.options = Object.assign({
       thumbnailCompress: 0.3,
       fullImageCompress: 0.8,
@@ -92,7 +93,8 @@ class OutgoingImage extends Emitter {
       content_length: this.fullImageData.length,
       width: this.fullImageWidth,
       height: this.fullImageHeight,
-      source: this.source
+      source: this.source,
+      channel: this.session.resolveChannel(this.instanceOptions.channel)
     };
     if (this.options.for) {
       params.for = this.options.for;

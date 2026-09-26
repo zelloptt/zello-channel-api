@@ -608,6 +608,24 @@ describe('PCMPlayer', () => {
       player.destroy();
     });
 
+    test('holds samples while the audio context is suspended', async () => {
+      const player = await createInitializedPlayer({
+        encoding: '32bitFloat',
+        flushingTime: 100,
+        sampleRate: 8000,
+        channels: 1
+      });
+      const ctx = player['audioCtx'] as unknown as MockAudioContext;
+      ctx.state = 'suspended';
+      player.feed(createFloat32Samples(800));
+
+      jest.advanceTimersByTime(100);
+
+      expect(ctx.createBuffer).not.toHaveBeenCalled();
+      expect(player['totalSamples']).toBe(800);
+      player.destroy();
+    });
+
     test('advances startTime by buffer duration', async () => {
       const player = await createInitializedPlayer({
         encoding: '32bitFloat',

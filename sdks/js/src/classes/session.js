@@ -6,6 +6,8 @@ const Utils = require('./utils');
 const MIN_HEARTBEAT_INTERVAL_MS = 10 * 1000;
 const DEFAULT_HEARTBEAT_INTERVAL_MS = 30 * 1000;
 
+const isChannelName = (value) => typeof value === 'string' && value.length > 0;
+
 /**
  * @classdesc Session class to start a session with the Zello server and interact with it using
  * the <a href="https://github.com/zelloptt/zello-channel-api">Zello Channel API</a>
@@ -27,7 +29,9 @@ const DEFAULT_HEARTBEAT_INTERVAL_MS = 30 * 1000;
  **/
 class Session extends Emitter {
   /**
-   * @param {object} options session options. Options can also include <code>player</code>, <code>decoder</code>, <code>recorder</code> and <code>encoder</code> overrides
+   * @param {object} options session options. Options can also include <code>player</code>, <code>decoder</code>, <code>recorder</code> and <code>encoder</code> overrides.
+   * <code>options.channels</code> is the list of channel names to connect to. When it is omitted, the session connects to <code>options.channel</code> only and stores that name as a one-item list.
+   * <code>options.channel</code> is the default channel for outgoing messages. It must be a channel name, and one of <code>options.channels</code> when both are set. When <code>options.channels</code> is set and <code>options.channel</code> is omitted, there is no default until the caller sets one.
    * @return {ZCC.Session} <code>ZCC.Session</code> instance
    **/
   constructor(options) {
@@ -41,6 +45,7 @@ class Session extends Emitter {
       autoSendAudio: true,
       noPersistentPlayer: false
     }, options);
+    Object.assign(this.options, Session.prepareChannels(this.options));
     this.callbacks = {};
     this.wsConnection = null;
     this.refreshToken = null;
@@ -67,6 +72,7 @@ class Session extends Emitter {
     this.reconnectTimeout = null;
     this.connectTimeout = null;
     this.channelConfigurationError = false;
+    this.channelConfigurationErrors = new Set();
     this.heartbeatTimer = null;
     this.heartbeatAwaitingServerAck = false;
     this.heartbeatMissedAck = 0;
@@ -83,19 +89,64 @@ class Session extends Emitter {
     return ++this.seq;
   }
 
+  static prepareChannels(options) {
+    if (options.channel !== undefined && !isChannelName(options.channel)) {
+      throw new Error(Constants.ERROR_NOT_ENOUGH_PARAMS);
+    }
+    const channel = options.channel;
+    const channels = options.channels;
+    if (channels === undefined) {
+      if (!channel) {
+        throw new Error(Constants.ERROR_NOT_ENOUGH_PARAMS);
+      }
+      return {channel: channel, channels: [channel]};
+    }
+    if (!Array.isArray(channels) || channels.length === 0 || !channels.every(isChannelName)) {
+      throw new Error(Constants.ERROR_NOT_ENOUGH_PARAMS);
+    }
+    if (channel && channels.indexOf(channel) === -1) {
+      throw new Error(Constants.ERROR_CHANNEL_NOT_IN_LIST);
+    }
+    return {channel: channel, channels: channels.slice()};
+  }
+
   static validateInitialOptions(initialOptions) {
     if (
       !initialOptions ||
       !initialOptions.serverUrl ||
-      !initialOptions.channel ||
       (initialOptions.username && !initialOptions.password && !initialOptions.authToken) ||
       (!initialOptions.authToken && !initialOptions.username)
     ) {
       throw new Error(Constants.ERROR_NOT_ENOUGH_PARAMS);
     }
+    Session.prepareChannels(initialOptions);
     if (!initialOptions.serverUrl.match(/^wss?:\/\//i)) {
       throw new Error(Constants.ERROR_INVALID_SERVER_PROTOCOL);
     }
+  }
+
+  resolveChannel(explicitChannel) {
+    if (isChannelName(explicitChannel)) {
+      return explicitChannel;
+    }
+    if (isChannelName(this.options.channel)) {
+      return this.options.channel;
+    }
+    throw new Error(Constants.ERROR_NOT_ENOUGH_PARAMS);
+  }
+
+  sendChannelCommand(command, options, userCallback) {
+    let channel;
+    try {
+      channel = this.resolveChannel(options && options.channel);
+    } catch (err) {
+      if (typeof userCallback === 'function') {
+        userCallback.apply(this, [err]);
+      }
+      return Promise.reject(err);
+    }
+    const params = Object.assign({}, options, {channel: channel});
+    return this.sendCommandWithCallback(command, params, userCallback);
   }
 
   /**
@@ -323,7 +374,7 @@ session.connect(function(err, result) {
     let params = {
       'command': 'logon',
       'seq': this.getSeq(),
-      'channel': this.options.channel
+      'channels': this.options.channels.slice()
     };
 
     if (refreshToken) {
@@ -441,7 +492,12 @@ session.connect(function(err, result) {
               break;
             case Constants.SN_STATUS_OFFLINE:
               if (jsonData.error && jsonData.error_type === Constants.ERROR_TYPE_CONFIGURATION) {
-                this.channelConfigurationError = true;
+                if (this.options.channels.indexOf(jsonData.channel) !== -1) {
+                  this.channelConfigurationErrors.add(jsonData.channel);
+                }
+                if (this.channelConfigurationErrors.size === this.options.channels.length) {
+                  this.channelConfigurationError = true;
+                }
               }
               break;
           }
@@ -585,11 +641,11 @@ session.connect(function(err, result) {
    * });
    */
   startStream(options = {}, userCallback = null) {
-    return this.sendCommandWithCallback('start_stream', options, userCallback);
+    return this.sendChannelCommand('start_stream', options, userCallback);
   }
 
   stopStream(options = {}, userCallback = null) {
-    return this.sendCommandWithCallback('stop_stream', options, userCallback);
+    return this.sendChannelCommand('stop_stream', options, userCallback);
   }
 
   /**
@@ -700,34 +756,43 @@ var outgoingMessage = session.startVoiceMessage({
    * });
    **/
   sendTextMessage(options = {}, userCallback = null) {
-    return this.sendCommandWithCallback('send_text_message', options, userCallback);
+    return this.sendChannelCommand('send_text_message', options, userCallback);
   }
 
   sendLocation(options = {}, userCallback = null) {
-    return this.sendCommandWithCallback('send_location', options, userCallback)
+    return this.sendChannelCommand('send_location', options, userCallback);
   }
 
   /**
    * Stops an ongoing dispatch call
    *
    * @param {Number} callId the ID of the ongoing dispatch call to be over.
-   * @param {function} [userCallback] callback that is fired on dispatch call is over or failed to be stopped.
+   * @param {String|function} [channelOrCallback] channel to end the call on, or the completion callback.
+   * A channel name sends <code>end_dispatch_call</code> to that channel instead of the session default.
+   * A function keeps <code>endDispatchCall(callId, callback)</code> working.
+   * @param {function} [userCallback] completion callback, used when the second argument is a channel name.
    * @return {promise} promise that resolves once session successfully stopped the dispatch call and rejects if
    *                   stopping the dispatch call is failed.
    * @example
    *
    session.endDispatchCall(123456789);
+   session.endDispatchCall(123456789, 'Dispatch');
    **/
-   endDispatchCall(callId, userCallback = null) {
-    const options = {
-      call_id: callId,
-      channel: this.options.channel
+  endDispatchCall(callId, channelOrCallback = null, userCallback = null) {
+    let channel;
+    let callback = userCallback;
+    if (Utils.isFunction(channelOrCallback)) {
+      callback = channelOrCallback;
+    } else if (isChannelName(channelOrCallback)) {
+      channel = channelOrCallback;
+    }
+    const params = {
+      call_id: callId
     };
-    return this.sendCommandWithCallback(
-      'end_dispatch_call',
-      options,
-      userCallback
-    );
+    if (channel) {
+      params.channel = channel;
+    }
+    return this.sendChannelCommand('end_dispatch_call', params, callback);
   }
 
   sendCommandWithCallback(command, options, userCallback = null) {

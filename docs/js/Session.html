@@ -102,7 +102,9 @@ the <a href="https://github.com/zelloptt/zello-channel-api">Zello Channel API</a
 
             
 
-            <td class="description last">session options. Options can also include <code>player</code>, <code>decoder</code>, <code>recorder</code> and <code>encoder</code> overrides</td>
+            <td class="description last">session options. Options can also include <code>player</code>, <code>decoder</code>, <code>recorder</code> and <code>encoder</code> overrides.
+<code>options.channels</code> is the list of channel names to connect to. When it is omitted, the session connects to <code>options.channel</code> only and stores that name as a one-item list.
+<code>options.channel</code> is the default channel for outgoing messages. It must be a channel name, and one of <code>options.channels</code> when both are set. When <code>options.channels</code> is set and <code>options.channel</code> is omitted, there is no default until the caller sets one.</td>
         </tr>
 
     
@@ -143,7 +145,7 @@ the <a href="https://github.com/zelloptt/zello-channel-api">Zello Channel API</a
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line25">line 25</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line30">line 30</a>
     </li></ul></dd>
     
 
@@ -360,7 +362,7 @@ the <a href="https://github.com/zelloptt/zello-channel-api">Zello Channel API</a
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line109">line 109</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line176">line 176</a>
     </li></ul></dd>
     
 
@@ -491,7 +493,7 @@ session.connect(function(err, result) {
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line297">line 297</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line427">line 427</a>
     </li></ul></dd>
     
 
@@ -527,7 +529,7 @@ session.connect(function(err, result) {
     
 
     
-    <h4 class="name" id="endDispatchCall"><span class="type-signature"></span>endDispatchCall<span class="signature">(callId, userCallback<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {promise}</span></h4>
+    <h4 class="name" id="endDispatchCall"><span class="type-signature"></span>endDispatchCall<span class="signature">(callId, channelOrCallback<span class="signature-attributes">opt</span>, userCallback<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {promise}</span></h4>
     
 
     
@@ -610,6 +612,50 @@ session.connect(function(err, result) {
 
         <tr>
             
+                <td class="name"><code>channelOrCallback</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
+|
+
+<span class="param-type">function</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    null
+                
+                </td>
+            
+
+            <td class="description last">channel to end the call on, or the completion callback.
+A channel name sends <code>end_dispatch_call</code> to that channel instead of the session default.
+A function keeps <code>endDispatchCall(callId, callback)</code> working.</td>
+        </tr>
+
+    
+
+        <tr>
+            
                 <td class="name"><code>userCallback</code></td>
             
 
@@ -642,7 +688,7 @@ session.connect(function(err, result) {
                 </td>
             
 
-            <td class="description last">callback that is fired on dispatch call is over or failed to be stopped.</td>
+            <td class="description last">completion callback, used when the second argument is a channel name.</td>
         </tr>
 
     
@@ -683,7 +729,7 @@ session.connect(function(err, result) {
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line640">line 640</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line781">line 781</a>
     </li></ul></dd>
     
 
@@ -737,7 +783,8 @@ session.connect(function(err, result) {
 
     <h5>Example</h5>
     
-    <pre class="prettyprint"><code>session.endDispatchCall(123456789);</code></pre>
+    <pre class="prettyprint"><code>session.endDispatchCall(123456789);
+   session.endDispatchCall(123456789, 'Dispatch');</code></pre>
 
 
 
@@ -947,7 +994,7 @@ session.connect(function(err, result) {
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line599">line 599</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line736">line 736</a>
     </li></ul></dd>
     
 
@@ -1260,7 +1307,7 @@ session.connect(function(err, result) {
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line621">line 621</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line758">line 758</a>
     </li></ul></dd>
     
 
@@ -1545,7 +1592,7 @@ session.connect(function(err, result) {
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line506">line 506</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line643">line 643</a>
     </li></ul></dd>
     
 
@@ -1767,7 +1814,7 @@ Options can also include <code>recorder</code> and <code>encoder</code> override
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line544">line 544</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line681">line 681</a>
     </li></ul></dd>
     
 
@@ -2119,7 +2166,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line441">line 441</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line577">line 577</a>
     </li></ul></dd>
     
 
@@ -2256,7 +2303,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line340">line 340</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line471">line 471</a>
     </li></ul></dd>
     
 
@@ -2393,7 +2440,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line429">line 429</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line565">line 565</a>
     </li></ul></dd>
     
 
@@ -2525,7 +2572,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line421">line 421</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line557">line 557</a>
     </li></ul></dd>
     
 
@@ -2657,7 +2704,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line413">line 413</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line549">line 549</a>
     </li></ul></dd>
     
 
@@ -2892,7 +2939,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line309">line 309</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line440">line 440</a>
     </li></ul></dd>
     
 
@@ -3052,7 +3099,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line569">line 569</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line706">line 706</a>
     </li></ul></dd>
     
 
@@ -3189,7 +3236,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line559">line 559</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line696">line 696</a>
     </li></ul></dd>
     
 
@@ -3326,7 +3373,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line405">line 405</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line541">line 541</a>
     </li></ul></dd>
     
 
@@ -3486,7 +3533,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line385">line 385</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line521">line 521</a>
     </li></ul></dd>
     
 
@@ -3623,7 +3670,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line375">line 375</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line511">line 511</a>
     </li></ul></dd>
     
 
@@ -3760,7 +3807,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line396">line 396</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line532">line 532</a>
     </li></ul></dd>
     
 
@@ -3848,7 +3895,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line153">line 153</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line220">line 220</a>
     </li></ul></dd>
     
 
@@ -3985,7 +4032,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line227">line 227</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line296">line 296</a>
     </li></ul></dd>
     
 
@@ -4122,7 +4169,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line177">line 177</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line245">line 245</a>
     </li></ul></dd>
     
 
@@ -4259,7 +4306,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line172">line 172</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line240">line 240</a>
     </li></ul></dd>
     
 
@@ -4347,7 +4394,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line138">line 138</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line205">line 205</a>
     </li></ul></dd>
     
 
@@ -4582,7 +4629,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line348">line 348</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line479">line 479</a>
     </li></ul></dd>
     
 
@@ -4630,7 +4677,7 @@ var outgoingMessage = session.startVoiceMessage({
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Mon Feb 16 2026 10:23:22 GMT-0500 (Eastern Standard Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Sat Sep 26 2026 03:33:58 GMT-0500 (Central Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>

@@ -31,6 +31,11 @@ const Promise = require('q');
 const Constants = require('./constants');
 const Utils = require('./utils');
 
+const MIN_HEARTBEAT_INTERVAL_MS = 10 * 1000;
+const DEFAULT_HEARTBEAT_INTERVAL_MS = 30 * 1000;
+
+const isChannelName = (value) => typeof value === 'string' &amp;&amp; value.length > 0;
+
 /**
  * @classdesc Session class to start a session with the Zello server and interact with it using
  * the &lt;a href="https://github.com/zelloptt/zello-channel-api">Zello Channel API&lt;/a>
@@ -52,7 +57,9 @@ const Utils = require('./utils');
  **/
 class Session extends Emitter {
   /**
-   * @param {object} options session options. Options can also include &lt;code>player&lt;/code>, &lt;code>decoder&lt;/code>, &lt;code>recorder&lt;/code> and &lt;code>encoder&lt;/code> overrides
+   * @param {object} options session options. Options can also include &lt;code>player&lt;/code>, &lt;code>decoder&lt;/code>, &lt;code>recorder&lt;/code> and &lt;code>encoder&lt;/code> overrides.
+   * &lt;code>options.channels&lt;/code> is the list of channel names to connect to. When it is omitted, the session connects to &lt;code>options.channel&lt;/code> only and stores that name as a one-item list.
+   * &lt;code>options.channel&lt;/code> is the default channel for outgoing messages. It must be a channel name, and one of &lt;code>options.channels&lt;/code> when both are set. When &lt;code>options.channels&lt;/code> is set and &lt;code>options.channel&lt;/code> is omitted, there is no default until the caller sets one.
    * @return {ZCC.Session} &lt;code>ZCC.Session&lt;/code> instance
    **/
   constructor(options) {
@@ -66,6 +73,7 @@ class Session extends Emitter {
       autoSendAudio: true,
       noPersistentPlayer: false
     }, options);
+    Object.assign(this.options, Session.prepareChannels(this.options));
     this.callbacks = {};
     this.wsConnection = null;
     this.refreshToken = null;
@@ -75,6 +83,15 @@ class Session extends Emitter {
     this.connectAttempts = this.maxConnectAttempts;
     this.connectRetryTimeoutMs = this.options.connectRetryTimeoutMs;
     this.connectTimeoutMs = this.options.connectTimeoutMs;
+    const intervalMs = this.options.clientPing?.intervalMs;
+    this.heartbeatIntervalMs =
+      intervalMs === undefined
+        ? DEFAULT_HEARTBEAT_INTERVAL_MS
+        : (typeof intervalMs === 'number' &amp;&amp; Number.isFinite(intervalMs))
+          ? Math.max(MIN_HEARTBEAT_INTERVAL_MS, intervalMs)
+          : DEFAULT_HEARTBEAT_INTERVAL_MS;
+    this.heartbeatConsecutiveMissedAcksThreshold = this.options.clientPing?.consecutiveMissedPongsThreshold;
+    this.heartbeatEnabled = !!this.heartbeatIntervalMs &amp;&amp; !!this.heartbeatConsecutiveMissedAcksThreshold;
     this.selfDisconnect = false;
     this.incomingMessages = {};
     this.activeOutgoingMessage = null;
@@ -83,6 +100,11 @@ class Session extends Emitter {
     this.reconnectTimeout = null;
     this.connectTimeout = null;
     this.channelConfigurationError = false;
+    this.channelConfigurationErrors = new Set();
+    this.heartbeatTimer = null;
+    this.heartbeatAwaitingServerAck = false;
+    this.heartbeatMissedAck = 0;
+    this.heartbeatFailureTriggered = false;
 
     if (this.options.enableLogging) {
       this.log = Utils.enableLogging();
@@ -95,19 +117,64 @@ class Session extends Emitter {
     return ++this.seq;
   }
 
+  static prepareChannels(options) {
+    if (options.channel !== undefined &amp;&amp; !isChannelName(options.channel)) {
+      throw new Error(Constants.ERROR_NOT_ENOUGH_PARAMS);
+    }
+    const channel = options.channel;
+    const channels = options.channels;
+    if (channels === undefined) {
+      if (!channel) {
+        throw new Error(Constants.ERROR_NOT_ENOUGH_PARAMS);
+      }
+      return {channel: channel, channels: [channel]};
+    }
+    if (!Array.isArray(channels) || channels.length === 0 || !channels.every(isChannelName)) {
+      throw new Error(Constants.ERROR_NOT_ENOUGH_PARAMS);
+    }
+    if (channel &amp;&amp; channels.indexOf(channel) === -1) {
+      throw new Error(Constants.ERROR_CHANNEL_NOT_IN_LIST);
+    }
+    return {channel: channel, channels: channels.slice()};
+  }
+
   static validateInitialOptions(initialOptions) {
     if (
       !initialOptions ||
       !initialOptions.serverUrl ||
-      !initialOptions.channel ||
       (initialOptions.username &amp;&amp; !initialOptions.password &amp;&amp; !initialOptions.authToken) ||
       (!initialOptions.authToken &amp;&amp; !initialOptions.username)
     ) {
       throw new Error(Constants.ERROR_NOT_ENOUGH_PARAMS);
     }
+    Session.prepareChannels(initialOptions);
     if (!initialOptions.serverUrl.match(/^wss?:\/\//i)) {
       throw new Error(Constants.ERROR_INVALID_SERVER_PROTOCOL);
     }
+  }
+
+  resolveChannel(explicitChannel) {
+    if (isChannelName(explicitChannel)) {
+      return explicitChannel;
+    }
+    if (isChannelName(this.options.channel)) {
+      return this.options.channel;
+    }
+    throw new Error(Constants.ERROR_NOT_ENOUGH_PARAMS);
+  }
+
+  sendChannelCommand(command, options, userCallback) {
+    let channel;
+    try {
+      channel = this.resolveChannel(options &amp;&amp; options.channel);
+    } catch (err) {
+      if (typeof userCallback === 'function') {
+        userCallback.apply(this, [err]);
+      }
+      return Promise.reject(err);
+    }
+    const params = Object.assign({}, options, {channel: channel});
+    return this.sendCommandWithCallback(command, params, userCallback);
   }
 
   /**
@@ -183,6 +250,7 @@ session.connect(function(err, result) {
          * @event Session#session_connect
          */
         this.emit(Constants.EVENT_SESSION_CONNECT);
+        this.startHeartbeat();
         dfd.resolve(result);
       })
       .catch((err) => {
@@ -246,6 +314,7 @@ session.connect(function(err, result) {
 
     this.wsConnection.addEventListener('close', (closeEvent) => {
       this.clearConnectTimeout();
+      this.stopHeartbeat();
       if (this.selfDisconnect) {
         this.selfDisconnect = false;
         return;
@@ -267,12 +336,73 @@ session.connect(function(err, result) {
     return dfd.promise;
   }
 
+  startHeartbeat() {
+    if (!this.heartbeatEnabled) {
+      return;
+    }
+
+    this.stopHeartbeat();
+    this.heartbeatFailureTriggered = false;
+    this.scheduleHeartbeatTick();
+  }
+
+  scheduleHeartbeatTick() {
+    if (!this.heartbeatEnabled || this.heartbeatFailureTriggered) {
+      return;
+    }
+
+    this.heartbeatTimer = setTimeout(() => {
+      this.heartbeatTimer = null;
+      this.heartbeatTick();
+    }, this.heartbeatIntervalMs);
+  }
+
+  heartbeatTick() {
+    if (!this.wsConnection || this.wsConnection.readyState !== WebSocket.OPEN) {
+      return this.scheduleHeartbeatTick();
+    }
+
+    if (this.heartbeatAwaitingServerAck) {
+      this.heartbeatMissedAck += 1;
+    } else {
+      this.heartbeatAwaitingServerAck = true;
+      this.sendCommandWithCallback('keepalive', {})
+    }
+
+    if (this.heartbeatMissedAck >= this.heartbeatConsecutiveMissedAcksThreshold) {
+      this.heartbeatFailureTriggered = true;
+
+      this.emit(Constants.EVENT_SESSION_CONNECTION_LOST, 'heartbeat timeout');
+      return; // do NOT reschedule
+    }
+
+    this.scheduleHeartbeatTick();
+  }
+
+  stopHeartbeat() {
+    if (this.heartbeatTimer) {
+      clearTimeout(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
+    this.heartbeatFailureTriggered = false;
+    this.heartbeatAwaitingServerAck = false;
+    this.heartbeatMissedAck = 0;
+  }
+
+  handleKeepaliveAck() {
+    if (!this.heartbeatEnabled || this.heartbeatFailureTriggered) {
+      return;
+    }
+    this.heartbeatAwaitingServerAck = false;
+    this.heartbeatMissedAck = 0;
+  }
+
   doLogon(refreshToken = '') {
     let dfd = Promise.defer();
     let params = {
       'command': 'logon',
       'seq': this.getSeq(),
-      'channel': this.options.channel
+      'channels': this.options.channels.slice()
     };
 
     if (refreshToken) {
@@ -325,6 +455,7 @@ session.connect(function(err, result) {
   disconnect() {
     this.selfDisconnect = true;
     this.clearConnectTimeout();
+    this.stopHeartbeat();
     if (this.wsConnection) {
       this.wsConnection.close();
     }
@@ -389,7 +520,12 @@ session.connect(function(err, result) {
               break;
             case Constants.SN_STATUS_OFFLINE:
               if (jsonData.error &amp;&amp; jsonData.error_type === Constants.ERROR_TYPE_CONFIGURATION) {
-                this.channelConfigurationError = true;
+                if (this.options.channels.indexOf(jsonData.channel) !== -1) {
+                  this.channelConfigurationErrors.add(jsonData.channel);
+                }
+                if (this.channelConfigurationErrors.size === this.options.channels.length) {
+                  this.channelConfigurationError = true;
+                }
               }
               break;
           }
@@ -483,6 +619,7 @@ session.connect(function(err, result) {
   }
 
   wsMessageHandler(data) {
+    this.handleKeepaliveAck();
     let jsonData = null;
     try {
       jsonData = JSON.parse(data);
@@ -532,11 +669,11 @@ session.connect(function(err, result) {
    * });
    */
   startStream(options = {}, userCallback = null) {
-    return this.sendCommandWithCallback('start_stream', options, userCallback);
+    return this.sendChannelCommand('start_stream', options, userCallback);
   }
 
   stopStream(options = {}, userCallback = null) {
-    return this.sendCommandWithCallback('stop_stream', options, userCallback);
+    return this.sendChannelCommand('stop_stream', options, userCallback);
   }
 
   /**
@@ -647,34 +784,43 @@ var outgoingMessage = session.startVoiceMessage({
    * });
    **/
   sendTextMessage(options = {}, userCallback = null) {
-    return this.sendCommandWithCallback('send_text_message', options, userCallback);
+    return this.sendChannelCommand('send_text_message', options, userCallback);
   }
 
   sendLocation(options = {}, userCallback = null) {
-    return this.sendCommandWithCallback('send_location', options, userCallback)
+    return this.sendChannelCommand('send_location', options, userCallback);
   }
 
   /**
    * Stops an ongoing dispatch call
    *
    * @param {Number} callId the ID of the ongoing dispatch call to be over.
-   * @param {function} [userCallback] callback that is fired on dispatch call is over or failed to be stopped.
+   * @param {String|function} [channelOrCallback] channel to end the call on, or the completion callback.
+   * A channel name sends &lt;code>end_dispatch_call&lt;/code> to that channel instead of the session default.
+   * A function keeps &lt;code>endDispatchCall(callId, callback)&lt;/code> working.
+   * @param {function} [userCallback] completion callback, used when the second argument is a channel name.
    * @return {promise} promise that resolves once session successfully stopped the dispatch call and rejects if
    *                   stopping the dispatch call is failed.
    * @example
    *
    session.endDispatchCall(123456789);
+   session.endDispatchCall(123456789, 'Dispatch');
    **/
-   endDispatchCall(callId, userCallback = null) {
-    const options = {
-      call_id: callId,
-      channel: this.options.channel
+  endDispatchCall(callId, channelOrCallback = null, userCallback = null) {
+    let channel;
+    let callback = userCallback;
+    if (Utils.isFunction(channelOrCallback)) {
+      callback = channelOrCallback;
+    } else if (isChannelName(channelOrCallback)) {
+      channel = channelOrCallback;
+    }
+    const params = {
+      call_id: callId
     };
-    return this.sendCommandWithCallback(
-      'end_dispatch_call',
-      options,
-      userCallback
-    );
+    if (channel) {
+      params.channel = channel;
+    }
+    return this.sendChannelCommand('end_dispatch_call', params, callback);
   }
 
   sendCommandWithCallback(command, options, userCallback = null) {
@@ -717,7 +863,7 @@ module.exports = Session;
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Mon Feb 16 2026 10:23:22 GMT-0500 (Eastern Standard Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Sat Sep 26 2026 03:33:58 GMT-0500 (Central Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>
