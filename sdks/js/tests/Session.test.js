@@ -22,6 +22,7 @@ const bareSession = (options) => {
   session.emit = () => {};
   session.wasOnline = false;
   session.channelConfigurationError = false;
+  session.channelConfigurationErrors = new Set();
   session.sent = [];
   session.sendCommand = (params) => {
     session.sent.push(params);
@@ -81,6 +82,21 @@ describe('Session channels', () => {
     }).toThrow(Constants.ERROR_CHANNEL_NOT_IN_LIST);
   });
 
+  it('rejects a channel value that is not a channel name', () => {
+    expect(() => {
+      Session.prepareChannels({
+        channels: ['Front', 'Back'],
+        channel: 2
+      });
+    }).toThrow(Constants.ERROR_NOT_ENOUGH_PARAMS);
+    expect(() => {
+      Session.prepareChannels({
+        channels: ['Front', 'Back'],
+        channel: ''
+      });
+    }).toThrow(Constants.ERROR_NOT_ENOUGH_PARAMS);
+  });
+
   it('rejects an empty channels list', () => {
     expect(() => {
       Session.prepareChannels({
@@ -132,6 +148,27 @@ describe('Session channels', () => {
     expect(session.channelConfigurationError).toBe(true);
   });
 
+  it('records a configuration failure when every joined channel is misconfigured', () => {
+    const session = bareSession({
+      channels: ['Front', 'Back'],
+      channel: 'Back'
+    });
+    const status = (channel) => {
+      return {
+        command: 'on_channel_status',
+        status: 'offline',
+        error: 'not found',
+        error_type: 'configuration',
+        channel: channel
+      };
+    };
+    session.jsonDataHandler(status('Side'));
+    session.jsonDataHandler(status('Front'));
+    expect(session.channelConfigurationError).toBe(false);
+    session.jsonDataHandler(status('Back'));
+    expect(session.channelConfigurationError).toBe(true);
+  });
+
   it('prefers an explicit channel and otherwise uses the default', () => {
     const session = bareSession({
       channels: ['Front', 'Back'],
@@ -152,16 +189,40 @@ describe('Session channels', () => {
     expect(session.sent[2].call_id).toBe(42);
   });
 
-  it('fails a send when no channel was passed and there is no default', () => {
+  it('ends a dispatch call on the channel the caller names', () => {
+    const session = bareSession({
+      channels: ['Front', 'Back'],
+      channel: 'Back'
+    });
+    session.endDispatchCall(42, 'Front');
+    expect(session.sent[0].channel).toBe('Front');
+    expect(session.sent[0].call_id).toBe(42);
+  });
+
+  it('keeps a callback in the second argument of endDispatchCall', () => {
+    const session = bareSession({
+      channels: ['Front', 'Back'],
+      channel: 'Back'
+    });
+    const onEnd = jest.fn();
+    session.endDispatchCall(42, onEnd);
+    expect(session.sent[0].channel).toBe('Back');
+    expect(session.sent[0].call_id).toBe(42);
+    expect(onEnd).not.toHaveBeenCalled();
+  });
+
+  it('fails a send when no channel was passed and there is no default', async () => {
     const session = bareSession({
       channels: ['Front', 'Back']
     });
-    expect(() => {
-      session.sendTextMessage({ text: 'help' });
-    }).toThrow(Constants.ERROR_NOT_ENOUGH_PARAMS);
-    expect(() => {
-      session.endDispatchCall(42);
-    }).toThrow(Constants.ERROR_NOT_ENOUGH_PARAMS);
+    const onText = jest.fn();
+    await expect(session.sendTextMessage({ text: 'help' }, onText)).rejects.toThrow(Constants.ERROR_NOT_ENOUGH_PARAMS);
+    expect(onText).toHaveBeenCalledWith(expect.any(Error));
+    expect(session.sent).toEqual([]);
+
+    const onEnd = jest.fn();
+    await expect(session.endDispatchCall(42, onEnd)).rejects.toThrow(Constants.ERROR_NOT_ENOUGH_PARAMS);
+    expect(onEnd).toHaveBeenCalledWith(expect.any(Error));
   });
 });
 
@@ -194,6 +255,23 @@ describe('OutgoingMessage channel routing', () => {
     message.session.options.channel = 'Front';
     message.stop();
     expect(message.session.stopStream.mock.calls[0][0].channel).toBe('Back');
+  });
+
+  it('uses the current channel when stop runs before start', () => {
+    const message = startMessage({
+      channels: ['Front', 'Back'],
+      channel: 'Back'
+    });
+    message.stop();
+    expect(message.session.stopStream.mock.calls[0][0].channel).toBe('Back');
+  });
+
+  it('fails stop when no channel can be resolved', async () => {
+    const message = startMessage({
+      channels: ['Front', 'Back']
+    });
+    await expect(message.stop()).rejects.toThrow(Constants.ERROR_NOT_ENOUGH_PARAMS);
+    expect(message.session.stopStream).not.toHaveBeenCalled();
   });
 
   it('prefers the channel passed to the voice message', async () => {

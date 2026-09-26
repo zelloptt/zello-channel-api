@@ -31,7 +31,7 @@ class Session extends Emitter {
   /**
    * @param {object} options session options. Options can also include <code>player</code>, <code>decoder</code>, <code>recorder</code> and <code>encoder</code> overrides.
    * <code>options.channels</code> is the list of channel names to connect to. When it is omitted, the session connects to <code>options.channel</code> only and stores that name as a one-item list.
-   * <code>options.channel</code> is the default channel for outgoing messages. It must be one of <code>options.channels</code> when both are set. When <code>options.channels</code> is set and <code>options.channel</code> is omitted, there is no default until the caller sets one.
+   * <code>options.channel</code> is the default channel for outgoing messages. It must be a channel name, and one of <code>options.channels</code> when both are set. When <code>options.channels</code> is set and <code>options.channel</code> is omitted, there is no default until the caller sets one.
    * @return {ZCC.Session} <code>ZCC.Session</code> instance
    **/
   constructor(options) {
@@ -72,6 +72,7 @@ class Session extends Emitter {
     this.reconnectTimeout = null;
     this.connectTimeout = null;
     this.channelConfigurationError = false;
+    this.channelConfigurationErrors = new Set();
     this.heartbeatTimer = null;
     this.heartbeatAwaitingServerAck = false;
     this.heartbeatMissedAck = 0;
@@ -89,7 +90,10 @@ class Session extends Emitter {
   }
 
   static prepareChannels(options) {
-    const channel = isChannelName(options.channel) ? options.channel : undefined;
+    if (options.channel !== undefined && !isChannelName(options.channel)) {
+      throw new Error(Constants.ERROR_NOT_ENOUGH_PARAMS);
+    }
+    const channel = options.channel;
     const channels = options.channels;
     if (channels === undefined) {
       if (!channel) {
@@ -132,7 +136,16 @@ class Session extends Emitter {
   }
 
   sendChannelCommand(command, options, userCallback) {
-    const params = Object.assign({}, options, {channel: this.resolveChannel(options.channel)});
+    let channel;
+    try {
+      channel = this.resolveChannel(options && options.channel);
+    } catch (err) {
+      if (typeof userCallback === 'function') {
+        userCallback.apply(this, [err]);
+      }
+      return Promise.reject(err);
+    }
+    const params = Object.assign({}, options, {channel: channel});
     return this.sendCommandWithCallback(command, params, userCallback);
   }
 
@@ -479,7 +492,10 @@ session.connect(function(err, result) {
               break;
             case Constants.SN_STATUS_OFFLINE:
               if (jsonData.error && jsonData.error_type === Constants.ERROR_TYPE_CONFIGURATION) {
-                if (this.options.channels.length === 1) {
+                if (this.options.channels.indexOf(jsonData.channel) !== -1) {
+                  this.channelConfigurationErrors.add(jsonData.channel);
+                }
+                if (this.channelConfigurationErrors.size === this.options.channels.length) {
                   this.channelConfigurationError = true;
                 }
               }
@@ -751,15 +767,32 @@ var outgoingMessage = session.startVoiceMessage({
    * Stops an ongoing dispatch call
    *
    * @param {Number} callId the ID of the ongoing dispatch call to be over.
-   * @param {function} [userCallback] callback that is fired on dispatch call is over or failed to be stopped.
+   * @param {String|function} [channelOrCallback] channel to end the call on, or the completion callback.
+   * A channel name sends <code>end_dispatch_call</code> to that channel instead of the session default.
+   * A function keeps <code>endDispatchCall(callId, callback)</code> working.
+   * @param {function} [userCallback] completion callback, used when the second argument is a channel name.
    * @return {promise} promise that resolves once session successfully stopped the dispatch call and rejects if
    *                   stopping the dispatch call is failed.
    * @example
    *
    session.endDispatchCall(123456789);
+   session.endDispatchCall(123456789, 'Dispatch');
    **/
-   endDispatchCall(callId, userCallback = null) {
-    return this.sendChannelCommand('end_dispatch_call', {call_id: callId}, userCallback);
+  endDispatchCall(callId, channelOrCallback = null, userCallback = null) {
+    let channel;
+    let callback = userCallback;
+    if (typeof channelOrCallback === 'function') {
+      callback = channelOrCallback;
+    } else if (isChannelName(channelOrCallback)) {
+      channel = channelOrCallback;
+    }
+    const params = {
+      call_id: callId
+    };
+    if (channel) {
+      params.channel = channel;
+    }
+    return this.sendChannelCommand('end_dispatch_call', params, callback);
   }
 
   sendCommandWithCallback(command, options, userCallback = null) {

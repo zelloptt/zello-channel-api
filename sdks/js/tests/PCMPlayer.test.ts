@@ -626,6 +626,47 @@ describe('PCMPlayer', () => {
       player.destroy();
     });
 
+    test('keeps holding samples when resume is rejected', async () => {
+      const player = await createInitializedPlayer({
+        encoding: '32bitFloat',
+        flushingTime: 100,
+        sampleRate: 8000,
+        channels: 1
+      });
+      const ctx = player['audioCtx'] as unknown as MockAudioContext;
+      ctx.state = 'suspended';
+      ctx.resume.mockRejectedValue(new Error('blocked'));
+      player.feed(createFloat32Samples(800));
+
+      jest.advanceTimersByTime(100);
+      await Promise.resolve();
+
+      expect(ctx.createBuffer).not.toHaveBeenCalled();
+      expect(player['totalSamples']).toBe(800);
+      player.destroy();
+    });
+
+    test('installs the resume listener again after the context suspends', async () => {
+      const player = await createInitializedPlayer({
+        encoding: '32bitFloat',
+        flushingTime: 100,
+        sampleRate: 8000,
+        channels: 1
+      });
+      player['removeResumeOnGesture']();
+      const addListenerSpy = jest.spyOn(document, 'addEventListener');
+      const ctx = player['audioCtx'] as unknown as MockAudioContext;
+      ctx.state = 'suspended';
+      player.feed(createFloat32Samples(800));
+
+      jest.advanceTimersByTime(100);
+
+      expect(addListenerSpy).toHaveBeenCalledWith('pointerdown', expect.any(Function), true);
+      expect(ctx.createBuffer).not.toHaveBeenCalled();
+      addListenerSpy.mockRestore();
+      player.destroy();
+    });
+
     test('advances startTime by buffer duration', async () => {
       const player = await createInitializedPlayer({
         encoding: '32bitFloat',

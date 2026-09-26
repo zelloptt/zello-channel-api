@@ -395,7 +395,10 @@ class PCMPlayer {
     // after the message arrived. Hold the samples and play them once the
     // context is running.
     if (this.audioCtx.state === 'suspended') {
-      void this.audioCtx.resume();
+      // The one-shot listener is removed after the first tap. Install it
+      // again so a later suspension can be resumed by the next tap.
+      this.installResumeOnGesture();
+      void this.audioCtx.resume().catch(() => {});
       return;
     }
 
@@ -560,7 +563,7 @@ class PCMPlayer {
   }
 
   private installResumeOnGesture(): void {
-    if (!this.audioCtx || this.resumeOnGesture || typeof document === 'undefined' || !document.body) {
+    if (!this.audioCtx || this.resumeOnGesture || typeof document === 'undefined') {
       return;
     }
     const resume = () => {
@@ -574,20 +577,20 @@ class PCMPlayer {
         }
         this.clearFlushTimer();
         this.flush();
-      });
+      }).catch(() => {});
     };
     this.resumeOnGesture = resume;
-    document.body.addEventListener('pointerdown', resume);
-    document.body.addEventListener('click', resume);
+    document.addEventListener('pointerdown', resume, true);
+    document.addEventListener('click', resume, true);
   }
 
   private removeResumeOnGesture(): void {
-    if (!this.resumeOnGesture || typeof document === 'undefined' || !document.body) {
+    if (!this.resumeOnGesture || typeof document === 'undefined') {
       this.resumeOnGesture = null;
       return;
     }
-    document.body.removeEventListener('pointerdown', this.resumeOnGesture);
-    document.body.removeEventListener('click', this.resumeOnGesture);
+    document.removeEventListener('pointerdown', this.resumeOnGesture, true);
+    document.removeEventListener('click', this.resumeOnGesture, true);
     this.resumeOnGesture = null;
   }
 

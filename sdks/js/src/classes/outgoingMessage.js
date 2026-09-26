@@ -157,7 +157,11 @@ outgoingMessage.then(function(result) {
   */
   stop(userCallback) {
     if (!this.activeChannel) {
-      return this.fail(new Error(Constants.ERROR_NOT_ENOUGH_PARAMS), userCallback);
+      try {
+        this.activeChannel = this.session.resolveChannel(this.instanceOptions.channel);
+      } catch (err) {
+        return this.fail(err, userCallback);
+      }
     }
     this.destroy();
     return this.session.stopStream({
