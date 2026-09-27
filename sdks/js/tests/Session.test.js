@@ -334,6 +334,50 @@ describe('OutgoingImage channel routing', () => {
   });
 });
 
+describe('Incoming image identity', () => {
+  it('keeps two pending images apart', () => {
+    const IncomingImage = require('../src/classes/incomingImage');
+    window.ZCC = {
+      Sdk: { initOptions: {} },
+      IncomingImage: IncomingImage
+    };
+    const session = new Session(Object.assign({ channels: ['Front', 'Back'] }, credentials));
+    const images = {};
+    const received = {};
+    session.on(Constants.EVENT_INCOMING_IMAGE, (image) => {
+      images[image.instanceId] = image;
+      received[image.instanceId] = [];
+      image.on(Constants.EVENT_THUMBNAIL_DATA, (bytes) => received[image.instanceId].push(['thumbnail', bytes[0]]));
+      image.on(Constants.EVENT_IMAGE_DATA, (bytes) => received[image.instanceId].push(['image', bytes[0]]));
+    });
+    const thumbnailType = Constants.IMAGE_TYPE_THUMBNAIL !== undefined
+      ? Constants.IMAGE_TYPE_THUMBNAIL
+      : Constants.IMAGE_TYPE_FULL + 1;
+    const packet = (messageId, packetId, byte) => {
+      const buffer = new ArrayBuffer(10);
+      const view = new DataView(buffer);
+      view.setUint8(0, Constants.MESSAGE_TYPE_IMAGE);
+      view.setUint32(1, messageId, false);
+      view.setUint32(5, packetId, false);
+      new Uint8Array(buffer, 9)[0] = byte;
+      session.wsBinaryDataHandler(buffer);
+    };
+
+    session.jsonDataHandler({ command: 'on_image', channel: 'Front', message_id: 1, from: 'a', type: 'jpeg' });
+    session.jsonDataHandler({ command: 'on_image', channel: 'Back', message_id: 2, from: 'b', type: 'jpeg' });
+
+    packet(1, thumbnailType, 11);
+    packet(1, Constants.IMAGE_TYPE_FULL, 12);
+    packet(2, thumbnailType, 21);
+    packet(2, Constants.IMAGE_TYPE_FULL, 22);
+    packet(1, Constants.IMAGE_TYPE_FULL, 13);
+
+    expect(received[1]).toEqual([['thumbnail', 11], ['image', 12]]);
+    expect(received[2]).toEqual([['thumbnail', 21], ['image', 22]]);
+    expect(images[2].channel).toBe('Back');
+  });
+});
+
 describe('Incoming channel identity', () => {
   const incomingSession = () => ({
     log: () => {},
