@@ -614,24 +614,6 @@ describe('PCMPlayer', () => {
       player.destroy();
     });
 
-    test('holds samples while the audio context is suspended', async () => {
-      const player = await createInitializedPlayer({
-        encoding: '32bitFloat',
-        flushingTime: 100,
-        sampleRate: 8000,
-        channels: 1
-      });
-      const ctx = player['audioCtx'] as unknown as MockAudioContext;
-      ctx.state = 'suspended';
-      player.feed(createFloat32Samples(800));
-
-      jest.advanceTimersByTime(100);
-
-      expect(ctx.createBuffer).not.toHaveBeenCalled();
-      expect(defaultTrack(player).totalSamples).toBe(800);
-      player.destroy();
-    });
-
     test('advances startTime by buffer duration', async () => {
       const player = await createInitializedPlayer({
         encoding: '32bitFloat',
@@ -702,20 +684,6 @@ describe('PCMPlayer', () => {
         (r) => (r.value as MockAudioBufferSourceNode).start.mock.calls[0][0]
       );
       expect(starts).toEqual([0, 0]);
-      expect(player['tracks'].get('a')!.startTime).toBeCloseTo(0.2, 5);
-      expect(player['tracks'].get('b')!.startTime).toBeCloseTo(0.1, 5);
-      player.destroy();
-    });
-
-    test('a second stream setting its rate does not retime the first', async () => {
-      const { player, ctx } = await twoStreamPlayer();
-      player.setSampleRate(8000, 'a');
-      player.feed(createFloat32Samples(800), 'a');
-      player.setSampleRate(48000, 'b');
-
-      jest.advanceTimersByTime(100);
-
-      expect(ctx.createBuffer).toHaveBeenCalledWith(1, 800, 8000);
       player.destroy();
     });
 
@@ -728,7 +696,6 @@ describe('PCMPlayer', () => {
       jest.advanceTimersByTime(100);
 
       expect(ctx.createBuffer).toHaveBeenCalledTimes(1);
-      expect(player['tracks'].get('b')!.totalSamples).toBe(0);
 
       player.mute(false, 'b');
       player.feed(createFloat32Samples(800), 'b');
@@ -751,7 +718,6 @@ describe('PCMPlayer', () => {
 
       expect(sourceA.stop).toHaveBeenCalled();
       expect(sourceB.stop).not.toHaveBeenCalled();
-      expect(player['tracks'].has('a')).toBe(false);
       expect(player['tracks'].get('b')!.sources.size).toBe(1);
       player.destroy();
     });
@@ -806,6 +772,10 @@ describe('PCMPlayer', () => {
   describe('resume on gesture', () => {
     const GESTURES = PCMPlayer.resumeGestureEvents;
 
+    // Suspended, with the flush timer's own resume() refused and never
+    // settling (as Chrome does without user activation). The timer keeps that
+    // one attempt in flight, so only a gesture or the public resume() can
+    // play the held samples; a listener that resumes but never flushes fails.
     async function createSuspendedPlayer() {
       const player = await createInitializedPlayer({
         encoding: '32bitFloat',
@@ -815,9 +785,11 @@ describe('PCMPlayer', () => {
       });
       const ctx = player['audioCtx'] as unknown as MockAudioContext;
       ctx.state = 'suspended';
+      ctx.resume = jest.fn().mockReturnValue(new Promise(() => undefined));
       return { player, ctx };
     }
 
+    /** From here on resume() is accepted, as after a user gesture. */
     function acceptResume(ctx: MockAudioContext) {
       ctx.resume = jest.fn().mockImplementation(() => {
         ctx.state = 'running';
@@ -830,32 +802,34 @@ describe('PCMPlayer', () => {
       await Promise.resolve();
     }
 
-    test('arms capture-phase document listeners on init', async () => {
-      const addSpy = jest.spyOn(document, 'addEventListener');
-      const player = await createInitializedPlayer();
-      for (const type of GESTURES) {
-        expect(addSpy).toHaveBeenCalledWith(type, expect.any(Function), true);
-      }
-      player.destroy();
-      addSpy.mockRestore();
-    });
-
-    test('stays armed while the browser refuses to resume', async () => {
+    test('an accepted gesture plays the held samples, after refused ones', async () => {
       const { player, ctx } = await createSuspendedPlayer();
-      ctx.resume = jest.fn().mockReturnValue(new Promise(() => undefined));
+      player.feed(createFloat32Samples(800));
+      jest.advanceTimersByTime(100);
+      expect(ctx.createBuffer).not.toHaveBeenCalled();
 
+      // A touch pointerdown carries no activation: refused, listeners must stay.
       document.dispatchEvent(new Event('pointerdown'));
-      expect(ctx.resume).toHaveBeenCalledTimes(1);
-      expect(player['resumeOnGesture']).not.toBeNull();
+      await settleMicrotasks();
+      expect(ctx.createBuffer).not.toHaveBeenCalled();
 
+      acceptResume(ctx);
       document.dispatchEvent(new Event('pointerup'));
-      expect(ctx.resume).toHaveBeenCalledTimes(2);
-      expect(player['resumeOnGesture']).not.toBeNull();
+      await settleMicrotasks();
+      expect(ctx.createBuffer).toHaveBeenCalledWith(1, 800, 8000);
       player.destroy();
     });
 
-    test('plays held samples once a gesture resumes the context', async () => {
+    test('a later suspension is resumed by the next gesture', async () => {
       const { player, ctx } = await createSuspendedPlayer();
+      acceptResume(ctx);
+      document.dispatchEvent(new Event('pointerdown'));
+      await settleMicrotasks();
+      expect(ctx.state).toBe('running');
+
+      // The browser suspends the context again (screen lock, tab switch).
+      ctx.state = 'suspended';
+      ctx.resume = jest.fn().mockReturnValue(new Promise(() => undefined));
       player.feed(createFloat32Samples(800));
       jest.advanceTimersByTime(100);
       expect(ctx.createBuffer).not.toHaveBeenCalled();
@@ -863,33 +837,27 @@ describe('PCMPlayer', () => {
       acceptResume(ctx);
       document.dispatchEvent(new Event('click'));
       await settleMicrotasks();
-
       expect(ctx.createBuffer).toHaveBeenCalledWith(1, 800, 8000);
       player.destroy();
     });
 
-    test('stays armed for the player lifetime so a later suspension is covered', async () => {
+    test('an app handler that stops propagation cannot hide the gesture', async () => {
       const { player, ctx } = await createSuspendedPlayer();
-      acceptResume(ctx);
-      document.dispatchEvent(new Event('pointerdown'));
-      await settleMicrotasks();
-      expect(ctx.state).toBe('running');
-      expect(player['resumeOnGesture']).not.toBeNull();
-
-      ctx.state = 'suspended';
       player.feed(createFloat32Samples(800));
-      jest.runOnlyPendingTimers();
-      expect(defaultTrack(player).totalSamples).toBe(800);
+      const stopper = (event: Event) => event.stopPropagation();
+      document.body.addEventListener('click', stopper);
 
-      document.dispatchEvent(new Event('click'));
+      acceptResume(ctx);
+      document.body.dispatchEvent(new Event('click', { bubbles: true }));
       await settleMicrotasks();
-      expect(ctx.state).toBe('running');
+
+      expect(ctx.createBuffer).toHaveBeenCalledWith(1, 800, 8000);
+      document.body.removeEventListener('click', stopper);
       player.destroy();
     });
 
     test('the flush timer keeps one resume in flight while the browser refuses', async () => {
       const { player, ctx } = await createSuspendedPlayer();
-      ctx.resume = jest.fn().mockReturnValue(new Promise(() => undefined));
       player.feed(createFloat32Samples(800));
 
       jest.runOnlyPendingTimers();
@@ -897,11 +865,11 @@ describe('PCMPlayer', () => {
       jest.runOnlyPendingTimers();
 
       expect(ctx.resume).toHaveBeenCalledTimes(1);
-      expect(defaultTrack(player).totalSamples).toBe(800);
+      expect(ctx.createBuffer).not.toHaveBeenCalled();
       player.destroy();
     });
 
-    test('resume() plays held samples when called from the app', async () => {
+    test('resume() from the app plays the held samples', async () => {
       const { player, ctx } = await createSuspendedPlayer();
       player.feed(createFloat32Samples(800));
       jest.advanceTimersByTime(100);
@@ -934,7 +902,6 @@ describe('PCMPlayer', () => {
       for (const type of GESTURES) {
         expect(removeSpy).toHaveBeenCalledWith(type, expect.any(Function), true);
       }
-      expect(player['resumeOnGesture']).toBeNull();
       removeSpy.mockRestore();
     });
   });

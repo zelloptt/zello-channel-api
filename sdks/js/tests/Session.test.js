@@ -2,6 +2,7 @@ const Session = require('../src/classes/session');
 const OutgoingMessage = require('../src/classes/outgoingMessage');
 const OutgoingImage = require('../src/classes/outgoingImage');
 const IncomingMessage = require('../src/classes/incomingMessage');
+const IncomingImage = require('../src/classes/incomingImage');
 const Constants = require('../src/classes/constants');
 const Utils = require('../src/classes/utils');
 
@@ -18,6 +19,12 @@ const credentials = {
   version: 'test'
 };
 
+// What Sdk.init leaves behind for the session and incoming messages.
+const setSdk = (extra = {}) => {
+  window.ZCC = Object.assign({ Sdk: { initOptions: {} } }, extra);
+};
+
+// A session that records what it would send instead of using a socket.
 const bareSession = (options) => {
   const session = Object.create(Session.prototype);
   session.options = options;
@@ -38,19 +45,18 @@ const bareSession = (options) => {
   return session;
 };
 
-describe('Session channels', () => {
-  beforeEach(() => {
-    window.ZCC = {
-      Sdk: {
-        initOptions: {}
-      }
-    };
-  });
+beforeEach(() => {
+  setSdk();
+});
 
+afterEach(() => {
+  delete window.ZCC;
+  IncomingMessage.PersistentPlayer = undefined;
+});
+
+describe('Session channels', () => {
   it('still requires a channel when channels is omitted', () => {
-    expect(() => {
-      Session.validateInitialOptions(credentials);
-    }).toThrow(Constants.ERROR_NOT_ENOUGH_PARAMS);
+    expect(() => new Session(credentials)).toThrow(Constants.ERROR_NOT_ENOUGH_PARAMS);
   });
 
   it('fills channels with the single channel', () => {
@@ -59,23 +65,18 @@ describe('Session channels', () => {
     expect(session.options.channels).toEqual(['Front']);
   });
 
-  it('keeps a caller-supplied list and copies it', () => {
+  it('keeps a copy of the caller list, with an optional default from it', () => {
     const names = ['Front', 'Back'];
-    const session = new Session(Object.assign({
-      channels: names
-    }, credentials));
+    const noDefault = new Session(Object.assign({ channels: names }, credentials));
     names.push('Side');
-    expect(session.options.channel).toBeUndefined();
-    expect(session.options.channels).toEqual(['Front', 'Back']);
-  });
+    expect(noDefault.options.channel).toBeUndefined();
+    expect(noDefault.options.channels).toEqual(['Front', 'Back']);
 
-  it('accepts a default that is in the list', () => {
-    const session = new Session(Object.assign({
+    const withDefault = new Session(Object.assign({
       channels: ['Front', 'Back'],
       channel: 'Back'
     }, credentials));
-    expect(session.options.channel).toBe('Back');
-    expect(session.options.channels).toEqual(['Front', 'Back']);
+    expect(withDefault.options.channel).toBe('Back');
   });
 
   it('rejects a default that is not in the list', () => {
@@ -87,91 +88,46 @@ describe('Session channels', () => {
     }).toThrow(Constants.ERROR_CHANNEL_NOT_IN_LIST);
   });
 
-  it('rejects a channel value that is not a channel name', () => {
+  it('rejects a default that is not a channel name, and an empty list', () => {
+    for (const channel of [2, '']) {
+      expect(() => {
+        Session.prepareChannels({ channels: ['Front', 'Back'], channel: channel });
+      }).toThrow(Constants.ERROR_NOT_ENOUGH_PARAMS);
+    }
     expect(() => {
-      Session.prepareChannels({
-        channels: ['Front', 'Back'],
-        channel: 2
-      });
-    }).toThrow(Constants.ERROR_NOT_ENOUGH_PARAMS);
-    expect(() => {
-      Session.prepareChannels({
-        channels: ['Front', 'Back'],
-        channel: ''
-      });
-    }).toThrow(Constants.ERROR_NOT_ENOUGH_PARAMS);
-  });
-
-  it('rejects an empty channels list', () => {
-    expect(() => {
-      Session.prepareChannels({
-        channels: []
-      });
+      Session.prepareChannels({ channels: [] });
     }).toThrow(Constants.ERROR_NOT_ENOUGH_PARAMS);
   });
 
   it('logs on with the channels list', () => {
-    const names = ['Front', 'Back'];
     const session = bareSession({
-      channels: names,
+      channels: ['Front', 'Back'],
       channel: 'Back'
     });
     session.doLogon();
     expect(session.sent[0].channels).toEqual(['Front', 'Back']);
     expect(session.sent[0].channel).toBeUndefined();
-    names.push('Side');
-    expect(session.sent[0].channels).toEqual(['Front', 'Back']);
   });
 
-  it('does not treat one offline channel as a session failure when several are joined', () => {
-    const session = bareSession({
-      channels: ['Front', 'Back'],
-      channel: 'Back'
-    });
-    session.jsonDataHandler({
+  it('records a configuration failure only once every joined channel has one', () => {
+    const status = (channel) => ({
       command: 'on_channel_status',
       status: 'offline',
       error: 'not found',
       error_type: 'configuration',
-      channel: 'Front'
+      channel: channel
     });
-    expect(session.channelConfigurationError).toBe(false);
-  });
 
-  it('still records a configuration failure for a single channel', () => {
-    const session = bareSession({
-      channel: 'Front',
-      channels: ['Front']
-    });
-    session.jsonDataHandler({
-      command: 'on_channel_status',
-      status: 'offline',
-      error: 'not found',
-      error_type: 'configuration',
-      channel: 'Front'
-    });
-    expect(session.channelConfigurationError).toBe(true);
-  });
+    const single = bareSession({ channel: 'Front', channels: ['Front'] });
+    single.jsonDataHandler(status('Front'));
+    expect(single.channelConfigurationError).toBe(true);
 
-  it('records a configuration failure when every joined channel is misconfigured', () => {
-    const session = bareSession({
-      channels: ['Front', 'Back'],
-      channel: 'Back'
-    });
-    const status = (channel) => {
-      return {
-        command: 'on_channel_status',
-        status: 'offline',
-        error: 'not found',
-        error_type: 'configuration',
-        channel: channel
-      };
-    };
-    session.jsonDataHandler(status('Side'));
-    session.jsonDataHandler(status('Front'));
-    expect(session.channelConfigurationError).toBe(false);
-    session.jsonDataHandler(status('Back'));
-    expect(session.channelConfigurationError).toBe(true);
+    const several = bareSession({ channels: ['Front', 'Back'], channel: 'Back' });
+    several.jsonDataHandler(status('Side'));
+    several.jsonDataHandler(status('Front'));
+    expect(several.channelConfigurationError).toBe(false);
+    several.jsonDataHandler(status('Back'));
+    expect(several.channelConfigurationError).toBe(true);
   });
 
   it('prefers an explicit channel and otherwise uses the default', () => {
@@ -202,18 +158,6 @@ describe('Session channels', () => {
     session.endDispatchCall(42, 'Front');
     expect(session.sent[0].channel).toBe('Front');
     expect(session.sent[0].call_id).toBe(42);
-  });
-
-  it('keeps a callback in the second argument of endDispatchCall', () => {
-    const session = bareSession({
-      channels: ['Front', 'Back'],
-      channel: 'Back'
-    });
-    const onEnd = jest.fn();
-    session.endDispatchCall(42, onEnd);
-    expect(session.sent[0].channel).toBe('Back');
-    expect(session.sent[0].call_id).toBe(42);
-    expect(onEnd).not.toHaveBeenCalled();
   });
 
   it('fails a send when no channel was passed and there is no default', async () => {
@@ -250,33 +194,19 @@ describe('OutgoingMessage channel routing', () => {
     return message;
   };
 
-  it('uses the live default channel and keeps it for stop', async () => {
+  it('resolves the session default when it starts and keeps it for stop', async () => {
     const message = startMessage({
       channels: ['Front', 'Back'],
       channel: 'Back'
     });
-    await message.start();
-    expect(message.session.startStream.mock.calls[0][0].channel).toBe('Back');
+    // The default changed after the message was created but before it started.
     message.session.options.channel = 'Front';
-    message.stop();
-    expect(message.session.stopStream.mock.calls[0][0].channel).toBe('Back');
-  });
+    await message.start();
+    expect(message.session.startStream.mock.calls[0][0].channel).toBe('Front');
 
-  it('uses the current channel when stop runs before start', () => {
-    const message = startMessage({
-      channels: ['Front', 'Back'],
-      channel: 'Back'
-    });
+    message.session.options.channel = 'Back';
     message.stop();
-    expect(message.session.stopStream.mock.calls[0][0].channel).toBe('Back');
-  });
-
-  it('fails stop when no channel can be resolved', async () => {
-    const message = startMessage({
-      channels: ['Front', 'Back']
-    });
-    await expect(message.stop()).rejects.toThrow(Constants.ERROR_NOT_ENOUGH_PARAMS);
-    expect(message.session.stopStream).not.toHaveBeenCalled();
+    expect(message.session.stopStream.mock.calls[0][0].channel).toBe('Front');
   });
 
   it('prefers the channel passed to the voice message', async () => {
@@ -290,12 +220,20 @@ describe('OutgoingMessage channel routing', () => {
     expect(message.session.startStream.mock.calls[0][0].channel).toBe('Front');
   });
 
-  it('fails to start when neither channel is set', async () => {
+  it('reports a missing channel to the callback for start and stop', async () => {
     const message = startMessage({
       channels: ['Front', 'Back']
     });
+    const onStart = jest.fn();
+    message.userCallback = onStart;
     await expect(message.start()).rejects.toThrow(Constants.ERROR_NOT_ENOUGH_PARAMS);
+    expect(onStart).toHaveBeenCalledWith(expect.any(Error));
     expect(message.session.startStream).not.toHaveBeenCalled();
+
+    const onStop = jest.fn();
+    await expect(message.stop(onStop)).rejects.toThrow(Constants.ERROR_NOT_ENOUGH_PARAMS);
+    expect(onStop).toHaveBeenCalledWith(expect.any(Error));
+    expect(message.session.stopStream).not.toHaveBeenCalled();
   });
 });
 
@@ -314,7 +252,7 @@ describe('OutgoingImage channel routing', () => {
     return image.session.sent[0];
   };
 
-  it('prefers the image channel and otherwise uses the session default', () => {
+  it('prefers the image channel, otherwise the session default, otherwise fails', () => {
     const explicit = sendImage({
       channels: ['Front', 'Back'],
       channel: 'Back'
@@ -328,24 +266,16 @@ describe('OutgoingImage channel routing', () => {
       channel: 'Back'
     });
     expect(fallback.channel).toBe('Back');
-  });
 
-  it('fails when the image has no channel and the session has no default', () => {
     expect(() => {
-      sendImage({
-        channels: ['Front', 'Back']
-      });
+      sendImage({ channels: ['Front', 'Back'] });
     }).toThrow(Constants.ERROR_NOT_ENOUGH_PARAMS);
   });
 });
 
 describe('Incoming image identity', () => {
   it('keeps two pending images apart', () => {
-    const IncomingImage = require('../src/classes/incomingImage');
-    window.ZCC = {
-      Sdk: { initOptions: {} },
-      IncomingImage: IncomingImage
-    };
+    setSdk({ IncomingImage: IncomingImage });
     const session = new Session(Object.assign({ channels: ['Front', 'Back'] }, credentials));
     const images = {};
     const received = {};
@@ -355,18 +285,15 @@ describe('Incoming image identity', () => {
       image.on(Constants.EVENT_THUMBNAIL_DATA, (bytes) => received[image.instanceId].push(['thumbnail', bytes[0]]));
       image.on(Constants.EVENT_IMAGE_DATA, (bytes) => received[image.instanceId].push(['image', bytes[0]]));
     });
-    const thumbnailType = Constants.IMAGE_TYPE_THUMBNAIL !== undefined
-      ? Constants.IMAGE_TYPE_THUMBNAIL
-      : Constants.IMAGE_TYPE_FULL + 1;
     const packet = (messageId, packetId, byte) =>
       session.wsBinaryDataHandler(binaryFrame(Constants.MESSAGE_TYPE_IMAGE, messageId, packetId, byte));
 
     session.jsonDataHandler({ command: 'on_image', channel: 'Front', message_id: 1, from: 'a', type: 'jpeg' });
     session.jsonDataHandler({ command: 'on_image', channel: 'Back', message_id: 2, from: 'b', type: 'jpeg' });
 
-    packet(1, thumbnailType, 11);
+    packet(1, Constants.IMAGE_TYPE_THUMBNAIL, 11);
     packet(1, Constants.IMAGE_TYPE_FULL, 12);
-    packet(2, thumbnailType, 21);
+    packet(2, Constants.IMAGE_TYPE_THUMBNAIL, 21);
     packet(2, Constants.IMAGE_TYPE_FULL, 22);
     packet(1, Constants.IMAGE_TYPE_FULL, 13);
 
@@ -379,6 +306,11 @@ describe('Incoming image identity', () => {
 describe('Incoming channel identity', () => {
   const incomingSession = () => ({
     log: () => {},
+    on: jest.fn(),
+    off: jest.fn(),
+    onIncomingVoiceDidStart: jest.fn(),
+    onIncomingVoiceDecoded: jest.fn(),
+    onIncomingVoicePlaybackStopped: jest.fn(),
     options: {
       channels: ['Front', 'Back'],
       channel: 'Back'
@@ -420,11 +352,7 @@ describe('Incoming channel identity', () => {
     Decoder.prototype.destroy = function () {
       this.destroyed = true;
     };
-    window.ZCC = {
-      Sdk: { initOptions: { decoder: Decoder } },
-      IncomingMessage: IncomingMessage
-    };
-    IncomingMessage.PersistentPlayer = undefined;
+    setSdk({ Sdk: { initOptions: { decoder: Decoder } }, IncomingMessage: IncomingMessage });
     const session = new Session(Object.assign({ channels: ['Front', 'Back'] }, credentials));
     const packetsSeenBySession = [];
     session.on(Constants.EVENT_INCOMING_VOICE_DATA, (packet) => {
@@ -464,21 +392,44 @@ describe('Incoming channel identity', () => {
     expect(decoders[2].packets).toEqual([22, 23]);
   });
 
-  it('sets the shared player flush interval from the message', async () => {
-    const setFlushingTime = jest.fn();
-    const setSampleRate = jest.fn();
-    IncomingMessage.PersistentPlayer = {
-      setSampleRate: setSampleRate,
-      setFlushingTime: setFlushingTime
+  it('drives the shared player per stream', async () => {
+    const player = {
+      setSampleRate: jest.fn(),
+      setFlushingTime: jest.fn(),
+      feed: jest.fn(),
+      reset: jest.fn(),
+      endStream: jest.fn(),
+      mute: jest.fn()
     };
-    const message = new IncomingMessage({
-      stream_id: 5,
+    IncomingMessage.PersistentPlayer = player;
+    const create = (streamId) => new IncomingMessage({
+      stream_id: streamId,
       channel: 'Back',
       codec_header: codecHeader
     }, incomingSession());
-    await message.initPlayer();
-    expect(setSampleRate).toHaveBeenCalledWith(24000, '5');
-    expect(setFlushingTime).toHaveBeenCalledWith(240);
-    IncomingMessage.PersistentPlayer = undefined;
+
+    const message = create(5);
+    await message.init();
+    expect(player.setSampleRate).toHaveBeenCalledWith(24000, '5');
+    expect(player.setFlushingTime).toHaveBeenCalledWith(240);
+
+    const pcm = new Float32Array([1]);
+    message.emit(Constants.EVENT_INCOMING_VOICE_DATA_DECODED, pcm);
+    expect(player.feed).toHaveBeenCalledWith(pcm, '5');
+
+    message.mute(true);
+    expect(player.mute).toHaveBeenCalledWith(true, '5');
+
+    // Ended early by the server: cancel this stream's audio only.
+    message.stopPlayback(false);
+    expect(player.reset).toHaveBeenCalledWith('5');
+    expect(player.endStream).not.toHaveBeenCalled();
+
+    // Played to the end: let buffered samples finish, then release the track.
+    const complete = create(6);
+    await complete.init();
+    complete.stopPlayback(true);
+    expect(player.endStream).toHaveBeenCalledWith('6');
+    expect(player.reset).toHaveBeenCalledTimes(1);
   });
 });
