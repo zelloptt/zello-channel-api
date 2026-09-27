@@ -96,16 +96,18 @@ class IncomingMessage extends Emitter {
       this.decoder.destroy();
       this.decoder = undefined;
     }
-    if (this.player && Utils.isFunction(this.player.destroy) && !IncomingMessage.PersistentPlayer) {
-      this.options.log?.(`Destroying player`);
-      this.player.mute(true);
-      this.player.destroy();
-      this.player = undefined;
-    } else if (!isComplete && this.player && Utils.isFunction(this.player.reset)) {
-      this.options.log?.(`Resetting player`);
-      this.player.reset(this.instanceId);
-    } else if (this.player && Utils.isFunction(this.player.endStream)) {
-      this.player.endStream(this.instanceId);
+    if (this.player) {
+      if (Utils.isFunction(this.player.destroy) && !IncomingMessage.PersistentPlayer) {
+        this.options.log?.(`Destroying player`);
+        this.player.mute(true);
+        this.player.destroy();
+        this.player = undefined;
+      } else if (!isComplete && Utils.isFunction(this.player.reset)) {
+        this.options.log?.(`Resetting player`);
+        this.player.reset(this.instanceId);
+      } else if (Utils.isFunction(this.player.endStream)) {
+        this.player.endStream(this.instanceId);
+      }
     }
     this.session.off([Constants.EVENT_INCOMING_VOICE_DATA, this.instanceId], this.incomingVoiceHandler);
     this.session.off([Constants.EVENT_INCOMING_VOICE_DID_STOP, this.instanceId], this.incomingVoiceDidStopHandler);
@@ -119,13 +121,7 @@ class IncomingMessage extends Emitter {
       }
     };
 
-    this.incomingVoiceDidStopHandler = (stoppedMessage) => {
-      // The session broadcasts every stop to every active message. Only this
-      // message's own stop may end its playback; another stream ending on a
-      // second channel must not.
-      if (stoppedMessage !== this) {
-        return;
-      }
+    this.incomingVoiceDidStopHandler = () => {
       const elapsed = Date.now() - this.messageStartTime;
       const packetDuration = this.codecDetails.framesPerPacket * this.codecDetails.frameSize;
       const playbackDuration = this.packetCount * packetDuration;
@@ -141,12 +137,6 @@ class IncomingMessage extends Emitter {
     };
 
     this.incomingVoiceHandler = (parsedAudioPacket) => {
-      // The session broadcasts every packet to every active message. Keep only
-      // this stream's packets so streams overlapping across channels do not
-      // feed each other's decoder.
-      if (parsedAudioPacket.messageId !== this.streamId) {
-        return;
-      }
       if (!this.messageDidStart) {
         this.messageDidStart = true;
         this.messageStartTime = Date.now();

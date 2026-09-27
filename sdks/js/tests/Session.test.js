@@ -3,6 +3,11 @@ const OutgoingMessage = require('../src/classes/outgoingMessage');
 const OutgoingImage = require('../src/classes/outgoingImage');
 const IncomingMessage = require('../src/classes/incomingMessage');
 const Constants = require('../src/classes/constants');
+const Utils = require('../src/classes/utils');
+
+// A binary frame as the server sends it: 9-byte header plus one payload byte.
+const binaryFrame = (type, messageId, packetId, byte) =>
+  Utils.buildBinaryPacket(type, messageId, packetId, new Uint8Array([byte])).buffer;
 
 const codecHeader = 'gD4BPA==';
 
@@ -353,15 +358,8 @@ describe('Incoming image identity', () => {
     const thumbnailType = Constants.IMAGE_TYPE_THUMBNAIL !== undefined
       ? Constants.IMAGE_TYPE_THUMBNAIL
       : Constants.IMAGE_TYPE_FULL + 1;
-    const packet = (messageId, packetId, byte) => {
-      const buffer = new ArrayBuffer(10);
-      const view = new DataView(buffer);
-      view.setUint8(0, Constants.MESSAGE_TYPE_IMAGE);
-      view.setUint32(1, messageId, false);
-      view.setUint32(5, packetId, false);
-      new Uint8Array(buffer, 9)[0] = byte;
-      session.wsBinaryDataHandler(buffer);
-    };
+    const packet = (messageId, packetId, byte) =>
+      session.wsBinaryDataHandler(binaryFrame(Constants.MESSAGE_TYPE_IMAGE, messageId, packetId, byte));
 
     session.jsonDataHandler({ command: 'on_image', channel: 'Front', message_id: 1, from: 'a', type: 'jpeg' });
     session.jsonDataHandler({ command: 'on_image', channel: 'Back', message_id: 2, from: 'b', type: 'jpeg' });
@@ -441,15 +439,8 @@ describe('Incoming channel identity', () => {
       stream_id: streamId,
       channel: channel
     });
-    const packet = (streamId, byte) => {
-      const buffer = new ArrayBuffer(10);
-      const view = new DataView(buffer);
-      view.setUint8(0, Constants.MESSAGE_TYPE_AUDIO);
-      view.setUint32(1, streamId, false);
-      view.setUint32(5, 1, false);
-      new Uint8Array(buffer, 9)[0] = byte;
-      session.wsBinaryDataHandler(buffer);
-    };
+    const packet = (streamId, byte) =>
+      session.wsBinaryDataHandler(binaryFrame(Constants.MESSAGE_TYPE_AUDIO, streamId, 1, byte));
 
     streamStart(1, 'Front');
     streamStart(2, 'Back');

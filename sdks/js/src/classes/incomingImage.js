@@ -21,14 +21,6 @@ class IncomingImage extends Emitter {
 
   initSessionHandlers() {
     this.incomingImageHandler = (data) => {
-      // The session broadcasts every image packet to every pending image.
-      // Keep only this message's packets so two images pending on different
-      // channels do not consume each other's thumbnail and full image. The
-      // header id is a number and message_id comes from JSON, so compare as
-      // numbers.
-      if (Number(data.messageId) !== Number(this.instanceId)) {
-        return;
-      }
       this.numberOfFetches++;
       let eventName =
         data.packetId === Constants.IMAGE_TYPE_FULL ? Constants.EVENT_IMAGE_DATA : Constants.EVENT_THUMBNAIL_DATA;

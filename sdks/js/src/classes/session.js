@@ -445,10 +445,10 @@ session.connect(function(err, result) {
          * @property {Number} messageId incoming message id
          * @property {Number} packetId incoming packet id
          */
-        this.emit(Constants.EVENT_INCOMING_VOICE_DATA, parsedData);
+        this.emitTo(Constants.EVENT_INCOMING_VOICE_DATA, parsedData.messageId, parsedData);
         break;
       case Constants.MESSAGE_TYPE_IMAGE:
-        this.emit(Constants.EVENT_INCOMING_IMAGE_DATA, parsedData);
+        this.emitTo(Constants.EVENT_INCOMING_IMAGE_DATA, parsedData.messageId, parsedData);
         break;
 
     }
@@ -543,7 +543,7 @@ session.connect(function(err, result) {
          * @event Session#incoming_voice_did_stop
          * @param {ZCC.IncomingMessage} incomingMessage incoming message instance
          */
-        this.emit(Constants.EVENT_INCOMING_VOICE_DID_STOP, this.incomingMessages[jsonData.stream_id]);
+        this.emitTo(Constants.EVENT_INCOMING_VOICE_DID_STOP, jsonData.stream_id, this.incomingMessages[jsonData.stream_id]);
         break;
       case 'on_text_message':
         /**

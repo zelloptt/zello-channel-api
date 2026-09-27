@@ -129,6 +129,12 @@ class PCMPlayer {
 
   private resumeOnGesture: (() => void) | null = null;
 
+  /**
+   * The resume() the flush timer has in flight. A refused resume() can stay
+   * pending in Chrome, so the timer must not stack one per tick.
+   */
+  private pendingResume: Promise<void> | null = null;
+
   constructor(options?: PCMPlayerOptions, onEndedCallback?: OnEndedCallback) {
     this.options = { ...DEFAULT_OPTIONS, ...options };
     if (!this.isValidGain(this.options.gain)) {
@@ -162,6 +168,8 @@ class PCMPlayer {
 
     const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
     this.audioCtx = new AudioCtx();
+    // Armed before any await so a tap during the touch unlock also counts.
+    this.installResumeOnGesture();
 
     if (this.options.autoResume) {
       await this.audioCtx.resume();
@@ -188,7 +196,6 @@ class PCMPlayer {
     this.startTimestampMs = Date.now();
     this.flushTimeSyncMs = this.options.flushingTime;
     this.scheduleFlush(this.flushTimeSyncMs);
-    this.installResumeOnGesture();
   }
 
   /**
@@ -253,15 +260,10 @@ class PCMPlayer {
    * @param streamId Stream to change. Omit for single-stream use.
    */
   public setSampleRate(sampleRate: number, streamId?: string) {
-    if (streamId !== undefined) {
-      this.track(streamId).sampleRate = sampleRate;
-      return;
+    if (streamId === undefined) {
+      this.options.sampleRate = sampleRate;
     }
-    this.options.sampleRate = sampleRate;
-    const track = this.tracks.get(DEFAULT_STREAM);
-    if (track) {
-      track.sampleRate = sampleRate;
-    }
+    this.track(streamId ?? DEFAULT_STREAM).sampleRate = sampleRate;
   }
 
   /**
@@ -353,7 +355,7 @@ class PCMPlayer {
    */
   public endStream(streamId: string) {
     const track = this.tracks.get(streamId);
-    if (!track || streamId === DEFAULT_STREAM) {
+    if (!track) {
       return;
     }
     track.ending = true;
@@ -380,19 +382,19 @@ class PCMPlayer {
       this.resetTrack(streamId);
       return;
     }
-    for (const id of Array.from(this.tracks.keys())) {
+    // Deleting the current entry while iterating a Map is well defined.
+    for (const id of this.tracks.keys()) {
       this.resetTrack(id);
     }
   }
 
+  /** Stops a track's scheduled audio, drops its samples, and forgets it. */
   private resetTrack(streamId: string) {
     const track = this.tracks.get(streamId);
     if (!track) {
       return;
     }
-    track.chunks = [];
-    track.totalSamples = 0;
-    track.feedCounter = 0;
+    this.clearTrackBuffers(track);
     for (const source of track.sources) {
       source.onended = null;
       try {
@@ -405,14 +407,16 @@ class PCMPlayer {
       source.disconnect();
     }
     track.sources.clear();
-    if (this.audioCtx) {
-      track.startTime = this.audioCtx.currentTime;
-    }
-    if (streamId !== DEFAULT_STREAM) {
-      this.tracks.delete(streamId);
-    }
+    this.tracks.delete(streamId);
   }
 
+  private clearTrackBuffers(track: Track) {
+    track.chunks = [];
+    track.totalSamples = 0;
+    track.feedCounter = 0;
+  }
+
+  /** The track for a stream, created on first use. */
   private track(streamId: string): Track {
     let track = this.tracks.get(streamId);
     if (!track) {
@@ -432,12 +436,7 @@ class PCMPlayer {
   }
 
   private releaseIfDrained(streamId: string, track: Track) {
-    if (
-      track.ending &&
-      track.totalSamples === 0 &&
-      track.sources.size === 0 &&
-      streamId !== DEFAULT_STREAM
-    ) {
+    if (track.ending && track.totalSamples === 0 && track.sources.size === 0) {
       this.tracks.delete(streamId);
     }
   }
@@ -454,7 +453,6 @@ class PCMPlayer {
     this.destroyed = true;
 
     this.reset();
-    this.tracks.clear();
 
     if (this.touchUnlockAbort) {
       this.touchUnlockAbort.abort();
@@ -514,12 +512,21 @@ class PCMPlayer {
     // after the message arrived. Hold the samples, keep asking, and keep the
     // gesture listeners armed so the next tap can unlock the context.
     if (this.audioCtx.state === 'suspended') {
-      this.audioCtx.resume().then(() => this.onContextResumed());
-      this.installResumeOnGesture();
+      if (!this.pendingResume) {
+        this.pendingResume = this.audioCtx.resume().then(
+          () => {
+            this.pendingResume = null;
+            this.onContextResumed();
+          },
+          () => {
+            this.pendingResume = null;
+          }
+        );
+      }
       return;
     }
 
-    for (const [streamId, track] of Array.from(this.tracks.entries())) {
+    for (const [streamId, track] of this.tracks) {
       if (track.totalSamples === 0) {
         this.releaseIfDrained(streamId, track);
         continue;
@@ -539,10 +546,7 @@ class PCMPlayer {
     }
     const samples = this.concatenateChunks(track);
     const capturedFeedCount = track.feedCounter;
-
-    track.chunks = [];
-    track.totalSamples = 0;
-    track.feedCounter = 0;
+    this.clearTrackBuffers(track);
 
     const { channels } = this.options;
     const length = (samples.length / channels) | 0;
@@ -697,15 +701,14 @@ class PCMPlayer {
   }
 
   /**
-   * Plays samples held while the context was suspended and disarms the
-   * gesture listeners. Runs after any resume() the browser accepted, whether
-   * it came from a gesture listener, a flush retry, or {@link resume}.
+   * Plays samples held while the context was suspended. Runs after any
+   * resume() the browser accepted, whether it came from a gesture listener,
+   * a flush retry, or {@link resume}.
    */
   private onContextResumed(): void {
     if (this.destroyed || !this.audioCtx || this.audioCtx.state === 'suspended') {
       return;
     }
-    this.removeResumeOnGesture();
     if (!this.gainNode) {
       // init() has not finished; its first flush plays whatever was fed.
       return;
@@ -715,11 +718,12 @@ class PCMPlayer {
   }
 
   /**
-   * Arms capture-phase gesture listeners on the document that try to resume
-   * a suspended context. They stay armed until the context actually runs:
-   * the browser may refuse the attempt from a touch `pointerdown` and accept
-   * the one from the `pointerup` or `click` of the same tap. Capture phase
-   * so an app handler that stops propagation cannot hide the gesture.
+   * Arms capture-phase gesture listeners on the document that resume a
+   * suspended context. They stay armed for the player's lifetime: the browser
+   * may refuse the attempt from a touch `pointerdown` and accept the one from
+   * the `pointerup` or `click` of the same tap, and a context the browser
+   * suspends later needs the next gesture too. Capture phase so an app
+   * handler that stops propagation cannot hide the gesture.
    */
   private installResumeOnGesture(): void {
     if (!this.audioCtx || this.resumeOnGesture || typeof document === 'undefined') {
@@ -731,10 +735,12 @@ class PCMPlayer {
         return;
       }
       if (this.audioCtx.state !== 'suspended') {
-        this.onContextResumed();
         return;
       }
-      this.audioCtx.resume().then(() => this.onContextResumed());
+      this.audioCtx.resume().then(
+        () => this.onContextResumed(),
+        () => undefined
+      );
     };
     this.resumeOnGesture = resume;
     for (const type of RESUME_GESTURE_EVENTS) {
@@ -830,6 +836,7 @@ class PCMPlayer {
 namespace PCMPlayer {
   export type Options = PCMPlayerOptions;
   export type OnEndedCb = OnEndedCallback;
+  export const resumeGestureEvents = RESUME_GESTURE_EVENTS;
 }
 
 export = PCMPlayer;

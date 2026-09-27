@@ -804,7 +804,7 @@ describe('PCMPlayer', () => {
   // =========================================================================
 
   describe('resume on gesture', () => {
-    const GESTURES = ['pointerdown', 'pointerup', 'click', 'touchend', 'keydown'];
+    const GESTURES = PCMPlayer.resumeGestureEvents;
 
     async function createSuspendedPlayer() {
       const player = await createInitializedPlayer({
@@ -854,7 +854,7 @@ describe('PCMPlayer', () => {
       player.destroy();
     });
 
-    test('plays held samples and disarms once a gesture resumes the context', async () => {
+    test('plays held samples once a gesture resumes the context', async () => {
       const { player, ctx } = await createSuspendedPlayer();
       player.feed(createFloat32Samples(800));
       jest.advanceTimersByTime(100);
@@ -865,27 +865,38 @@ describe('PCMPlayer', () => {
       await settleMicrotasks();
 
       expect(ctx.createBuffer).toHaveBeenCalledWith(1, 800, 8000);
-      expect(player['resumeOnGesture']).toBeNull();
       player.destroy();
     });
 
-    test('re-arms when a flush finds the context suspended again', async () => {
-      const player = await createInitializedPlayer({
-        encoding: '32bitFloat',
-        flushingTime: 100,
-        sampleRate: 8000,
-        channels: 1
-      });
-      const ctx = player['audioCtx'] as unknown as MockAudioContext;
-
+    test('stays armed for the player lifetime so a later suspension is covered', async () => {
+      const { player, ctx } = await createSuspendedPlayer();
+      acceptResume(ctx);
       document.dispatchEvent(new Event('pointerdown'));
-      expect(player['resumeOnGesture']).toBeNull();
+      await settleMicrotasks();
+      expect(ctx.state).toBe('running');
+      expect(player['resumeOnGesture']).not.toBeNull();
 
       ctx.state = 'suspended';
       player.feed(createFloat32Samples(800));
       jest.runOnlyPendingTimers();
+      expect(defaultTrack(player).totalSamples).toBe(800);
 
-      expect(player['resumeOnGesture']).not.toBeNull();
+      document.dispatchEvent(new Event('click'));
+      await settleMicrotasks();
+      expect(ctx.state).toBe('running');
+      player.destroy();
+    });
+
+    test('the flush timer keeps one resume in flight while the browser refuses', async () => {
+      const { player, ctx } = await createSuspendedPlayer();
+      ctx.resume = jest.fn().mockReturnValue(new Promise(() => undefined));
+      player.feed(createFloat32Samples(800));
+
+      jest.runOnlyPendingTimers();
+      jest.runOnlyPendingTimers();
+      jest.runOnlyPendingTimers();
+
+      expect(ctx.resume).toHaveBeenCalledTimes(1);
       expect(defaultTrack(player).totalSamples).toBe(800);
       player.destroy();
     });
@@ -900,7 +911,6 @@ describe('PCMPlayer', () => {
       await player.resume();
 
       expect(ctx.createBuffer).toHaveBeenCalledWith(1, 800, 8000);
-      expect(player['resumeOnGesture']).toBeNull();
       player.destroy();
     });
 
