@@ -106,7 +106,13 @@ class IncomingMessage extends Emitter {
       }
     };
 
-    this.incomingVoiceDidStopHandler = () => {
+    this.incomingVoiceDidStopHandler = (stoppedMessage) => {
+      // The session broadcasts every stop to every active message. Only this
+      // message's own stop may end its playback; another stream ending on a
+      // second channel must not.
+      if (stoppedMessage !== this) {
+        return;
+      }
       const elapsed = Date.now() - this.messageStartTime;
       const packetDuration = this.codecDetails.framesPerPacket * this.codecDetails.frameSize;
       const playbackDuration = this.packetCount * packetDuration;
@@ -122,6 +128,12 @@ class IncomingMessage extends Emitter {
     };
 
     this.incomingVoiceHandler = (parsedAudioPacket) => {
+      // The session broadcasts every packet to every active message. Keep only
+      // this stream's packets so streams overlapping across channels do not
+      // feed each other's decoder.
+      if (parsedAudioPacket.messageId !== this.streamId) {
+        return;
+      }
       if (!this.messageDidStart) {
         this.messageDidStart = true;
         this.messageStartTime = Date.now();

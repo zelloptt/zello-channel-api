@@ -365,6 +365,70 @@ describe('Incoming channel identity', () => {
     expect(received.decoder).toBeUndefined();
   });
 
+  it('keeps two overlapping streams apart', async () => {
+    const decoders = {};
+    function Decoder(options) {
+      this.packets = [];
+      this.destroyed = false;
+      decoders[options.messageData.stream_id] = this;
+    }
+    Decoder.prototype.decode = function (bytes) {
+      this.packets.push(bytes[0]);
+    };
+    Decoder.prototype.destroy = function () {
+      this.destroyed = true;
+    };
+    window.ZCC = {
+      Sdk: { initOptions: { decoder: Decoder } },
+      IncomingMessage: IncomingMessage
+    };
+    IncomingMessage.PersistentPlayer = undefined;
+    const session = new Session(Object.assign({ channels: ['Front', 'Back'] }, credentials));
+    const packetsSeenBySession = [];
+    session.on(Constants.EVENT_INCOMING_VOICE_DATA, (packet) => {
+      packetsSeenBySession.push(packet.messageId);
+    });
+    const streamStart = (streamId, channel) => session.jsonDataHandler({
+      command: 'on_stream_start',
+      type: 'audio',
+      codec: 'opus',
+      codec_header: codecHeader,
+      packet_duration: 20,
+      stream_id: streamId,
+      channel: channel
+    });
+    const packet = (streamId, byte) => {
+      const buffer = new ArrayBuffer(10);
+      const view = new DataView(buffer);
+      view.setUint8(0, Constants.MESSAGE_TYPE_AUDIO);
+      view.setUint32(1, streamId, false);
+      view.setUint32(5, 1, false);
+      new Uint8Array(buffer, 9)[0] = byte;
+      session.wsBinaryDataHandler(buffer);
+    };
+
+    streamStart(1, 'Front');
+    streamStart(2, 'Back');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    packet(1, 11);
+    packet(2, 22);
+    expect(decoders[1].packets).toEqual([11]);
+    expect(decoders[2].packets).toEqual([22]);
+    expect(session.incomingMessages[1].packetCount).toBe(1);
+    expect(session.incomingMessages[2].packetCount).toBe(1);
+    // App-level listeners still see every packet.
+    expect(packetsSeenBySession).toEqual([1, 2]);
+
+    session.jsonDataHandler({ command: 'on_stream_stop', stream_id: 1 });
+    expect(decoders[1].destroyed).toBe(true);
+    expect(decoders[2].destroyed).toBe(false);
+    expect(session.incomingMessages[2].isPlaybackComplete).toBe(false);
+
+    packet(2, 23);
+    expect(decoders[2].packets).toEqual([22, 23]);
+  });
+
   it('sets the shared player flush interval from the message', async () => {
     const setFlushingTime = jest.fn();
     const setSampleRate = jest.fn();
