@@ -9,7 +9,7 @@ interface PCMPlayerOptions {
   autoResume?: boolean;
 }
 
-type OnEndedCallback = (feedCounter: number) => void;
+type OnEndedCallback = (feedCounter: number, streamId: string) => void;
 
 const ENCODING_MAX_VALUES: Record<string, number> = {
   '8bitInt': 128,
@@ -39,6 +39,28 @@ const DEFAULT_ENCODING = '16bitInt';
  * so the listeners stay armed until one of them actually starts the context.
  */
 const RESUME_GESTURE_EVENTS = ['pointerdown', 'pointerup', 'click', 'touchend', 'keydown'] as const;
+
+/** Track used by callers that never pass a stream id. */
+const DEFAULT_STREAM = '';
+
+/**
+ * Playback state of one incoming stream. Every track schedules its buffers
+ * on the shared GainNode, so streams that overlap in time are mixed by Web
+ * Audio instead of being appended to one timeline.
+ */
+interface Track {
+  chunks: Float32Array[];
+  totalSamples: number;
+  feedCounter: number;
+  /** Where this track's next buffer starts on the context timeline. */
+  startTime: number;
+  sampleRate: number;
+  muted: boolean;
+  /** Set by {@link PCMPlayer.endStream}: release the track once it has drained. */
+  ending: boolean;
+  /** Scheduled sources that have not fired `onended` yet, so reset can stop them. */
+  sources: Set<AudioBufferSourceNode>;
+}
 
 const DEFAULT_OPTIONS: Required<PCMPlayerOptions> = {
   encoding: DEFAULT_ENCODING,
@@ -78,30 +100,24 @@ class PCMPlayer {
   private readonly maxValue: number;
   private readonly typedArrayCtor: SupportedTypedArrayConstructor;
 
-  private chunks: Float32Array[] = [];
-  private totalSamples = 0;
-  private feedCounter = 0;
+  /**
+   * One track per incoming stream, keyed by stream id. Callers that never
+   * pass a stream id share the default track, which keeps the single-stream
+   * behaviour of earlier versions.
+   */
+  private tracks: Map<string, Track> = new Map();
 
   private audioCtx: AudioContext | null = null;
   private gainNode: GainNode | null = null;
   private audioEl: HTMLAudioElement | null = null;
   private mediaStreamDest: MediaStreamAudioDestinationNode | null = null;
 
-  private startTime = 0;
   private flushTimer: ReturnType<typeof setTimeout> | null = null;
   private startTimestampMs = 0;
   private flushTimeSyncMs = 0;
 
   private muted = false;
   private destroyed = false;
-
-  /**
-   * BufferSourceNodes that have been scheduled on the audio timeline and
-   * have not yet fired their `onended` event. Tracked so {@link reset} can
-   * stop them immediately, cancelling audio that is either actively
-   * playing or scheduled to play in the future.
-   */
-  private activeSources: Set<AudioBufferSourceNode> = new Set();
 
   /**
    * AbortController used to cancel an in-flight {@link webAudioTouchUnlock}
@@ -166,7 +182,9 @@ class PCMPlayer {
       this.gainNode.connect(this.audioCtx.destination);
     }
 
-    this.startTime = this.audioCtx.currentTime;
+    for (const track of this.tracks.values()) {
+      track.startTime = this.audioCtx.currentTime;
+    }
     this.startTimestampMs = Date.now();
     this.flushTimeSyncMs = this.options.flushingTime;
     this.scheduleFlush(this.flushTimeSyncMs);
@@ -175,21 +193,28 @@ class PCMPlayer {
 
   /**
    * Buffers PCM sample data for playback. Data is accumulated in chunks and
-   * flushed to the audio output on the next flush cycle.
+   * flushed to the audio output on the next flush cycle. Each stream id has
+   * its own buffer and timeline, so two streams fed at the same time play
+   * mixed rather than one after the other.
    * @param data Raw PCM samples as a typed array.
+   * @param streamId Stream the samples belong to. Omit for single-stream use.
    */
-  public feed(data: Float32Array | ArrayBufferView) {
+  public feed(data: Float32Array | ArrayBufferView, streamId: string = DEFAULT_STREAM) {
     if (this.muted || this.destroyed) {
       return;
     }
     if (!this.isTypedArray(data)) {
       return;
     }
+    const track = this.track(streamId);
+    if (track.muted) {
+      return;
+    }
 
     const formatted = this.formatSamples(data);
-    this.chunks.push(formatted);
-    this.totalSamples += formatted.length;
-    this.feedCounter++;
+    track.chunks.push(formatted);
+    track.totalSamples += formatted.length;
+    track.feedCounter++;
   }
 
   /**
@@ -220,11 +245,23 @@ class PCMPlayer {
   }
 
   /**
-   * Updates the sample rate used for subsequent flush cycles.
+   * Updates the sample rate used for subsequent flush cycles. With a stream
+   * id only that stream's track changes, so a second stream at another rate
+   * does not retime samples the first stream already buffered. Without one,
+   * the default track and the rate given to new tracks change.
    * @param sampleRate The new sample rate in Hz.
+   * @param streamId Stream to change. Omit for single-stream use.
    */
-  public setSampleRate(sampleRate: number) {
+  public setSampleRate(sampleRate: number, streamId?: string) {
+    if (streamId !== undefined) {
+      this.track(streamId).sampleRate = sampleRate;
+      return;
+    }
     this.options.sampleRate = sampleRate;
+    const track = this.tracks.get(DEFAULT_STREAM);
+    if (track) {
+      track.sampleRate = sampleRate;
+    }
   }
 
   /**
@@ -295,10 +332,32 @@ class PCMPlayer {
 
   /**
    * Mutes or unmutes the player. When muted, calls to feed() are ignored.
-   * @param isMuted Whether the player should be muted.
+   * With a stream id only that stream is affected, which lets an app keep
+   * one stream audible while dropping another that plays at the same time.
+   * @param isMuted Whether to mute.
+   * @param streamId Stream to mute. Omit to mute every stream.
    */
-  public mute(isMuted: boolean) {
-    this.muted = isMuted;
+  public mute(isMuted: boolean, streamId?: string) {
+    if (streamId === undefined) {
+      this.muted = isMuted;
+      return;
+    }
+    this.track(streamId).muted = isMuted;
+  }
+
+  /**
+   * Marks a stream as finished. Samples it already buffered still play; the
+   * track is released once they have. Streams that stop early should call
+   * {@link reset} with their id instead.
+   * @param streamId Stream that has ended.
+   */
+  public endStream(streamId: string) {
+    const track = this.tracks.get(streamId);
+    if (!track || streamId === DEFAULT_STREAM) {
+      return;
+    }
+    track.ending = true;
+    this.releaseIfDrained(streamId, track);
   }
 
   /**
@@ -314,10 +373,27 @@ class PCMPlayer {
    * This makes `reset()` a true "cancel playback and start fresh"
    * operation for consumers that reuse a single player across multiple
    * logical owners.
+   * @param streamId Stream to cancel. Omit to cancel every stream.
    */
-  public reset() {
-    this.clearBuffers();
-    for (const source of this.activeSources) {
+  public reset(streamId?: string) {
+    if (streamId !== undefined) {
+      this.resetTrack(streamId);
+      return;
+    }
+    for (const id of Array.from(this.tracks.keys())) {
+      this.resetTrack(id);
+    }
+  }
+
+  private resetTrack(streamId: string) {
+    const track = this.tracks.get(streamId);
+    if (!track) {
+      return;
+    }
+    track.chunks = [];
+    track.totalSamples = 0;
+    track.feedCounter = 0;
+    for (const source of track.sources) {
       source.onended = null;
       try {
         source.stop();
@@ -328,22 +404,42 @@ class PCMPlayer {
       }
       source.disconnect();
     }
-    this.activeSources.clear();
+    track.sources.clear();
     if (this.audioCtx) {
-      this.startTime = this.audioCtx.currentTime;
+      track.startTime = this.audioCtx.currentTime;
+    }
+    if (streamId !== DEFAULT_STREAM) {
+      this.tracks.delete(streamId);
     }
   }
 
-  /**
-   * Clears pending input buffers without touching scheduled playback.
-   * Used internally by {@link flush} to drain chunks after they have
-   * been concatenated into an AudioBuffer. Public {@link reset} builds
-   * on this to also cancel scheduled audio.
-   */
-  private clearBuffers() {
-    this.chunks = [];
-    this.totalSamples = 0;
-    this.feedCounter = 0;
+  private track(streamId: string): Track {
+    let track = this.tracks.get(streamId);
+    if (!track) {
+      track = {
+        chunks: [],
+        totalSamples: 0,
+        feedCounter: 0,
+        startTime: this.audioCtx ? this.audioCtx.currentTime : 0,
+        sampleRate: this.options.sampleRate,
+        muted: false,
+        ending: false,
+        sources: new Set()
+      };
+      this.tracks.set(streamId, track);
+    }
+    return track;
+  }
+
+  private releaseIfDrained(streamId: string, track: Track) {
+    if (
+      track.ending &&
+      track.totalSamples === 0 &&
+      track.sources.size === 0 &&
+      streamId !== DEFAULT_STREAM
+    ) {
+      this.tracks.delete(streamId);
+    }
   }
 
   /**
@@ -358,6 +454,7 @@ class PCMPlayer {
     this.destroyed = true;
 
     this.reset();
+    this.tracks.clear();
 
     if (this.touchUnlockAbort) {
       this.touchUnlockAbort.abort();
@@ -394,9 +491,10 @@ class PCMPlayer {
   }
 
   /**
-   * Concatenates buffered chunks, creates an AudioBuffer with fade-in/fade-out,
-   * and schedules it for playback. Automatically reschedules itself with drift
-   * correction relative to wall-clock time.
+   * For every track, concatenates buffered chunks, creates an AudioBuffer
+   * with fade-in/fade-out, and schedules it on that track's timeline.
+   * Automatically reschedules itself with drift correction relative to
+   * wall-clock time.
    */
   private flush() {
     if (this.destroyed || !this.audioCtx || !this.gainNode) {
@@ -421,21 +519,37 @@ class PCMPlayer {
       return;
     }
 
-    if (this.totalSamples === 0) {
+    for (const [streamId, track] of Array.from(this.tracks.entries())) {
+      if (track.totalSamples === 0) {
+        this.releaseIfDrained(streamId, track);
+        continue;
+      }
+      this.scheduleTrack(streamId, track);
+    }
+  }
+
+  /**
+   * Schedules one track's buffered samples as the next buffer on its own
+   * timeline. Every track connects to the shared GainNode, so buffers from
+   * different tracks that overlap in time are summed by Web Audio.
+   */
+  private scheduleTrack(streamId: string, track: Track) {
+    if (!this.audioCtx || !this.gainNode) {
       return;
     }
+    const samples = this.concatenateChunks(track);
+    const capturedFeedCount = track.feedCounter;
 
-    const samples = this.concatenateChunks();
-    const capturedFeedCount = this.feedCounter;
+    track.chunks = [];
+    track.totalSamples = 0;
+    track.feedCounter = 0;
 
-    this.clearBuffers();
-
-    const { channels, sampleRate } = this.options;
+    const { channels } = this.options;
     const length = (samples.length / channels) | 0;
     const audioBuffer = this.audioCtx.createBuffer(
       channels,
       length,
-      sampleRate
+      track.sampleRate
     );
 
     for (let ch = 0; ch < channels; ch++) {
@@ -443,42 +557,43 @@ class PCMPlayer {
       this.fillChannelData(channelData, samples, ch, channels, length);
     }
 
-    if (this.startTime < this.audioCtx.currentTime) {
-      this.startTime = this.audioCtx.currentTime;
+    if (track.startTime < this.audioCtx.currentTime) {
+      track.startTime = this.audioCtx.currentTime;
     }
 
     const source = this.audioCtx.createBufferSource();
     source.buffer = audioBuffer;
     source.connect(this.gainNode);
-    source.start(this.startTime);
+    source.start(track.startTime);
 
-    this.activeSources.add(source);
+    track.sources.add(source);
 
     const callback = this.onEndedCallback;
     source.onended = () => {
-      this.activeSources.delete(source);
+      track.sources.delete(source);
       source.disconnect();
       if (callback) {
-        callback(capturedFeedCount);
+        callback(capturedFeedCount, streamId);
       }
+      this.releaseIfDrained(streamId, track);
     };
 
-    this.startTime += audioBuffer.duration;
+    track.startTime += audioBuffer.duration;
   }
 
   /**
-   * Merges all buffered chunks into a single Float32Array.
+   * Merges a track's buffered chunks into a single Float32Array.
    * When only one chunk is present, returns it directly (zero-copy).
    */
-  private concatenateChunks(): Float32Array {
-    if (this.chunks.length === 1) {
-      return this.chunks[0];
+  private concatenateChunks(track: Track): Float32Array {
+    if (track.chunks.length === 1) {
+      return track.chunks[0];
     }
-    const result = new Float32Array(this.totalSamples);
+    const result = new Float32Array(track.totalSamples);
     let offset = 0;
-    for (let i = 0; i < this.chunks.length; i++) {
-      result.set(this.chunks[i], offset);
-      offset += this.chunks[i].length;
+    for (let i = 0; i < track.chunks.length; i++) {
+      result.set(track.chunks[i], offset);
+      offset += track.chunks[i].length;
     }
     return result;
   }

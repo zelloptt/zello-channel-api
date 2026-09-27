@@ -121,6 +121,12 @@ async function createInitializedPlayer(
   return player;
 }
 
+// Playback state lives in one track per stream. Callers that pass no stream
+// id use the default track.
+function defaultTrack(player: InstanceType<typeof PCMPlayer>) {
+  return player['track']('');
+}
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -320,9 +326,9 @@ describe('PCMPlayer', () => {
       });
       const data = createFloat32Samples(100);
       player.feed(data);
-      expect(player['chunks'].length).toBe(1);
-      expect(player['totalSamples']).toBe(100);
-      expect(player['feedCounter']).toBe(1);
+      expect(defaultTrack(player).chunks.length).toBe(1);
+      expect(defaultTrack(player).totalSamples).toBe(100);
+      expect(defaultTrack(player).feedCounter).toBe(1);
       player.destroy();
     });
 
@@ -333,9 +339,9 @@ describe('PCMPlayer', () => {
       player.feed(createFloat32Samples(50));
       player.feed(createFloat32Samples(75));
       player.feed(createFloat32Samples(25));
-      expect(player['chunks'].length).toBe(3);
-      expect(player['totalSamples']).toBe(150);
-      expect(player['feedCounter']).toBe(3);
+      expect(defaultTrack(player).chunks.length).toBe(3);
+      expect(defaultTrack(player).totalSamples).toBe(150);
+      expect(defaultTrack(player).feedCounter).toBe(3);
       player.destroy();
     });
 
@@ -345,8 +351,8 @@ describe('PCMPlayer', () => {
       });
       player.mute(true);
       player.feed(createFloat32Samples(100));
-      expect(player['chunks'].length).toBe(0);
-      expect(player['feedCounter']).toBe(0);
+      expect(defaultTrack(player).chunks.length).toBe(0);
+      expect(defaultTrack(player).feedCounter).toBe(0);
       player.destroy();
     });
 
@@ -356,7 +362,7 @@ describe('PCMPlayer', () => {
       });
       player.destroy();
       player.feed(createFloat32Samples(100));
-      expect(player['chunks'].length).toBe(0);
+      expect(defaultTrack(player).chunks.length).toBe(0);
     });
 
     test('returns early for invalid (non-typed-array) data', async () => {
@@ -367,7 +373,7 @@ describe('PCMPlayer', () => {
       player.feed(undefined as any);
       player.feed({} as any);
       player.feed('string' as any);
-      expect(player['chunks'].length).toBe(0);
+      expect(defaultTrack(player).chunks.length).toBe(0);
       player.destroy();
     });
 
@@ -377,8 +383,8 @@ describe('PCMPlayer', () => {
       });
       const data = createInt16Samples(100, 16384);
       player.feed(data);
-      expect(player['chunks'].length).toBe(1);
-      const chunk = player['chunks'][0];
+      expect(defaultTrack(player).chunks.length).toBe(1);
+      const chunk = defaultTrack(player).chunks[0];
       // 16384 / 32768 = 0.5
       expect(chunk[0]).toBeCloseTo(0.5, 5);
       player.destroy();
@@ -391,7 +397,7 @@ describe('PCMPlayer', () => {
       const data = new Int8Array(10);
       data.fill(64);
       player.feed(data);
-      const chunk = player['chunks'][0];
+      const chunk = defaultTrack(player).chunks[0];
       // 64 / 128 = 0.5
       expect(chunk[0]).toBeCloseTo(0.5, 5);
       player.destroy();
@@ -403,7 +409,7 @@ describe('PCMPlayer', () => {
       });
       const data = createFloat32Samples(10, 0.75);
       player.feed(data);
-      const chunk = player['chunks'][0];
+      const chunk = defaultTrack(player).chunks[0];
       expect(chunk[0]).toBeCloseTo(0.75, 5);
       player.destroy();
     });
@@ -445,13 +451,13 @@ describe('PCMPlayer', () => {
         flushingTime: 100
       });
       player.feed(createFloat32Samples(100));
-      expect(player['totalSamples']).toBe(100);
+      expect(defaultTrack(player).totalSamples).toBe(100);
 
       jest.advanceTimersByTime(100);
 
-      expect(player['chunks'].length).toBe(0);
-      expect(player['totalSamples']).toBe(0);
-      expect(player['feedCounter']).toBe(0);
+      expect(defaultTrack(player).chunks.length).toBe(0);
+      expect(defaultTrack(player).totalSamples).toBe(0);
+      expect(defaultTrack(player).feedCounter).toBe(0);
       player.destroy();
     });
 
@@ -487,7 +493,7 @@ describe('PCMPlayer', () => {
 
       await new Promise((r) => setTimeout(r, 50));
 
-      expect(callback).toHaveBeenCalledWith(2);
+      expect(callback).toHaveBeenCalledWith(2, '');
       player.destroy();
     });
 
@@ -622,7 +628,7 @@ describe('PCMPlayer', () => {
       jest.advanceTimersByTime(100);
 
       expect(ctx.createBuffer).not.toHaveBeenCalled();
-      expect(player['totalSamples']).toBe(800);
+      expect(defaultTrack(player).totalSamples).toBe(800);
       player.destroy();
     });
 
@@ -633,12 +639,12 @@ describe('PCMPlayer', () => {
         sampleRate: 8000,
         channels: 1
       });
-      const initialStartTime = player['startTime'];
+      const initialStartTime = defaultTrack(player).startTime;
       player.feed(createFloat32Samples(8000));
 
       jest.advanceTimersByTime(100);
 
-      expect(player['startTime']).toBeCloseTo(initialStartTime + 1, 2);
+      expect(defaultTrack(player).startTime).toBeCloseTo(initialStartTime + 1, 2);
       player.destroy();
     });
 
@@ -652,12 +658,143 @@ describe('PCMPlayer', () => {
       const ctx = player['audioCtx'] as unknown as MockAudioContext;
 
       ctx.currentTime = 5;
-      player['startTime'] = 2;
+      defaultTrack(player).startTime = 2;
 
       player.feed(createFloat32Samples(100));
       jest.advanceTimersByTime(100);
 
-      expect(player['startTime']).toBeGreaterThanOrEqual(5);
+      expect(defaultTrack(player).startTime).toBeGreaterThanOrEqual(5);
+      player.destroy();
+    });
+  });
+
+  // =========================================================================
+  // Per-stream tracks
+  // =========================================================================
+
+  describe('per-stream tracks', () => {
+    async function twoStreamPlayer() {
+      const player = await createInitializedPlayer({
+        encoding: '32bitFloat',
+        flushingTime: 100,
+        sampleRate: 8000,
+        channels: 1
+      });
+      const ctx = player['audioCtx'] as unknown as MockAudioContext;
+      return { player, ctx };
+    }
+
+    test('mixes two streams fed at the same time instead of appending them', async () => {
+      const { player, ctx } = await twoStreamPlayer();
+      player.setSampleRate(8000, 'a');
+      player.setSampleRate(16000, 'b');
+      player.feed(createFloat32Samples(800, 0.25), 'a');
+      player.feed(createFloat32Samples(1600, 0.5), 'b');
+      player.feed(createFloat32Samples(800, 0.25), 'a');
+
+      jest.advanceTimersByTime(100);
+
+      // One buffer per stream, at that stream's own rate, both scheduled now.
+      expect(ctx.createBuffer).toHaveBeenCalledTimes(2);
+      expect(ctx.createBuffer).toHaveBeenCalledWith(1, 1600, 8000);
+      expect(ctx.createBuffer).toHaveBeenCalledWith(1, 1600, 16000);
+      const starts = ctx.createBufferSource.mock.results.map(
+        (r) => (r.value as MockAudioBufferSourceNode).start.mock.calls[0][0]
+      );
+      expect(starts).toEqual([0, 0]);
+      expect(player['tracks'].get('a')!.startTime).toBeCloseTo(0.2, 5);
+      expect(player['tracks'].get('b')!.startTime).toBeCloseTo(0.1, 5);
+      player.destroy();
+    });
+
+    test('a second stream setting its rate does not retime the first', async () => {
+      const { player, ctx } = await twoStreamPlayer();
+      player.setSampleRate(8000, 'a');
+      player.feed(createFloat32Samples(800), 'a');
+      player.setSampleRate(48000, 'b');
+
+      jest.advanceTimersByTime(100);
+
+      expect(ctx.createBuffer).toHaveBeenCalledWith(1, 800, 8000);
+      player.destroy();
+    });
+
+    test('mute with a stream id drops only that stream', async () => {
+      const { player, ctx } = await twoStreamPlayer();
+      player.mute(true, 'b');
+      player.feed(createFloat32Samples(800), 'a');
+      player.feed(createFloat32Samples(800), 'b');
+
+      jest.advanceTimersByTime(100);
+
+      expect(ctx.createBuffer).toHaveBeenCalledTimes(1);
+      expect(player['tracks'].get('b')!.totalSamples).toBe(0);
+
+      player.mute(false, 'b');
+      player.feed(createFloat32Samples(800), 'b');
+      jest.advanceTimersByTime(100);
+      expect(ctx.createBuffer).toHaveBeenCalledTimes(2);
+      player.destroy();
+    });
+
+    test('reset with a stream id stops only that stream', async () => {
+      const { player, ctx } = await twoStreamPlayer();
+      player.feed(createFloat32Samples(800), 'a');
+      player.feed(createFloat32Samples(800), 'b');
+      jest.advanceTimersByTime(100);
+      const [sourceA, sourceB] = ctx.createBufferSource.mock.results.map(
+        (r) => r.value as MockAudioBufferSourceNode
+      );
+
+      player.feed(createFloat32Samples(100), 'a');
+      player.reset('a');
+
+      expect(sourceA.stop).toHaveBeenCalled();
+      expect(sourceB.stop).not.toHaveBeenCalled();
+      expect(player['tracks'].has('a')).toBe(false);
+      expect(player['tracks'].get('b')!.sources.size).toBe(1);
+      player.destroy();
+    });
+
+    test('endStream releases the track once its samples have played', async () => {
+      const { player } = await twoStreamPlayer();
+      player.feed(createFloat32Samples(800), 'a');
+      player.endStream('a');
+      expect(player['tracks'].has('a')).toBe(true);
+
+      jest.advanceTimersByTime(100);
+      expect(player['tracks'].has('a')).toBe(true);
+
+      jest.runOnlyPendingTimers();
+      await Promise.resolve();
+      expect(player['tracks'].has('a')).toBe(false);
+      player.destroy();
+    });
+
+    test('feed without a stream id keeps using the default track', async () => {
+      const { player, ctx } = await twoStreamPlayer();
+      player.feed(createFloat32Samples(400));
+      player.feed(createFloat32Samples(400));
+      player.setSampleRate(24000);
+
+      jest.advanceTimersByTime(100);
+
+      expect(ctx.createBuffer).toHaveBeenCalledWith(1, 800, 24000);
+      expect(player['tracks'].size).toBe(1);
+      player.destroy();
+    });
+
+    test('reset without a stream id clears every stream', async () => {
+      const { player } = await twoStreamPlayer();
+      player.feed(createFloat32Samples(800), 'a');
+      player.feed(createFloat32Samples(800), 'b');
+      player.feed(createFloat32Samples(800));
+
+      player.reset();
+
+      expect(player['tracks'].has('a')).toBe(false);
+      expect(player['tracks'].has('b')).toBe(false);
+      expect(defaultTrack(player).totalSamples).toBe(0);
       player.destroy();
     });
   });
@@ -749,7 +886,7 @@ describe('PCMPlayer', () => {
       jest.runOnlyPendingTimers();
 
       expect(player['resumeOnGesture']).not.toBeNull();
-      expect(player['totalSamples']).toBe(800);
+      expect(defaultTrack(player).totalSamples).toBe(800);
       player.destroy();
     });
 
@@ -1016,7 +1153,7 @@ describe('PCMPlayer', () => {
 
       await new Promise((r) => setTimeout(r, 50));
 
-      expect(secondCallback).toHaveBeenCalledWith(2);
+      expect(secondCallback).toHaveBeenCalledWith(2, '');
       expect(firstCallback).not.toHaveBeenCalled();
       player.destroy();
     });
@@ -1037,7 +1174,7 @@ describe('PCMPlayer', () => {
 
       await new Promise((r) => setTimeout(r, 50));
 
-      expect(firstCallback).toHaveBeenCalledWith(1);
+      expect(firstCallback).toHaveBeenCalledWith(1, '');
       expect(secondCallback).not.toHaveBeenCalled();
       player.destroy();
     });
@@ -1158,11 +1295,11 @@ describe('PCMPlayer', () => {
       });
       player.mute(true);
       player.feed(createFloat32Samples(100));
-      expect(player['totalSamples']).toBe(0);
+      expect(defaultTrack(player).totalSamples).toBe(0);
 
       player.mute(false);
       player.feed(createFloat32Samples(100));
-      expect(player['totalSamples']).toBe(100);
+      expect(defaultTrack(player).totalSamples).toBe(100);
       player.destroy();
     });
   });
@@ -1178,14 +1315,14 @@ describe('PCMPlayer', () => {
       });
       player.feed(createFloat32Samples(100));
       player.feed(createFloat32Samples(100));
-      expect(player['totalSamples']).toBe(200);
-      expect(player['feedCounter']).toBe(2);
+      expect(defaultTrack(player).totalSamples).toBe(200);
+      expect(defaultTrack(player).feedCounter).toBe(2);
 
       player.reset();
 
-      expect(player['chunks'].length).toBe(0);
-      expect(player['totalSamples']).toBe(0);
-      expect(player['feedCounter']).toBe(0);
+      expect(defaultTrack(player).chunks.length).toBe(0);
+      expect(defaultTrack(player).totalSamples).toBe(0);
+      expect(defaultTrack(player).feedCounter).toBe(0);
       player.destroy();
     });
 
@@ -1217,7 +1354,7 @@ describe('PCMPlayer', () => {
         expect(source.stop).toHaveBeenCalledTimes(1);
         expect(source.disconnect).toHaveBeenCalledTimes(1);
       }
-      expect(player['activeSources'].size).toBe(0);
+      expect(defaultTrack(player).sources.size).toBe(0);
       player.destroy();
     });
 
@@ -1242,11 +1379,11 @@ describe('PCMPlayer', () => {
       const player = await createInitializedPlayer({ encoding: '32bitFloat' });
       const ctx = player['audioCtx'] as unknown as MockAudioContext;
       ctx.currentTime = 5.5;
-      player['startTime'] = 10;
+      defaultTrack(player).startTime = 10;
 
       player.reset();
 
-      expect(player['startTime']).toBe(5.5);
+      expect(defaultTrack(player).startTime).toBe(5.5);
       player.destroy();
     });
 
@@ -1255,11 +1392,11 @@ describe('PCMPlayer', () => {
       const player = await createInitializedPlayer({ encoding: '32bitFloat' });
       player.feed(createFloat32Samples(100));
       player['flush']();
-      expect(player['activeSources'].size).toBe(1);
+      expect(defaultTrack(player).sources.size).toBe(1);
 
       await new Promise((r) => setTimeout(r, 20));
 
-      expect(player['activeSources'].size).toBe(0);
+      expect(defaultTrack(player).sources.size).toBe(0);
       player.destroy();
     });
   });
@@ -1385,9 +1522,9 @@ describe('PCMPlayer', () => {
       });
       player.feed(createFloat32Samples(100));
       player.destroy();
-      expect(player['chunks'].length).toBe(0);
-      expect(player['totalSamples']).toBe(0);
-      expect(player['feedCounter']).toBe(0);
+      expect(defaultTrack(player).chunks.length).toBe(0);
+      expect(defaultTrack(player).totalSamples).toBe(0);
+      expect(defaultTrack(player).feedCounter).toBe(0);
     });
 
     test('resets timing state', async () => {
@@ -1411,7 +1548,7 @@ describe('PCMPlayer', () => {
     test('feed before init does not throw', () => {
       const player = new PCMPlayer({ encoding: '32bitFloat' });
       expect(() => player.feed(createFloat32Samples(100))).not.toThrow();
-      expect(player['totalSamples']).toBe(100);
+      expect(defaultTrack(player).totalSamples).toBe(100);
     });
 
     test('flush is not scheduled before init', () => {
@@ -1428,11 +1565,11 @@ describe('PCMPlayer', () => {
 
       player.feed(createFloat32Samples(50));
       jest.advanceTimersByTime(100);
-      expect(player['chunks'].length).toBe(0);
+      expect(defaultTrack(player).chunks.length).toBe(0);
 
       player.feed(createFloat32Samples(75));
       jest.advanceTimersByTime(100);
-      expect(player['chunks'].length).toBe(0);
+      expect(defaultTrack(player).chunks.length).toBe(0);
 
       player.destroy();
     });
@@ -1443,7 +1580,7 @@ describe('PCMPlayer', () => {
       });
       player.destroy();
       player.feed(createFloat32Samples(100));
-      expect(player['totalSamples']).toBe(0);
+      expect(defaultTrack(player).totalSamples).toBe(0);
     });
 
     test('setGain after destroy does not throw', async () => {

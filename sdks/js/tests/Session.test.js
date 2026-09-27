@@ -442,7 +442,7 @@ describe('Incoming channel identity', () => {
       codec_header: codecHeader
     }, incomingSession());
     await message.initPlayer();
-    expect(setSampleRate).toHaveBeenCalledWith(24000);
+    expect(setSampleRate).toHaveBeenCalledWith(24000, '5');
     expect(setFlushingTime).toHaveBeenCalledWith(240);
     IncomingMessage.PersistentPlayer = undefined;
   });
