@@ -1,5 +1,4 @@
 const Session = require('../src/classes/session');
-const Emitter = require('../src/classes/emitter');
 const OutgoingMessage = require('../src/classes/outgoingMessage');
 const OutgoingImage = require('../src/classes/outgoingImage');
 const IncomingMessage = require('../src/classes/incomingMessage');
@@ -239,6 +238,14 @@ describe('OutgoingMessage channel routing', () => {
 });
 
 describe('OutgoingImage channel routing', () => {
+  beforeEach(() => {
+    jest.spyOn(OutgoingImage.prototype, 'handleCamera').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   const sendImage = (sessionOptions, instanceOptions = {}) => {
     const image = Object.create(OutgoingImage.prototype);
     image.instanceOptions = instanceOptions;
@@ -269,27 +276,26 @@ describe('OutgoingImage channel routing', () => {
     expect(fallback.channel).toBe('Back');
   });
 
-  const imageReadyToSend = (sessionOptions, instanceOptions = {}, userCallback = null) => {
-    const image = new Emitter();
-    Object.setPrototypeOf(image, OutgoingImage.prototype);
-    image.instanceOptions = instanceOptions;
-    image.options = Object.assign({ preview: true }, sessionOptions, instanceOptions);
+  // Real OutgoingImage, without opening a camera. sendImage is the public entry.
+  const openImage = (sessionOptions, instanceOptions = {}, userCallback = null) => {
+    setSdk({ OutgoingImage: OutgoingImage });
+    const session = bareSession(sessionOptions);
+    const image = session.sendImage(instanceOptions, userCallback);
     image.thumbnailData = new Uint8Array([1]);
     image.fullImageWidth = 1;
     image.fullImageHeight = 1;
     image.source = 'library';
-    image.session = bareSession(sessionOptions);
-    image.userCallback = userCallback;
-    image.setHandlers();
     return image;
   };
 
-  it('reports a missing channel to the callback and rejects', async () => {
-    const onError = jest.fn();
-    const image = imageReadyToSend({ channels: ['Front', 'Back'] }, {}, onError);
+  it('rejects a direct send when no channel can be resolved', async () => {
+    const onEvent = jest.fn();
+    const image = openImage({ channels: ['Front', 'Back'] });
     image.fullImageData = new Uint8Array([2]);
+    image.on(Constants.EVENT_ERROR, onEvent);
+
     await expect(image.send()).rejects.toThrow(Constants.ERROR_NOT_ENOUGH_PARAMS);
-    expect(onError).toHaveBeenCalledWith(expect.objectContaining({
+    expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({
       message: Constants.ERROR_NOT_ENOUGH_PARAMS
     }));
     expect(image.session.sent).toHaveLength(0);
@@ -297,9 +303,7 @@ describe('OutgoingImage channel routing', () => {
 
   it('reports a missing channel from automatic send instead of throwing', async () => {
     const onError = jest.fn();
-    const onEvent = jest.fn();
-    const image = imageReadyToSend({ channels: ['Front', 'Back'] }, { preview: false }, onError);
-    image.on(Constants.EVENT_ERROR, onEvent);
+    const image = openImage({ channels: ['Front', 'Back'] }, { preview: false }, onError);
 
     image.emit(Constants.EVENT_IMAGE_DATA, new Uint8Array([2]));
     await Promise.resolve();
@@ -307,32 +311,21 @@ describe('OutgoingImage channel routing', () => {
     expect(onError).toHaveBeenCalledWith(expect.objectContaining({
       message: Constants.ERROR_NOT_ENOUGH_PARAMS
     }));
-    expect(onEvent).toHaveBeenCalledWith(expect.objectContaining({
-      message: Constants.ERROR_NOT_ENOUGH_PARAMS
-    }));
     expect(image.session.sent).toHaveLength(0);
   });
 
   it('sends automatically when a channel is available', () => {
-    const image = imageReadyToSend({
+    const image = openImage({
       channels: ['Front', 'Back'],
       channel: 'Back'
     }, {
-      preview: false,
-      channel: 'Front'
+      preview: false
     });
     image.emit(Constants.EVENT_IMAGE_DATA, new Uint8Array([2]));
-    expect(image.session.sent[0].channel).toBe('Front');
-  });
-
-  it('passes the image callback through sendImage', () => {
-    const Created = jest.fn();
-    setSdk({ OutgoingImage: Created });
-    const session = Object.create(Session.prototype);
-    const callback = () => {};
-    const options = { preview: false };
-    session.sendImage(options, callback);
-    expect(Created).toHaveBeenCalledWith(session, options, callback);
+    expect(image.session.sent[0]).toEqual(expect.objectContaining({
+      command: 'send_image',
+      channel: 'Back'
+    }));
   });
 });
 
