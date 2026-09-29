@@ -725,17 +725,25 @@ var outgoingMessage = session.startVoiceMessage({
    *                              if set to true (default) you will need to call OutgoingImage.send() to send an image
    * @property {File} File object (optional) if provided this file is send as an image with a source 'library'
    *
+   * @param {function} [userCallback] called with an error when the image cannot be sent,
+   * including when <code>preview</code> is false and no channel can be resolved.
+   * That failure happens after the file is read, so it does not throw from <code>sendImage</code>.
+   *
    * @return {ZCC.OutgoingImage} OutgoingImage object
    * @example
    *
    var outgoingImage = session.sendImage({
     preview: false,
     for: 'username'
+   }, function(err) {
+    if (err) {
+      console.trace(err);
+    }
    });
    **/
-  sendImage(options = {}) {
+  sendImage(options = {}, userCallback = null) {
     const library = Utils.getLoadedLibrary();
-    this.activeOutgoingImage = new library.OutgoingImage(this, options);
+    this.activeOutgoingImage = new library.OutgoingImage(this, options, userCallback);
     return this.activeOutgoingImage;
   }
 
