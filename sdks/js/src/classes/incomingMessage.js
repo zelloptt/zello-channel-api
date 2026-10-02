@@ -19,23 +19,25 @@ class IncomingMessage extends Emitter {
   constructor(messageData, session) {
     super();
     this.streamId = messageData.stream_id;
+    this.channel = messageData.channel;
     this.codecDetails = Utils.parseCodedHeader(messageData.codec_header);
     this.messageDidStart = false;
     this.messageStartTime = 0;
     this.packetCount = 0;
     this.isPlaybackComplete = false;
     let library = Utils.getLoadedLibrary();
+    // session.options.channels is the list of joined Zello channel names.
+    // The audio stack uses channels as a playback channel count.
     this.options =
       Object.assign({
         encoding: '32bitFloat',
-        channels: 1,
         sampleRate: IncomingMessage.detectSampleRate(this.codecDetails.rate),
         flushingTime: 240,
         burstJitter: 1000,
         log: session.log
       },
       session.options,
-      {messageData: messageData}
+      {channels: 1, messageData: messageData}
     );
 
     if (this.options.decoder && !Utils.isFunction(this.options.decoder)) {
@@ -66,6 +68,17 @@ class IncomingMessage extends Emitter {
     return 48000;
   }
 
+  /**
+   * Mutes or unmutes this message's playback without touching other
+   * messages that share the player.
+   * @param {Boolean} isMuted whether to mute
+   */
+  mute(isMuted) {
+    if (this.player && Utils.isFunction(this.player.mute)) {
+      this.player.mute(isMuted, this.instanceId);
+    }
+  }
+
   stopPlayback(isComplete) {
     this.options.log?.(`Stopping playback, isComplete: ${isComplete}`);
 
@@ -83,14 +96,18 @@ class IncomingMessage extends Emitter {
       this.decoder.destroy();
       this.decoder = undefined;
     }
-    if (this.player && Utils.isFunction(this.player.destroy) && !IncomingMessage.PersistentPlayer) {
-      this.options.log?.(`Destroying player`);
-      this.player.mute(true);
-      this.player.destroy();
-      this.player = undefined;
-    } else if (!isComplete && this.player && Utils.isFunction(this.player.reset)) {
-      this.options.log?.(`Resetting player`);
-      this.player.reset();
+    if (this.player) {
+      if (Utils.isFunction(this.player.destroy) && !IncomingMessage.PersistentPlayer) {
+        this.options.log?.(`Destroying player`);
+        this.player.mute(true);
+        this.player.destroy();
+        this.player = undefined;
+      } else if (!isComplete && Utils.isFunction(this.player.reset)) {
+        this.options.log?.(`Resetting player`);
+        this.player.reset(this.instanceId);
+      } else if (Utils.isFunction(this.player.endStream)) {
+        this.player.endStream(this.instanceId);
+      }
     }
     this.session.off([Constants.EVENT_INCOMING_VOICE_DATA, this.instanceId], this.incomingVoiceHandler);
     this.session.off([Constants.EVENT_INCOMING_VOICE_DID_STOP, this.instanceId], this.incomingVoiceDidStopHandler);
@@ -100,7 +117,7 @@ class IncomingMessage extends Emitter {
   initEventHandlers() {
     this.decodedAudioHandler = (pcmData) => {
       if (this.player && Utils.isFunction(this.player.feed)) {
-        this.player.feed(pcmData);
+        this.player.feed(pcmData, this.instanceId);
       }
     };
 
@@ -170,7 +187,15 @@ class IncomingMessage extends Emitter {
     if (!this.options.decoder) {
       return;
     }
-    this.decoder = new this.options.decoder(this.options);
+    // The Opus worker is started with postMessage. Functions on the session
+    // options, including log and the player, cannot be cloned.
+    const decoderOptions = {};
+    Object.keys(this.options).forEach((key) => {
+      if (!Utils.isFunction(this.options[key])) {
+        decoderOptions[key] = this.options[key];
+      }
+    });
+    this.decoder = new this.options.decoder(decoderOptions);
     this.decoder.ondata = (pcmData) => {
       if (!pcmData) {
         return;
@@ -189,7 +214,10 @@ class IncomingMessage extends Emitter {
     return new Promise((resolve, reject) => {
       if (IncomingMessage.PersistentPlayer && !this.options.noPersistentPlayer) {
         this.player = IncomingMessage.PersistentPlayer;
-        this.player.setSampleRate(this.options.sampleRate);
+        this.player.setSampleRate(this.options.sampleRate, this.instanceId);
+        if (Utils.isFunction(this.player.setFlushingTime)) {
+          this.player.setFlushingTime(this.options.flushingTime);
+        }
       } else if (this.options.player) {
         this.player = new this.options.player(this.options);
         if (!this.options.noPersistentPlayer) {

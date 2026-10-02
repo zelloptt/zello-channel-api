@@ -41,7 +41,7 @@ class OutgoingMessage extends Emitter {
     // start message explicitly if no recorder present.
     // if recorder is there it will start from Recorder.onready
     if (!this.recorder && this.options.autoStart) {
-      this.start();
+      this.start().catch(() => {});
     }
   }
 
@@ -104,7 +104,7 @@ class OutgoingMessage extends Emitter {
       }
       this.sendEncoderInitMessage();
       if (this.options.autoStart) {
-        this.start();
+        this.start().catch(() => {});
       }
     };
     this.recorder = new this.options.recorder(this.options, this.encoder);
@@ -156,10 +156,26 @@ outgoingMessage.then(function(result) {
 });
   */
   stop(userCallback) {
+    if (!this.activeChannel) {
+      try {
+        this.activeChannel = this.session.resolveChannel(this.instanceOptions.channel);
+      } catch (err) {
+        return this.fail(err, userCallback);
+      }
+    }
     this.destroy();
     return this.session.stopStream({
-      stream_id: this.currentMessageId
+      stream_id: this.currentMessageId,
+      channel: this.activeChannel
     }, userCallback);
+  }
+
+  fail(err, userCallback) {
+    this.destroy();
+    if (Utils.isFunction(userCallback)) {
+      userCallback(err);
+    }
+    return Promise.reject(err);
   }
 
   destroy() {
@@ -180,11 +196,17 @@ outgoingMessage.then(function(result) {
  * when instance is created by <code>session.startVoiceMessage</code>
  * **/
   start() {
+    try {
+      this.activeChannel = this.session.resolveChannel(this.instanceOptions.channel);
+    } catch (err) {
+      return this.fail(err, this.userCallback);
+    }
     const params = {
       'type': 'audio',
       'codec': 'opus',
       'codec_header': Utils.buildCodecHeader(this.options.encoderSampleRate, 1, this.options.encoderFrameSize),
-      'packet_duration': this.options.encoderFrameSize
+      'packet_duration': this.options.encoderFrameSize,
+      'channel': this.activeChannel
     };
     if (this.instanceOptions.for) {
       params.for = this.options.for;
@@ -201,15 +223,17 @@ outgoingMessage.then(function(result) {
     if (this.instanceOptions.retransmissionDuration !== undefined) {
       params.retransmissionDuration = this.instanceOptions.retransmissionDuration;
     }
-    this.session
+    const started = this.session
       .startStream(params, this.userCallback)
       .then((result) => {
         this.currentMessageId = result.stream_id;
         this.startRecording();
-      })
-      .catch(() => {
-        this.destroy();
+        return result;
       });
+    started.catch(() => {
+      this.destroy();
+    });
+    return started;
   }
 
   static get talkPriorityLow() {
