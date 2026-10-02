@@ -6,9 +6,6 @@ class Emitter extends Emitter2 {
   }
 
   /**
-   * override emit to emit global with star so that namespaced handlers fire
-   * */
-  /**
    * Emit an event addressed to one id without the `.*` fan-out below: plain
    * listeners on <code>event</code> still fire, and only listeners registered
    * on <code>[event, id]</code> receive the namespaced copy.
@@ -19,7 +16,6 @@ class Emitter extends Emitter2 {
   }
 
   emit() {
-    // regular emit
     super.emit.apply(this, arguments);
 
     let originalEvent = arguments[0];

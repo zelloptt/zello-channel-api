@@ -6,7 +6,6 @@ const IncomingImage = require('../src/classes/incomingImage');
 const Constants = require('../src/classes/constants');
 const Utils = require('../src/classes/utils');
 
-// A binary frame as the server sends it: 9-byte header plus one payload byte.
 const binaryFrame = (type, messageId, packetId, byte) =>
   Utils.buildBinaryPacket(type, messageId, packetId, new Uint8Array([byte])).buffer;
 

@@ -34,13 +34,8 @@ const ENCODING_TYPED_ARRAYS: Record<string, SupportedTypedArrayConstructor> = {
 const FADE_SAMPLES = 50;
 const DEFAULT_ENCODING = '16bitInt';
 
-/**
- * Gestures that can carry user activation. A touch `pointerdown` does not,
- * so the listeners stay armed until one of them actually starts the context.
- */
 const RESUME_GESTURE_EVENTS = ['pointerdown', 'pointerup', 'click', 'touchend', 'keydown'] as const;
 
-/** Track used by callers that never pass a stream id. */
 const DEFAULT_STREAM = '';
 
 /**
@@ -100,11 +95,7 @@ class PCMPlayer {
   private readonly maxValue: number;
   private readonly typedArrayCtor: SupportedTypedArrayConstructor;
 
-  /**
-   * One track per incoming stream, keyed by stream id. Callers that never
-   * pass a stream id share the default track, which keeps the single-stream
-   * behaviour of earlier versions.
-   */
+  /** Callers that omit a stream id share one track. */
   private tracks: Map<string, Track> = new Map();
 
   private audioCtx: AudioContext | null = null;
@@ -368,9 +359,7 @@ class PCMPlayer {
    * but have not yet finished playing, cancelling both actively-playing
    * audio and audio queued to play in the future. Each source's
    * `onended` handler is cleared before `stop()` so no stale
-   * {@link OnEndedCallback} fires against the caller after reset. If
-   * `audioCtx` is present, `reset()` immediately re-anchors
-   * {@link startTime} to `audioCtx.currentTime`.
+   * {@link OnEndedCallback} fires against the caller after reset.
    *
    * This makes `reset()` a true "cancel playback and start fresh"
    * operation for consumers that reuse a single player across multiple
@@ -382,13 +371,11 @@ class PCMPlayer {
       this.resetTrack(streamId);
       return;
     }
-    // Deleting the current entry while iterating a Map is well defined.
     for (const id of this.tracks.keys()) {
       this.resetTrack(id);
     }
   }
 
-  /** Stops a track's scheduled audio, drops its samples, and forgets it. */
   private resetTrack(streamId: string) {
     const track = this.tracks.get(streamId);
     if (!track) {
@@ -416,7 +403,6 @@ class PCMPlayer {
     track.feedCounter = 0;
   }
 
-  /** The track for a stream, created on first use. */
   private track(streamId: string): Track {
     let track = this.tracks.get(streamId);
     if (!track) {
@@ -507,10 +493,8 @@ class PCMPlayer {
     }
     this.scheduleFlush(delayMs);
 
-    // A suspended context keeps currentTime frozen. Scheduling into that
-    // timeline plays only after the context resumes, which can be long
-    // after the message arrived. Hold the samples, keep asking, and keep the
-    // gesture listeners armed so the next tap can unlock the context.
+    // A suspended context freezes currentTime, so a buffer scheduled now
+    // would play only once the context resumes. Hold the samples instead.
     if (this.audioCtx.state === 'suspended') {
       if (!this.pendingResume) {
         this.pendingResume = this.audioCtx.resume().then(
@@ -535,11 +519,6 @@ class PCMPlayer {
     }
   }
 
-  /**
-   * Schedules one track's buffered samples as the next buffer on its own
-   * timeline. Every track connects to the shared GainNode, so buffers from
-   * different tracks that overlap in time are summed by Web Audio.
-   */
   private scheduleTrack(streamId: string, track: Track) {
     if (!this.audioCtx || !this.gainNode) {
       return;
@@ -700,11 +679,6 @@ class PCMPlayer {
     }
   }
 
-  /**
-   * Plays samples held while the context was suspended. Runs after any
-   * resume() the browser accepted, whether it came from a gesture listener,
-   * a flush retry, or {@link resume}.
-   */
   private onContextResumed(): void {
     if (this.destroyed || !this.audioCtx || this.audioCtx.state === 'suspended') {
       return;

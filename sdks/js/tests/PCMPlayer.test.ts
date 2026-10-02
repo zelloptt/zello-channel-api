@@ -121,8 +121,6 @@ async function createInitializedPlayer(
   return player;
 }
 
-// Playback state lives in one track per stream. Callers that pass no stream
-// id use the default track.
 function defaultTrack(player: InstanceType<typeof PCMPlayer>) {
   return player['track']('');
 }
@@ -650,10 +648,6 @@ describe('PCMPlayer', () => {
     });
   });
 
-  // =========================================================================
-  // Per-stream tracks
-  // =========================================================================
-
   describe('per-stream tracks', () => {
     async function twoStreamPlayer() {
       const player = await createInitializedPlayer({
@@ -676,7 +670,6 @@ describe('PCMPlayer', () => {
 
       jest.advanceTimersByTime(100);
 
-      // One buffer per stream, at that stream's own rate, both scheduled now.
       expect(ctx.createBuffer).toHaveBeenCalledTimes(2);
       expect(ctx.createBuffer).toHaveBeenCalledWith(1, 1600, 8000);
       expect(ctx.createBuffer).toHaveBeenCalledWith(1, 1600, 16000);
@@ -765,10 +758,6 @@ describe('PCMPlayer', () => {
     });
   });
 
-  // =========================================================================
-  // Gesture-driven resume
-  // =========================================================================
-
   describe('resume on gesture', () => {
     const GESTURES = PCMPlayer.resumeGestureEvents;
 
@@ -789,7 +778,6 @@ describe('PCMPlayer', () => {
       return { player, ctx };
     }
 
-    /** From here on resume() is accepted, as after a user gesture. */
     function acceptResume(ctx: MockAudioContext) {
       ctx.resume = jest.fn().mockImplementation(() => {
         ctx.state = 'running';
@@ -827,7 +815,6 @@ describe('PCMPlayer', () => {
       await settleMicrotasks();
       expect(ctx.state).toBe('running');
 
-      // The browser suspends the context again (screen lock, tab switch).
       ctx.state = 'suspended';
       ctx.resume = jest.fn().mockReturnValue(new Promise(() => undefined));
       player.feed(createFloat32Samples(800));
