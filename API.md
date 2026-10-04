@@ -601,6 +601,54 @@ Fetches one stored image to this connection, delivered the same way as a live on
 
 The response precedes the `on_image` event. One fetch runs at a time per connection; a second request is answered with `busy`. A `message_id` that is not an image entry is answered with `message not playable`, and one the server no longer holds with `no message`.
 
+## Channel users
+
+### `get_channel_users`
+Returns the users currently connected to a channel the session is logged on to, whether or not they are in the account's contact list. The reply is a snapshot of the online roster, the same population `users_online` counts; it is not the channel's full membership. Call `get_contacts` instead for the account's own contact list.
+
+| Name | Type | Value / Description
+|---|---|---
+| `command` | string | `get_channel_users`
+| `seq` | integer | Command sequence number
+| `channel` | string | The channel whose connected users to list. Must be one of the session's channels.
+
+#### Request:
+```json
+{
+  "command": "get_channel_users",
+  "seq": 7,
+  "channel": "Baker Street"
+}
+```
+
+#### Response:
+```json
+{
+  "seq": 7,
+  "success": true,
+  "users": [
+    { "username": "sherlock", "display_name": "Sherlock Holmes" },
+    { "username": "lestrade", "display_name": "DI Lestrade", "dispatcher": true }
+  ]
+}
+```
+or
+```json
+{
+  "seq": 7,
+  "error": "channel not found"
+}
+```
+for a channel the session is not connected to.
+
+##### `users` entries
+
+| Name | Type | Value / Description
+|---|---|---
+| `username` | string | The username
+| `display_name` | string | The name to show for the user: the name set in the Zello Work console, then the profile display name, then the username
+| `dispatcher` | boolean | (optional) Present and `true` when the user is a dispatcher in this channel
+
 ## Contacts
 
 ### `get_contacts`

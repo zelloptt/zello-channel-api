@@ -688,7 +688,7 @@ session.connect(function(err, result) {
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line912">line 912</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line934">line 934</a>
     </li></ul></dd>
     
 
@@ -743,6 +743,235 @@ session.connect(function(err, result) {
     <h5>Example</h5>
     
     <pre class="prettyprint"><code>session.endDispatchCall(123456789);</code></pre>
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="getChannelUsers"><span class="type-signature"></span>getChannelUsers<span class="signature">(channel<span class="signature-attributes">opt</span>, userCallback<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {promise}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Fetches the users currently connected to a channel, whether or not they
+are in the account's contact list. The reply is the online roster, not
+the channel's full membership. The channel must be one of the session's
+channels.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>channel</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    null
+                
+                </td>
+            
+
+            <td class="description last">channel name; defaults to the session's channel option</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>userCallback</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">function</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    null
+                
+                </td>
+            
+
+            <td class="description last">callback that is fired with the user list or an error</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line806">line 806</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    promise that resolves with <code>{ users }</code> and rejects if
+                  the server refused the request
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">promise</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+    <h5>Example</h5>
+    
+    <pre class="prettyprint"><code>session.getChannelUsers().then(({ users }) => {
+  users.forEach((u) => console.log(u.username, u.display_name, u.dispatcher));
+});</code></pre>
 
 
 
@@ -1199,7 +1428,7 @@ voice entry with <code>playHistoryMessage</code> and fetch an image with
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line818">line 818</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line840">line 840</a>
     </li></ul></dd>
     
 
@@ -1562,7 +1791,7 @@ the thumbnail and full image follow on that instance.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line888">line 888</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line910">line 910</a>
     </li></ul></dd>
     
 
@@ -2149,7 +2378,7 @@ data carries <code>message_id</code>, followed by the audio and
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line850">line 850</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line872">line 872</a>
     </li></ul></dd>
     
 
@@ -6465,7 +6694,7 @@ produces the event, with the picture fields absent.
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Fri Sep 25 2026 11:18:58 GMT-0500 (Central Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Sun Oct 04 2026 18:10:03 GMT-0500 (Central Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>
