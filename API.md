@@ -423,7 +423,7 @@ Retrieves the dispatch calls visible to this session: for a dispatcher, every pe
       "initiator": "driver42",
       "messages": [
         {
-          "message_id": "22695",
+          "message_id": 22695,
           "type": "message",
           "author": "driver42",
           "ts": 1758300000,
@@ -498,7 +498,7 @@ A call another dispatcher already holds fails with the error `taken`, and the re
 
 ### `play_dispatch_message`
 
-Plays one message from a pending or active call back to this session. The server downloads the recorded audio and delivers it exactly like a live incoming message: an [`on_stream_start`](#on_stream_start) event carrying `call_id` and `message_id`, the binary audio packets, then [`on_stream_stop`](#on_stream_stop). One playback runs at a time per session; a second request while one is running fails with the error `busy`.
+Plays one message from a pending or active call back to this session. The server downloads the recorded audio and delivers it exactly like a live incoming message: an [`on_stream_start`](#on_stream_start) event carrying `call_id` and `message_id`, the binary audio packets, then [`on_stream_stop`](#on_stream_stop). One playback runs at a time per session; a second request while one is running fails with the error `busy`. Cancel a playback with [`stop_dispatch_message`](#stop_dispatch_message); a playback stopped before its audio was ready fails this command with the error `stopped`.
 
 #### Attributes
 
@@ -530,6 +530,35 @@ Plays one message from a pending or active call back to this session. The server
 }
 ```
 
+### `stop_dispatch_message`
+
+Stops the playback started by `play_dispatch_message`. A playback that already delivered its `on_stream_start` closes with its own [`on_stream_stop`](#on_stream_stop); one still being prepared never starts, and its `play_dispatch_message` fails with the error `stopped`. With no playback in flight this command fails with the error `not playing`.
+
+#### Attributes
+
+| Name | Type | Value / Description
+|---|---|---
+| `command` | string | `stop_dispatch_message`
+| `seq` | integer | Command sequence number
+| `channel` | string | The dispatch channel name
+
+#### Request:
+```json
+{
+  "command": "stop_dispatch_message",
+  "seq": 8,
+  "channel": "Dispatch"
+}
+```
+
+#### Response:
+```json
+{
+  "seq": 8,
+  "success": true
+}
+```
+
 ### `end_dispatch_call`
 
 Ends an active call.
@@ -547,7 +576,7 @@ Ends an active call.
 ```json
 {
   "command": "end_dispatch_call",
-  "seq": 8,
+  "seq": 9,
   "channel": "Dispatch",
   "call_id": 1758300000123
 }
@@ -556,7 +585,7 @@ Ends an active call.
 #### Response:
 ```json
 {
-  "seq": 8,
+  "seq": 9,
   "success": true,
   "call_id": 1758300000123
 }

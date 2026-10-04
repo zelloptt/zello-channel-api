@@ -811,6 +811,30 @@ var outgoingMessage = session.startVoiceMessage({
     );
   }
 
+  /**
+   * Stops the playback started by <code>playDispatchMessage</code>. A playback
+   * that already started closes with <code>incoming_voice_did_stop</code>; one
+   * still being prepared never starts, and its play rejects with
+   * <code>'stopped'</code>.
+   *
+   * @param {function} [userCallback] callback that is fired on the playback stopping or an error.
+   * @return {promise} promise that resolves once the playback is stopped and rejects if there
+   *                   is none in flight (error <code>'not playing'</code>).
+   * @example
+   *
+   session.stopDispatchMessage();
+   **/
+  stopDispatchMessage(userCallback = null) {
+    const options = {
+      channel: this.options.channel
+    };
+    return this.sendCommandWithCallback(
+      'stop_dispatch_message',
+      options,
+      userCallback
+    );
+  }
+
   sendCommandWithCallback(command, options, userCallback = null) {
     options.seq = this.getSeq();
     options.command = command;

@@ -131,3 +131,24 @@ describe('playDispatchMessage', () => {
     await expect(promise).rejects.toEqual('busy');
   });
 });
+
+describe('stopDispatchMessage', () => {
+  test('sends the command for the session channel', () => {
+    const { stub, sent } = makeStub();
+
+    Session.prototype.stopDispatchMessage.call(stub);
+
+    expect(sent).toEqual([
+      { command: 'stop_dispatch_message', channel: 'kiosk-channel', seq: 1 }
+    ]);
+  });
+
+  test('rejects when nothing is playing', async () => {
+    const { stub } = makeStub();
+    const promise = Session.prototype.stopDispatchMessage.call(stub);
+
+    fail(stub, 1, 'not playing');
+
+    await expect(promise).rejects.toEqual('not playing');
+  });
+});
