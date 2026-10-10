@@ -173,7 +173,9 @@ Starts a new stream to the channel. The successful response includes `stream_id`
 | `type` | string | Stream type. Only `audio` is currently supported
 | `codec` | string | The name of audio codec used. Required for `audio` streams. Must be `opus`.
 | `codec_header` | string | base64-encoded string, representing audio encoding parameters. Required for `audio` streams. See [below](#codec_header-attribute)
-| `packet_duration` | integer | Audio packet duration in milliseconds. Values between 2.5 ms and 60 ms are supported.
+| `packet_duration` | integer | Audio packet duration in milliseconds. Values between 2.5 ms and 60 ms are supported
+| `call_id` | integer | Optional, dispatchers only: addresses the stream to a [dispatch call](#dispatch-calls) the sender holds; the audio goes to that call's user alone
+| `broadcast` | boolean | Optional, dispatchers only: sends to every channel user despite active calls. Cannot be combined with `call_id`.
 | `for` | string | Optional username to send message to. Other users in the channel won't be receiving this message
 
 ##### `codec_header` attribute
@@ -325,6 +327,8 @@ Sends a new text message to the channel.
 | `seq` | integer | Command sequence number
 | `channel` | string | The channel to send the message to
 | `text` | string | Message text. 30 Kb maximum
+| `call_id` | integer | Optional, dispatchers only: addresses the message to a [dispatch call](#dispatch-calls) the sender holds
+| `broadcast` | boolean | Optional, dispatchers only: sends to every channel user despite active calls. Cannot be combined with `call_id`
 | `for` | string | Optional username to send text message to. Other users in the channel won't be receiving this text message
 
 #### Request:
@@ -387,7 +391,7 @@ Sends user's location to the channel.
 
 ## Dispatch calls
 
-On a channel configured as a dispatch channel, audio from a regular channel user opens a *call*: it enters a queue as `pending`, a dispatcher takes it to make it `active`, and from then on the two talk one-on-one until the call is ended. The commands below let an API client act as the dispatcher; queue changes are delivered to all parties through the [`on_dispatch_call_status`](#on_dispatch_call_status) event. Taking, playing back, and ending calls require the authenticated user to hold the dispatcher role in the channel.
+On a channel configured as a dispatch channel, audio from a regular channel user opens a *call*: it enters a queue as `pending`, a dispatcher takes it to make it `active`, and from then on the two talk one-on-one until the call is ended. The commands below let an API client act as the dispatcher; queue changes are delivered to all parties through the [`on_dispatch_call_status`](#on_dispatch_call_status) event. Taking, playing back, and ending calls require the authenticated user to hold the dispatcher role in the channel. Once a call is taken, the dispatcher replies by passing the `call_id` on [`start_stream`](#start_stream) or [`send_text_message`](#send_text_message), which routes the message to that call's user alone.
 
 ### `get_dispatch_calls`
 
