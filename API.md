@@ -173,7 +173,9 @@ Starts a new stream to the channel. The successful response includes `stream_id`
 | `type` | string | Stream type. Only `audio` is currently supported
 | `codec` | string | The name of audio codec used. Required for `audio` streams. Must be `opus`.
 | `codec_header` | string | base64-encoded string, representing audio encoding parameters. Required for `audio` streams. See [below](#codec_header-attribute)
-| `packet_duration` | integer | Audio packet duration in milliseconds. Values between 2.5 ms and 60 ms are supported.
+| `packet_duration` | integer | Audio packet duration in milliseconds. Values between 2.5 ms and 60 ms are supported
+| `call_id` | integer | Optional, dispatchers only: addresses the stream to a [dispatch call](#dispatch-calls) the sender holds; the audio goes to that call's user alone
+| `broadcast` | boolean | Optional, dispatchers only: sends to every channel user despite active calls. Cannot be combined with `call_id`.
 | `for` | string | Optional username to send message to. Other users in the channel won't be receiving this message
 
 ##### `codec_header` attribute
@@ -325,6 +327,8 @@ Sends a new text message to the channel.
 | `seq` | integer | Command sequence number
 | `channel` | string | The channel to send the message to
 | `text` | string | Message text. 30 Kb maximum
+| `call_id` | integer | Optional, dispatchers only: addresses the message to a [dispatch call](#dispatch-calls) the sender holds
+| `broadcast` | boolean | Optional, dispatchers only: sends to every channel user despite active calls. Cannot be combined with `call_id`
 | `for` | string | Optional username to send text message to. Other users in the channel won't be receiving this text message
 
 #### Request:
@@ -385,6 +389,212 @@ Sends user's location to the channel.
 }
 ```
 
+## Dispatch calls
+
+On a channel configured as a dispatch channel, audio from a regular channel user opens a *call*: it enters a queue as `pending`, a dispatcher takes it to make it `active`, and from then on the two talk one-on-one until the call is ended. The commands below let an API client act as the dispatcher; queue changes are delivered to all parties through the [`on_dispatch_call_status`](#on_dispatch_call_status) event. Taking, playing back, and ending calls require the authenticated user to hold the dispatcher role in the channel. Once a call is taken, the dispatcher replies by passing the `call_id` on [`start_stream`](#start_stream) or [`send_text_message`](#send_text_message), which routes the message to that call's user alone.
+
+### `get_dispatch_calls`
+
+Retrieves the dispatch calls visible to this session: for a dispatcher, every pending call plus their own active ones; for a regular user, their own calls.
+
+#### Attributes
+
+| Name | Type | Value / Description
+|---|---|---
+| `command` | string | `get_dispatch_calls`
+| `seq` | integer | Command sequence number
+| `channel` | string | The dispatch channel name
+
+#### Request:
+```json
+{
+  "command": "get_dispatch_calls",
+  "seq": 5,
+  "channel": "Dispatch"
+}
+```
+
+#### Response:
+```json
+{
+  "seq": 5,
+  "success": true,
+  "calls": [
+    {
+      "id": 1758300000123,
+      "user": "driver42",
+      "status": "pending",
+      "initiator": "driver42",
+      "messages": [
+        {
+          "message_id": 22695,
+          "type": "message",
+          "author": "driver42",
+          "ts": 1758300000,
+          "packet_duration": 20
+        }
+      ]
+    }
+  ]
+}
+```
+
+Each call carries:
+
+| Name | Type | Value / Description
+|---|---|---
+| `id` | integer | Call id, used by the other dispatch commands
+| `user` | string | The channel user the call is with
+| `status` | string | `pending` or `active`
+| `dispatcher` | string | The dispatcher holding the call. Only present on `active` calls
+| `initiator` | string | The user who initiated the call
+| `messages` | array of objects | Messages sent while the call sat pending: `message_id`, `type` (`message` for audio), `author`, `ts`, and `packet_duration`. Pass a `message_id` to `play_dispatch_message` to hear it
+
+### `take_dispatch_call`
+
+Takes a pending call, making the authenticated user its dispatcher. Requires the dispatcher role.
+
+#### Attributes
+
+| Name | Type | Value / Description
+|---|---|---
+| `command` | string | `take_dispatch_call`
+| `seq` | integer | Command sequence number
+| `channel` | string | The dispatch channel name
+| `call_id` | integer | The id of the pending call to take
+
+#### Request:
+```json
+{
+  "command": "take_dispatch_call",
+  "seq": 6,
+  "channel": "Dispatch",
+  "call_id": 1758300000123
+}
+```
+
+#### Response:
+```json
+{
+  "seq": 6,
+  "success": true,
+  "call": {
+    "id": 1758300000123,
+    "user": "driver42",
+    "status": "active",
+    "dispatcher": "dispatcher1",
+    "initiator": "driver42",
+    "messages": [ ]
+  }
+}
+```
+
+A call another dispatcher already holds fails with the error `taken`, and the response names them:
+
+```json
+{
+  "seq": 6,
+  "call_id": 1758300000123,
+  "dispatcher": "othermary",
+  "error": "taken"
+}
+```
+
+### `play_dispatch_message`
+
+Plays one message from a pending or active call back to this session. The server downloads the recorded audio and delivers it exactly like a live incoming message: an [`on_stream_start`](#on_stream_start) event carrying `call_id` and `message_id`, the binary audio packets, then [`on_stream_stop`](#on_stream_stop). One playback runs at a time per session; a second request while one is running fails with the error `busy`. Cancel a playback with [`stop_dispatch_message`](#stop_dispatch_message); a playback stopped before its audio was ready fails this command with the error `stopped`.
+
+#### Attributes
+
+| Name | Type | Value / Description
+|---|---|---
+| `command` | string | `play_dispatch_message`
+| `seq` | integer | Command sequence number
+| `channel` | string | The dispatch channel name
+| `call_id` | integer | The id of the call the message belongs to
+| `message_id` | integer | The id of the message, from the call's `messages` list
+
+#### Request:
+```json
+{
+  "command": "play_dispatch_message",
+  "seq": 7,
+  "channel": "Dispatch",
+  "call_id": 1758300000123,
+  "message_id": 22695
+}
+```
+
+#### Response:
+```json
+{
+  "seq": 7,
+  "success": true,
+  "stream_id": 22695
+}
+```
+
+### `stop_dispatch_message`
+
+Stops the playback started by `play_dispatch_message`. A playback that already delivered its `on_stream_start` closes with its own [`on_stream_stop`](#on_stream_stop); one still being prepared never starts, and its `play_dispatch_message` fails with the error `stopped`. With no playback in flight this command fails with the error `not playing`.
+
+#### Attributes
+
+| Name | Type | Value / Description
+|---|---|---
+| `command` | string | `stop_dispatch_message`
+| `seq` | integer | Command sequence number
+| `channel` | string | Optional and ignored: playback is per-connection, so the stop needs no channel
+
+#### Request:
+```json
+{
+  "command": "stop_dispatch_message",
+  "seq": 8,
+  "channel": "Dispatch"
+}
+```
+
+#### Response:
+```json
+{
+  "seq": 8,
+  "success": true
+}
+```
+
+### `end_dispatch_call`
+
+Ends an active call.
+
+#### Attributes
+
+| Name | Type | Value / Description
+|---|---|---
+| `command` | string | `end_dispatch_call`
+| `seq` | integer | Command sequence number
+| `channel` | string | The dispatch channel name
+| `call_id` | integer | The id of the call to end
+
+#### Request:
+```json
+{
+  "command": "end_dispatch_call",
+  "seq": 9,
+  "channel": "Dispatch",
+  "call_id": 1758300000123
+}
+```
+
+#### Response:
+```json
+{
+  "seq": 9,
+  "success": true,
+  "call_id": 1758300000123
+}
+```
+
 ## Events
 
 ### `on_channel_status`
@@ -439,6 +649,8 @@ Indicates the start of the new incoming stream. This event corresponds to `start
 | `for `                  | string  | The username of the recipient of the message if it was sent with `for` parameter 
 | `translations_enabled ` | boolean | (optional) Whether translations are enabled for this channel
 | `language `             | string  | (optional) The ISO 639-1 language code of the sender
+| `call_id `              | integer | (optional) Present when the stream is a `play_dispatch_message` playback: the dispatch call the message belongs to
+| `message_id `           | integer | (optional) Present when the stream is a `play_dispatch_message` playback: the played message's id, equal to `stream_id`
 
 #### Example:
 
@@ -472,6 +684,35 @@ Indicates the stop of the incoming stream. This event corresponds to `stop_strea
 {
   "command": "on_stream_stop",
   "stream_id": 22695
+}
+```
+
+### `on_dispatch_call_status`
+
+Reports a dispatch call changing state on a dispatch channel: a new call entering the queue, a dispatcher taking it, or the call ending. See [Dispatch calls](#dispatch-calls).
+
+#### Attributes
+
+| Name | Type | Value / Description
+|---|---|---
+| `command` | string | `on_dispatch_call_status `
+| `channel` | string | The dispatch channel name
+| `status` | string | `received` (a new pending call), `taken`, or `ended`
+| `call_id` | integer | The call id
+| `dispatcher` | string | (only with `taken`) The username of the dispatcher who took the call
+| `dispatcher_display_name` | string | (only with `taken`) The dispatcher's display name
+| `dispatcher_profile_picture` | string | (only with `taken`) URL of the dispatcher's profile picture, when one is set
+
+#### Example:
+
+```json
+{
+  "command": "on_dispatch_call_status",
+  "channel": "Dispatch",
+  "status": "taken",
+  "call_id": 1758300000123,
+  "dispatcher": "dispatcher1",
+  "dispatcher_display_name": "Mary Chan"
 }
 ```
 
