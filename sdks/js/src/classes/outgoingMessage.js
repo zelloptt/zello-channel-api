@@ -105,6 +105,10 @@ class OutgoingMessage extends Emitter {
       this.sendEncoderInitMessage();
       if (this.options.autoStart) {
         this.start();
+      } else if (this.currentMessageId) {
+        // start() was called, and the server accepted the stream, before the
+        // recorder finished initializing. Begin recording now that it is ready.
+        this.startRecording();
       }
     };
     this.recorder = new this.options.recorder(this.options, this.encoder);
