@@ -540,7 +540,7 @@ Stops the playback started by `play_dispatch_message`. A playback that already d
 |---|---|---
 | `command` | string | `stop_dispatch_message`
 | `seq` | integer | Command sequence number
-| `channel` | string | The dispatch channel name
+| `channel` | string | Optional and ignored: playback is per-connection, so the stop needs no channel
 
 #### Request:
 ```json
