@@ -10,9 +10,9 @@ const HEIGHT = 'Height';
  * @classdesc Outgoing image class. Instances are returned from <code>Session.sendImage</code> method
  **/
 class OutgoingImage extends Emitter {
-  constructor(session, instanceOptions = {}, userCallback = null) {
+  constructor(session, instanceOptions = {}, userErrorCallback = null) {
     super();
-    this.userCallback = userCallback;
+    this.userErrorCallback = userErrorCallback;
     this.instanceOptions = instanceOptions;
     this.options = Object.assign({
       thumbnailCompress: 0.3,
@@ -73,18 +73,15 @@ class OutgoingImage extends Emitter {
       if (this.options.preview) {
         return;
       }
-      // send() runs from the file reader, after sendImage() has returned.
-      // A missing channel rejects; swallow that here so it is not uncaught.
+      // send() runs from the file reader, after sendImage() has returned,
+      // so nothing upstream can catch its failure.
       let sending;
       try {
         sending = this.send();
       } catch (err) {
-        this.fail(err).catch(() => {});
-        return;
+        sending = this.fail(err);
       }
-      if (Utils.isPromise(sending)) {
-        sending.catch(() => {});
-      }
+      Promise.resolve(sending).catch((err) => this.logFailure(err));
     });
   }
 
@@ -94,7 +91,8 @@ class OutgoingImage extends Emitter {
    * Otherwise image is sent automatically when instance is created by <code>session.sendImage</code>
    *
    * @return {Promise|void} rejects when no channel can be resolved. The callback passed to
-   * <code>Session.sendImage</code> receives that error. Listeners on <code>error</code> receive it too.
+   * <code>Session.sendImage</code> receives that error, and the server's error if it rejects the image.
+   * Listeners on <code>error</code> receive both too.
    * **/
   send() {
     if (!this.readyToSend()) {
@@ -122,7 +120,8 @@ class OutgoingImage extends Emitter {
     }
     this.session.sendCommand(params, (err, data) => {
       if (err) {
-        throw new Error(err ? err : Constants.ERROR_FAILED_TO_SEND_IMAGE);
+        this.fail(new Error(err)).catch((failure) => this.logFailure(failure));
+        return;
       }
       this.currentMessageId = data.image_id;
       this.sendData();
@@ -130,19 +129,23 @@ class OutgoingImage extends Emitter {
   }
 
   fail(err) {
-    if (Utils.isFunction(this.userCallback)) {
-      this.userCallback(err);
+    if (Utils.isFunction(this.userErrorCallback)) {
+      this.userErrorCallback(err);
     }
     // 'error' with no listener throws. Emit only when someone is waiting for it.
     if (typeof this.hasListeners === 'function' && this.hasListeners(Constants.EVENT_ERROR)) {
       /**
        * Outgoing image failed before it was sent
        * @event OutgoingImage#error
-       * @param {Error} error failure, such as a missing channel
+       * @param {Error} error failure, such as a missing channel or a server rejection
        */
       this.emit(Constants.EVENT_ERROR, err);
     }
     return Promise.reject(err);
+  }
+
+  logFailure(err) {
+    this.session.log(`Failed to send image: ${err.message}`);
   }
 
   sendData() {

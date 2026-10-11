@@ -9,7 +9,7 @@ interface PCMPlayerOptions {
   autoResume?: boolean;
 }
 
-type OnEndedCallback = (feedCounter: number, streamId: string) => void;
+type OnEndedCallback = (feedCounter: number, trackId: string) => void;
 
 const ENCODING_MAX_VALUES: Record<string, number> = {
   '8bitInt': 128,
@@ -36,12 +36,12 @@ const DEFAULT_ENCODING = '16bitInt';
 
 const RESUME_GESTURE_EVENTS = ['pointerdown', 'pointerup', 'click', 'touchend', 'keydown'] as const;
 
-const DEFAULT_STREAM = '';
+const DEFAULT_TRACK = '';
 
 /**
- * Playback state of one incoming stream. Every track schedules its buffers
- * on the shared GainNode, so streams that overlap in time are mixed by Web
- * Audio instead of being appended to one timeline.
+ * Playback state of one track. Every track schedules its buffers on the
+ * shared GainNode, so tracks that overlap in time are mixed by Web Audio
+ * instead of being appended to one timeline.
  */
 interface Track {
   chunks: Float32Array[];
@@ -51,7 +51,7 @@ interface Track {
   startTime: number;
   sampleRate: number;
   muted: boolean;
-  /** Set by {@link PCMPlayer.endStream}: release the track once it has drained. */
+  /** Set by {@link PCMPlayer.endTrack}: release the track once it has drained. */
   ending: boolean;
   /** Scheduled sources that have not fired `onended` yet, so reset can stop them. */
   sources: Set<AudioBufferSourceNode>;
@@ -95,7 +95,7 @@ class PCMPlayer {
   private readonly maxValue: number;
   private readonly typedArrayCtor: SupportedTypedArrayConstructor;
 
-  /** Callers that omit a stream id share one track. */
+  /** Callers that omit a track id share one track. */
   private tracks: Map<string, Track> = new Map();
 
   private audioCtx: AudioContext | null = null;
@@ -191,20 +191,20 @@ class PCMPlayer {
 
   /**
    * Buffers PCM sample data for playback. Data is accumulated in chunks and
-   * flushed to the audio output on the next flush cycle. Each stream id has
-   * its own buffer and timeline, so two streams fed at the same time play
+   * flushed to the audio output on the next flush cycle. Each track id has
+   * its own buffer and timeline, so two tracks fed at the same time play
    * mixed rather than one after the other.
    * @param data Raw PCM samples as a typed array.
-   * @param streamId Stream the samples belong to. Omit for single-stream use.
+   * @param trackId Track the samples belong to. Omit for single-track use.
    */
-  public feed(data: Float32Array | ArrayBufferView, streamId: string = DEFAULT_STREAM) {
+  public feed(data: Float32Array | ArrayBufferView, trackId: string = DEFAULT_TRACK) {
     if (this.muted || this.destroyed) {
       return;
     }
     if (!this.isTypedArray(data)) {
       return;
     }
-    const track = this.track(streamId);
+    const track = this.track(trackId);
     if (track.muted) {
       return;
     }
@@ -243,18 +243,18 @@ class PCMPlayer {
   }
 
   /**
-   * Updates the sample rate used for subsequent flush cycles. With a stream
-   * id only that stream's track changes, so a second stream at another rate
-   * does not retime samples the first stream already buffered. Without one,
-   * the default track and the rate given to new tracks change.
+   * Updates the sample rate used for subsequent flush cycles. With a track
+   * id only that track changes, so a second track at another rate does not
+   * retime samples the first track already buffered. Without one, the
+   * default track and the rate given to new tracks change.
    * @param sampleRate The new sample rate in Hz.
-   * @param streamId Stream to change. Omit for single-stream use.
+   * @param trackId Track to change. Omit for single-track use.
    */
-  public setSampleRate(sampleRate: number, streamId?: string) {
-    if (streamId === undefined) {
+  public setSampleRate(sampleRate: number, trackId?: string) {
+    if (trackId === undefined) {
       this.options.sampleRate = sampleRate;
     }
-    this.track(streamId ?? DEFAULT_STREAM).sampleRate = sampleRate;
+    this.track(trackId ?? DEFAULT_TRACK).sampleRate = sampleRate;
   }
 
   /**
@@ -325,32 +325,32 @@ class PCMPlayer {
 
   /**
    * Mutes or unmutes the player. When muted, calls to feed() are ignored.
-   * With a stream id only that stream is affected, which lets an app keep
-   * one stream audible while dropping another that plays at the same time.
+   * With a track id only that track is affected, which lets an app keep
+   * one track audible while dropping another that plays at the same time.
    * @param isMuted Whether to mute.
-   * @param streamId Stream to mute. Omit to mute every stream.
+   * @param trackId Track to mute. Omit to mute every track.
    */
-  public mute(isMuted: boolean, streamId?: string) {
-    if (streamId === undefined) {
+  public mute(isMuted: boolean, trackId?: string) {
+    if (trackId === undefined) {
       this.muted = isMuted;
       return;
     }
-    this.track(streamId).muted = isMuted;
+    this.track(trackId).muted = isMuted;
   }
 
   /**
-   * Marks a stream as finished. Samples it already buffered still play; the
-   * track is released once they have. Streams that stop early should call
+   * Marks a track as finished. Samples it already buffered still play; the
+   * track is released once they have. Tracks that stop early should call
    * {@link reset} with their id instead.
-   * @param streamId Stream that has ended.
+   * @param trackId Track that has ended.
    */
-  public endStream(streamId: string) {
-    const track = this.tracks.get(streamId);
+  public endTrack(trackId: string) {
+    const track = this.tracks.get(trackId);
     if (!track) {
       return;
     }
     track.ending = true;
-    this.releaseIfDrained(streamId, track);
+    this.releaseIfDrained(trackId, track);
   }
 
   /**
@@ -364,11 +364,11 @@ class PCMPlayer {
    * This makes `reset()` a true "cancel playback and start fresh"
    * operation for consumers that reuse a single player across multiple
    * logical owners.
-   * @param streamId Stream to cancel. Omit to cancel every stream.
+   * @param trackId Track to cancel. Omit to cancel every track.
    */
-  public reset(streamId?: string) {
-    if (streamId !== undefined) {
-      this.resetTrack(streamId);
+  public reset(trackId?: string) {
+    if (trackId !== undefined) {
+      this.resetTrack(trackId);
       return;
     }
     for (const id of this.tracks.keys()) {
@@ -376,8 +376,8 @@ class PCMPlayer {
     }
   }
 
-  private resetTrack(streamId: string) {
-    const track = this.tracks.get(streamId);
+  private resetTrack(trackId: string) {
+    const track = this.tracks.get(trackId);
     if (!track) {
       return;
     }
@@ -394,7 +394,7 @@ class PCMPlayer {
       source.disconnect();
     }
     track.sources.clear();
-    this.tracks.delete(streamId);
+    this.tracks.delete(trackId);
   }
 
   private clearTrackBuffers(track: Track) {
@@ -403,8 +403,8 @@ class PCMPlayer {
     track.feedCounter = 0;
   }
 
-  private track(streamId: string): Track {
-    let track = this.tracks.get(streamId);
+  private track(trackId: string): Track {
+    let track = this.tracks.get(trackId);
     if (!track) {
       track = {
         chunks: [],
@@ -416,14 +416,14 @@ class PCMPlayer {
         ending: false,
         sources: new Set()
       };
-      this.tracks.set(streamId, track);
+      this.tracks.set(trackId, track);
     }
     return track;
   }
 
-  private releaseIfDrained(streamId: string, track: Track) {
+  private releaseIfDrained(trackId: string, track: Track) {
     if (track.ending && track.totalSamples === 0 && track.sources.size === 0) {
-      this.tracks.delete(streamId);
+      this.tracks.delete(trackId);
     }
   }
 
@@ -510,16 +510,16 @@ class PCMPlayer {
       return;
     }
 
-    for (const [streamId, track] of this.tracks) {
+    for (const [trackId, track] of this.tracks) {
       if (track.totalSamples === 0) {
-        this.releaseIfDrained(streamId, track);
+        this.releaseIfDrained(trackId, track);
         continue;
       }
-      this.scheduleTrack(streamId, track);
+      this.scheduleTrack(trackId, track);
     }
   }
 
-  private scheduleTrack(streamId: string, track: Track) {
+  private scheduleTrack(trackId: string, track: Track) {
     if (!this.audioCtx || !this.gainNode) {
       return;
     }
@@ -556,9 +556,9 @@ class PCMPlayer {
       track.sources.delete(source);
       source.disconnect();
       if (callback) {
-        callback(capturedFeedCount, streamId);
+        callback(capturedFeedCount, trackId);
       }
-      this.releaseIfDrained(streamId, track);
+      this.releaseIfDrained(trackId, track);
     };
 
     track.startTime += audioBuffer.duration;

@@ -71,7 +71,6 @@ class Session extends Emitter {
     this.wasOnline = false;
     this.reconnectTimeout = null;
     this.connectTimeout = null;
-    this.channelConfigurationError = false;
     this.channelConfigurationErrors = new Set();
     this.heartbeatTimer = null;
     this.heartbeatAwaitingServerAck = false;
@@ -87,6 +86,10 @@ class Session extends Emitter {
 
   getSeq() {
     return ++this.seq;
+  }
+
+  get channelConfigurationError() {
+    return this.channelConfigurationErrors.size === this.options.channels.length;
   }
 
   static prepareChannels(options) {
@@ -495,9 +498,6 @@ session.connect(function(err, result) {
                 if (this.options.channels.indexOf(jsonData.channel) !== -1) {
                   this.channelConfigurationErrors.add(jsonData.channel);
                 }
-                if (this.channelConfigurationErrors.size === this.options.channels.length) {
-                  this.channelConfigurationError = true;
-                }
               }
               break;
           }
@@ -725,9 +725,10 @@ var outgoingMessage = session.startVoiceMessage({
    *                              if set to true (default) you will need to call OutgoingImage.send() to send an image
    * @property {File} File object (optional) if provided this file is send as an image with a source 'library'
    *
-   * @param {function} [userCallback] called with an error when the image cannot be sent,
-   * including when <code>preview</code> is false and no channel can be resolved.
-   * That failure happens after the file is read, so it does not throw from <code>sendImage</code>.
+   * @param {function} [userErrorCallback] called with an error when the image cannot be sent,
+   * including when <code>preview</code> is false and no channel can be resolved, or when the server
+   * rejects the image. Those failures happen after the file is read, so they do not throw from
+   * <code>sendImage</code>.
    *
    * @return {ZCC.OutgoingImage} OutgoingImage object
    * @example
@@ -741,9 +742,9 @@ var outgoingMessage = session.startVoiceMessage({
     }
    });
    **/
-  sendImage(options = {}, userCallback = null) {
+  sendImage(options = {}, userErrorCallback = null) {
     const library = Utils.getLoadedLibrary();
-    this.activeOutgoingImage = new library.OutgoingImage(this, options, userCallback);
+    this.activeOutgoingImage = new library.OutgoingImage(this, options, userErrorCallback);
     return this.activeOutgoingImage;
   }
 

@@ -105,8 +105,8 @@ class IncomingMessage extends Emitter {
       } else if (!isComplete && Utils.isFunction(this.player.reset)) {
         this.options.log?.(`Resetting player`);
         this.player.reset(this.instanceId);
-      } else if (Utils.isFunction(this.player.endStream)) {
-        this.player.endStream(this.instanceId);
+      } else if (Utils.isFunction(this.player.endTrack)) {
+        this.player.endTrack(this.instanceId);
       }
     }
     this.session.off([Constants.EVENT_INCOMING_VOICE_DATA, this.instanceId], this.incomingVoiceHandler);

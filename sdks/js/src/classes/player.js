@@ -6,23 +6,24 @@
 
 /**
  * Send PCM data to play. The default player keeps one playback track per
- * <code>streamId</code>, so streams received at the same time are mixed.
+ * <code>trackId</code>, so tracks fed at the same time are mixed.
+ * <code>IncomingMessage</code> uses one track per incoming stream.
  *
  * @method
  * @name Player#feed
  * @param {Float32Array} audioData PCM audio data to be played
- * @param {String} [streamId] incoming stream the data belongs to
+ * @param {String} [trackId] track the data belongs to
  * @example
-player.feed(audioData, streamId);
+player.feed(audioData, trackId);
  */
 
 /**
- * Mark a stream as finished. Buffered samples still play, then the stream's
- * track is released.
+ * Mark a track as finished. Buffered samples still play, then the track is
+ * released.
  *
  * @method
- * @name Player#endStream
- * @param {String} streamId incoming stream that ended
+ * @name Player#endTrack
+ * @param {String} trackId track that ended
  */
 const PCMPlayer = require('./PCMPlayer');
 module.exports = PCMPlayer;

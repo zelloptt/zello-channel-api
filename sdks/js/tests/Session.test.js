@@ -32,7 +32,6 @@ const bareSession = (options) => {
   session.log = () => {};
   session.emit = () => {};
   session.wasOnline = false;
-  session.channelConfigurationError = false;
   session.channelConfigurationErrors = new Set();
   session.sent = [];
   session.sendCommand = (params) => {
@@ -313,6 +312,18 @@ describe('OutgoingImage channel routing', () => {
     expect(image.session.sent).toHaveLength(0);
   });
 
+  it('reports a server rejection to the error callback instead of throwing', () => {
+    const onError = jest.fn();
+    const image = openImage({ channel: 'Front' }, {}, onError);
+    image.fullImageData = new Uint8Array([2]);
+    image.session.sendCommand = (params, callback) => callback('channel is not ready');
+
+    expect(() => image.send()).not.toThrow();
+    expect(onError).toHaveBeenCalledWith(expect.objectContaining({
+      message: 'channel is not ready'
+    }));
+  });
+
   it('sends automatically when a channel is available', () => {
     const image = openImage({
       channels: ['Front', 'Back'],
@@ -453,7 +464,7 @@ describe('Incoming channel identity', () => {
       setFlushingTime: jest.fn(),
       feed: jest.fn(),
       reset: jest.fn(),
-      endStream: jest.fn(),
+      endTrack: jest.fn(),
       mute: jest.fn()
     };
     IncomingMessage.PersistentPlayer = player;
@@ -478,13 +489,13 @@ describe('Incoming channel identity', () => {
     // Ended early by the server: cancel this stream's audio only.
     message.stopPlayback(false);
     expect(player.reset).toHaveBeenCalledWith('5');
-    expect(player.endStream).not.toHaveBeenCalled();
+    expect(player.endTrack).not.toHaveBeenCalled();
 
     // Played to the end: let buffered samples finish, then release the track.
     const complete = create(6);
     await complete.init();
     complete.stopPlayback(true);
-    expect(player.endStream).toHaveBeenCalledWith('6');
+    expect(player.endTrack).toHaveBeenCalledWith('6');
     expect(player.reset).toHaveBeenCalledTimes(1);
   });
 });

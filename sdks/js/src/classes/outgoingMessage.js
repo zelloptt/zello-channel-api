@@ -170,10 +170,10 @@ outgoingMessage.then(function(result) {
     }, userCallback);
   }
 
-  fail(err, userCallback) {
+  fail(err, userErrorCallback) {
     this.destroy();
-    if (Utils.isFunction(userCallback)) {
-      userCallback(err);
+    if (Utils.isFunction(userErrorCallback)) {
+      userErrorCallback(err);
     }
     return Promise.reject(err);
   }

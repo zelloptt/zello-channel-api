@@ -648,8 +648,8 @@ describe('PCMPlayer', () => {
     });
   });
 
-  describe('per-stream tracks', () => {
-    async function twoStreamPlayer() {
+  describe('tracks', () => {
+    async function twoTrackPlayer() {
       const player = await createInitializedPlayer({
         encoding: '32bitFloat',
         flushingTime: 100,
@@ -660,8 +660,8 @@ describe('PCMPlayer', () => {
       return { player, ctx };
     }
 
-    test('mixes two streams fed at the same time instead of appending them', async () => {
-      const { player, ctx } = await twoStreamPlayer();
+    test('mixes two tracks fed at the same time instead of appending them', async () => {
+      const { player, ctx } = await twoTrackPlayer();
       player.setSampleRate(8000, 'a');
       player.setSampleRate(16000, 'b');
       player.feed(createFloat32Samples(800, 0.25), 'a');
@@ -680,8 +680,8 @@ describe('PCMPlayer', () => {
       player.destroy();
     });
 
-    test('mute with a stream id drops only that stream', async () => {
-      const { player, ctx } = await twoStreamPlayer();
+    test('mute with a track id drops only that track', async () => {
+      const { player, ctx } = await twoTrackPlayer();
       player.mute(true, 'b');
       player.feed(createFloat32Samples(800), 'a');
       player.feed(createFloat32Samples(800), 'b');
@@ -697,8 +697,8 @@ describe('PCMPlayer', () => {
       player.destroy();
     });
 
-    test('reset with a stream id stops only that stream', async () => {
-      const { player, ctx } = await twoStreamPlayer();
+    test('reset with a track id stops only that track', async () => {
+      const { player, ctx } = await twoTrackPlayer();
       player.feed(createFloat32Samples(800), 'a');
       player.feed(createFloat32Samples(800), 'b');
       jest.advanceTimersByTime(100);
@@ -715,10 +715,10 @@ describe('PCMPlayer', () => {
       player.destroy();
     });
 
-    test('endStream releases the track once its samples have played', async () => {
-      const { player } = await twoStreamPlayer();
+    test('endTrack releases the track once its samples have played', async () => {
+      const { player } = await twoTrackPlayer();
       player.feed(createFloat32Samples(800), 'a');
-      player.endStream('a');
+      player.endTrack('a');
       expect(player['tracks'].has('a')).toBe(true);
 
       jest.advanceTimersByTime(100);
@@ -730,8 +730,8 @@ describe('PCMPlayer', () => {
       player.destroy();
     });
 
-    test('feed without a stream id keeps using the default track', async () => {
-      const { player, ctx } = await twoStreamPlayer();
+    test('feed without a track id keeps using the default track', async () => {
+      const { player, ctx } = await twoTrackPlayer();
       player.feed(createFloat32Samples(400));
       player.feed(createFloat32Samples(400));
       player.setSampleRate(24000);
@@ -743,8 +743,8 @@ describe('PCMPlayer', () => {
       player.destroy();
     });
 
-    test('reset without a stream id clears every stream', async () => {
-      const { player } = await twoStreamPlayer();
+    test('reset without a track id clears every track', async () => {
+      const { player } = await twoTrackPlayer();
       player.feed(createFloat32Samples(800), 'a');
       player.feed(createFloat32Samples(800), 'b');
       player.feed(createFloat32Samples(800));
