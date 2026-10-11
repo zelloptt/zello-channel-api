@@ -10,6 +10,7 @@ class IncomingImage extends Emitter {
   constructor(messageData, session) {
     super();
     this.messageData = messageData;
+    this.channel = messageData.channel;
     this.options = Object.assign({}, session.options, {messageData: messageData});
     this.instanceId = messageData.message_id;
     this.session = session;
