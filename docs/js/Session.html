@@ -362,7 +362,7 @@ the <a href="https://github.com/zelloptt/zello-channel-api">Zello Channel API</a
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line176">line 176</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line179">line 179</a>
     </li></ul></dd>
     
 
@@ -493,7 +493,7 @@ session.connect(function(err, result) {
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line427">line 427</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line430">line 430</a>
     </li></ul></dd>
     
 
@@ -729,7 +729,7 @@ A function keeps <code>endDispatchCall(callId, callback)</code> working.</td>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line781">line 781</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line790">line 790</a>
     </li></ul></dd>
     
 
@@ -794,7 +794,7 @@ A function keeps <code>endDispatchCall(callId, callback)</code> working.</td>
     
 
     
-    <h4 class="name" id="sendImage"><span class="type-signature"></span>sendImage<span class="signature">(options)</span><span class="type-signature"> &rarr; {ZCC.OutgoingImage}</span></h4>
+    <h4 class="name" id="sendImage"><span class="type-signature"></span>sendImage<span class="signature">(options, userErrorCallback<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {ZCC.OutgoingImage}</span></h4>
     
 
     
@@ -826,7 +826,11 @@ A function keeps <code>endDispatchCall(callId, callback)</code> working.</td>
         <th>Type</th>
 
         
+        <th>Attributes</th>
+        
 
+        
+        <th>Default</th>
         
 
         <th class="last">Description</th>
@@ -851,10 +855,64 @@ A function keeps <code>endDispatchCall(callId, callback)</code> working.</td>
             </td>
 
             
+                <td class="attributes">
+                
 
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
             
 
             <td class="description last">options for outgoing image.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>userErrorCallback</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">function</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    null
+                
+                </td>
+            
+
+            <td class="description last">called with an error when the image cannot be sent,
+including when <code>preview</code> is false and no channel can be resolved, or when the server
+rejects the image. Those failures happen after the file is read, so they do not throw from
+<code>sendImage</code>.</td>
         </tr>
 
     
@@ -994,7 +1052,7 @@ A function keeps <code>endDispatchCall(callId, callback)</code> working.</td>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line736">line 736</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line745">line 745</a>
     </li></ul></dd>
     
 
@@ -1050,6 +1108,10 @@ A function keeps <code>endDispatchCall(callId, callback)</code> working.</td>
     <pre class="prettyprint"><code>var outgoingImage = session.sendImage({
     preview: false,
     for: 'username'
+   }, function(err) {
+    if (err) {
+      console.trace(err);
+    }
    });</code></pre>
 
 
@@ -1307,7 +1369,7 @@ A function keeps <code>endDispatchCall(callId, callback)</code> working.</td>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line758">line 758</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line767">line 767</a>
     </li></ul></dd>
     
 
@@ -2303,7 +2365,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line471">line 471</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line474">line 474</a>
     </li></ul></dd>
     
 
@@ -2939,7 +3001,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line440">line 440</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line443">line 443</a>
     </li></ul></dd>
     
 
@@ -3895,7 +3957,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line220">line 220</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line223">line 223</a>
     </li></ul></dd>
     
 
@@ -4032,7 +4094,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line296">line 296</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line299">line 299</a>
     </li></ul></dd>
     
 
@@ -4169,7 +4231,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line245">line 245</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line248">line 248</a>
     </li></ul></dd>
     
 
@@ -4306,7 +4368,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line240">line 240</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line243">line 243</a>
     </li></ul></dd>
     
 
@@ -4394,7 +4456,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line205">line 205</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line208">line 208</a>
     </li></ul></dd>
     
 
@@ -4629,7 +4691,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line479">line 479</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line482">line 482</a>
     </li></ul></dd>
     
 
@@ -4671,13 +4733,13 @@ var outgoingMessage = session.startVoiceMessage({
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="IncomingImage.html">IncomingImage</a></li><li><a href="IncomingMessage.html">IncomingMessage</a></li><li><a href="OutgoingImage.html">OutgoingImage</a></li><li><a href="OutgoingMessage.html">OutgoingMessage</a></li><li><a href="Sdk.html">Sdk</a></li><li><a href="Session.html">Session</a></li></ul><h3>Interfaces</h3><ul><li><a href="Decoder.html">Decoder</a></li><li><a href="Encoder.html">Encoder</a></li><li><a href="Player.html">Player</a></li><li><a href="Recorder.html">Recorder</a></li></ul><h3>Events</h3><ul><li><a href="Decoder.html#event:decode">decode</a></li><li><a href="IncomingImage.html#event:image">image</a></li><li><a href="IncomingImage.html#event:image_thumbnail">image_thumbnail</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="OutgoingImage.html#event:image_preview_data">image_preview_data</a></li><li><a href="OutgoingImage.html#event:thumbnail_preview_data">thumbnail_preview_data</a></li><li><a href="OutgoingMessage.html#event:data">data</a></li><li><a href="OutgoingMessage.html#event:data_encoded">data_encoded</a></li><li><a href="Session.html#event:dispatch_call_status">dispatch_call_status</a></li><li><a href="Session.html#event:error">error</a></li><li><a href="Session.html#event:incoming_image">incoming_image</a></li><li><a href="Session.html#event:incoming_location">incoming_location</a></li><li><a href="Session.html#event:incoming_text_message">incoming_text_message</a></li><li><a href="Session.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="Session.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="Session.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="Session.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="Session.html#event:incoming_voice_fail_start">incoming_voice_fail_start</a></li><li><a href="Session.html#event:incoming_voice_will_start">incoming_voice_will_start</a></li><li><a href="Session.html#event:outgoing_voice_did_stop">outgoing_voice_did_stop</a></li><li><a href="Session.html#event:session_connect">session_connect</a></li><li><a href="Session.html#event:session_connection_lost">session_connection_lost</a></li><li><a href="Session.html#event:session_disconnect">session_disconnect</a></li><li><a href="Session.html#event:session_fail_connect">session_fail_connect</a></li><li><a href="Session.html#event:session_start_connect">session_start_connect</a></li><li><a href="Session.html#event:status">status</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="IncomingImage.html">IncomingImage</a></li><li><a href="IncomingMessage.html">IncomingMessage</a></li><li><a href="OutgoingImage.html">OutgoingImage</a></li><li><a href="OutgoingMessage.html">OutgoingMessage</a></li><li><a href="Sdk.html">Sdk</a></li><li><a href="Session.html">Session</a></li></ul><h3>Interfaces</h3><ul><li><a href="Decoder.html">Decoder</a></li><li><a href="Encoder.html">Encoder</a></li><li><a href="Player.html">Player</a></li><li><a href="Recorder.html">Recorder</a></li></ul><h3>Events</h3><ul><li><a href="Decoder.html#event:decode">decode</a></li><li><a href="IncomingImage.html#event:image">image</a></li><li><a href="IncomingImage.html#event:image_thumbnail">image_thumbnail</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="OutgoingImage.html#event:error">error</a></li><li><a href="OutgoingImage.html#event:image_preview_data">image_preview_data</a></li><li><a href="OutgoingImage.html#event:thumbnail_preview_data">thumbnail_preview_data</a></li><li><a href="OutgoingMessage.html#event:data">data</a></li><li><a href="OutgoingMessage.html#event:data_encoded">data_encoded</a></li><li><a href="Session.html#event:dispatch_call_status">dispatch_call_status</a></li><li><a href="Session.html#event:error">error</a></li><li><a href="Session.html#event:incoming_image">incoming_image</a></li><li><a href="Session.html#event:incoming_location">incoming_location</a></li><li><a href="Session.html#event:incoming_text_message">incoming_text_message</a></li><li><a href="Session.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="Session.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="Session.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="Session.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="Session.html#event:incoming_voice_fail_start">incoming_voice_fail_start</a></li><li><a href="Session.html#event:incoming_voice_will_start">incoming_voice_will_start</a></li><li><a href="Session.html#event:outgoing_voice_did_stop">outgoing_voice_did_stop</a></li><li><a href="Session.html#event:session_connect">session_connect</a></li><li><a href="Session.html#event:session_connection_lost">session_connection_lost</a></li><li><a href="Session.html#event:session_disconnect">session_disconnect</a></li><li><a href="Session.html#event:session_fail_connect">session_fail_connect</a></li><li><a href="Session.html#event:session_start_connect">session_start_connect</a></li><li><a href="Session.html#event:status">status</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Sat Sep 26 2026 23:00:38 GMT-0500 (Central Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Sat Oct 10 2026 20:42:36 GMT-0500 (Central Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>
