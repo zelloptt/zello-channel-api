@@ -38,8 +38,10 @@ const HEIGHT = 'Height';
  * @classdesc Outgoing image class. Instances are returned from &lt;code>Session.sendImage&lt;/code> method
  **/
 class OutgoingImage extends Emitter {
-  constructor(session, instanceOptions = {}) {
+  constructor(session, instanceOptions = {}, userErrorCallback = null) {
     super();
+    this.userErrorCallback = userErrorCallback;
+    this.instanceOptions = instanceOptions;
     this.options = Object.assign({
       thumbnailCompress: 0.3,
       fullImageCompress: 0.8,
@@ -99,7 +101,15 @@ class OutgoingImage extends Emitter {
       if (this.options.preview) {
         return;
       }
-      this.send();
+      // send() runs from the file reader, after sendImage() has returned,
+      // so nothing upstream can catch its failure.
+      let sending;
+      try {
+        sending = this.send();
+      } catch (err) {
+        sending = this.fail(err);
+      }
+      Promise.resolve(sending).catch((err) => this.logFailure(err));
     });
   }
 
@@ -107,10 +117,20 @@ class OutgoingImage extends Emitter {
    * Sends an outgoing image
    * call this method if  &lt;code>options.preview&lt;/code> is set to &lt;code>true&lt;/code> (default behaviour).
    * Otherwise image is sent automatically when instance is created by &lt;code>session.sendImage&lt;/code>
+   *
+   * @return {Promise|void} rejects when no channel can be resolved. The callback passed to
+   * &lt;code>Session.sendImage&lt;/code> receives that error, and the server's error if it rejects the image.
+   * Listeners on &lt;code>error&lt;/code> receive both too.
    * **/
   send() {
     if (!this.readyToSend()) {
       throw new Error(Constants.ERROR_IMAGE_NOT_READY_TO_BE_SENT);
+    }
+    let channel;
+    try {
+      channel = this.session.resolveChannel(this.instanceOptions.channel);
+    } catch (err) {
+      return this.fail(err);
     }
     const params = {
       seq: this.session.getSeq(),
@@ -120,18 +140,40 @@ class OutgoingImage extends Emitter {
       content_length: this.fullImageData.length,
       width: this.fullImageWidth,
       height: this.fullImageHeight,
-      source: this.source
+      source: this.source,
+      channel: channel
     };
     if (this.options.for) {
       params.for = this.options.for;
     }
     this.session.sendCommand(params, (err, data) => {
       if (err) {
-        throw new Error(err ? err : Constants.ERROR_FAILED_TO_SEND_IMAGE);
+        this.fail(new Error(err)).catch((failure) => this.logFailure(failure));
+        return;
       }
       this.currentMessageId = data.image_id;
       this.sendData();
     });
+  }
+
+  fail(err) {
+    if (Utils.isFunction(this.userErrorCallback)) {
+      this.userErrorCallback(err);
+    }
+    // 'error' with no listener throws. Emit only when someone is waiting for it.
+    if (typeof this.hasListeners === 'function' &amp;&amp; this.hasListeners(Constants.EVENT_ERROR)) {
+      /**
+       * Outgoing image failed before it was sent
+       * @event OutgoingImage#error
+       * @param {Error} error failure, such as a missing channel or a server rejection
+       */
+      this.emit(Constants.EVENT_ERROR, err);
+    }
+    return Promise.reject(err);
+  }
+
+  logFailure(err) {
+    this.session.log(`Failed to send image: ${err.message}`);
   }
 
   sendData() {
@@ -269,13 +311,13 @@ module.exports = OutgoingImage;</code></pre>
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="IncomingImage.html">IncomingImage</a></li><li><a href="IncomingMessage.html">IncomingMessage</a></li><li><a href="OutgoingImage.html">OutgoingImage</a></li><li><a href="OutgoingMessage.html">OutgoingMessage</a></li><li><a href="Sdk.html">Sdk</a></li><li><a href="Session.html">Session</a></li></ul><h3>Interfaces</h3><ul><li><a href="Decoder.html">Decoder</a></li><li><a href="Encoder.html">Encoder</a></li><li><a href="Player.html">Player</a></li><li><a href="Recorder.html">Recorder</a></li></ul><h3>Events</h3><ul><li><a href="Decoder.html#event:decode">decode</a></li><li><a href="IncomingImage.html#event:image">image</a></li><li><a href="IncomingImage.html#event:image_thumbnail">image_thumbnail</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="OutgoingImage.html#event:image_preview_data">image_preview_data</a></li><li><a href="OutgoingImage.html#event:thumbnail_preview_data">thumbnail_preview_data</a></li><li><a href="OutgoingMessage.html#event:data">data</a></li><li><a href="OutgoingMessage.html#event:data_encoded">data_encoded</a></li><li><a href="Session.html#event:dispatch_call_status">dispatch_call_status</a></li><li><a href="Session.html#event:error">error</a></li><li><a href="Session.html#event:incoming_image">incoming_image</a></li><li><a href="Session.html#event:incoming_location">incoming_location</a></li><li><a href="Session.html#event:incoming_text_message">incoming_text_message</a></li><li><a href="Session.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="Session.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="Session.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="Session.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="Session.html#event:incoming_voice_fail_start">incoming_voice_fail_start</a></li><li><a href="Session.html#event:incoming_voice_will_start">incoming_voice_will_start</a></li><li><a href="Session.html#event:outgoing_voice_did_stop">outgoing_voice_did_stop</a></li><li><a href="Session.html#event:session_connect">session_connect</a></li><li><a href="Session.html#event:session_connection_lost">session_connection_lost</a></li><li><a href="Session.html#event:session_disconnect">session_disconnect</a></li><li><a href="Session.html#event:session_fail_connect">session_fail_connect</a></li><li><a href="Session.html#event:session_start_connect">session_start_connect</a></li><li><a href="Session.html#event:status">status</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="IncomingImage.html">IncomingImage</a></li><li><a href="IncomingMessage.html">IncomingMessage</a></li><li><a href="OutgoingImage.html">OutgoingImage</a></li><li><a href="OutgoingMessage.html">OutgoingMessage</a></li><li><a href="Sdk.html">Sdk</a></li><li><a href="Session.html">Session</a></li></ul><h3>Interfaces</h3><ul><li><a href="Decoder.html">Decoder</a></li><li><a href="Encoder.html">Encoder</a></li><li><a href="Player.html">Player</a></li><li><a href="Recorder.html">Recorder</a></li></ul><h3>Events</h3><ul><li><a href="Decoder.html#event:decode">decode</a></li><li><a href="IncomingImage.html#event:image">image</a></li><li><a href="IncomingImage.html#event:image_thumbnail">image_thumbnail</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="OutgoingImage.html#event:error">error</a></li><li><a href="OutgoingImage.html#event:image_preview_data">image_preview_data</a></li><li><a href="OutgoingImage.html#event:thumbnail_preview_data">thumbnail_preview_data</a></li><li><a href="OutgoingMessage.html#event:data">data</a></li><li><a href="OutgoingMessage.html#event:data_encoded">data_encoded</a></li><li><a href="Session.html#event:dispatch_call_status">dispatch_call_status</a></li><li><a href="Session.html#event:error">error</a></li><li><a href="Session.html#event:incoming_image">incoming_image</a></li><li><a href="Session.html#event:incoming_location">incoming_location</a></li><li><a href="Session.html#event:incoming_text_message">incoming_text_message</a></li><li><a href="Session.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="Session.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="Session.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="Session.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="Session.html#event:incoming_voice_fail_start">incoming_voice_fail_start</a></li><li><a href="Session.html#event:incoming_voice_will_start">incoming_voice_will_start</a></li><li><a href="Session.html#event:outgoing_voice_did_stop">outgoing_voice_did_stop</a></li><li><a href="Session.html#event:session_connect">session_connect</a></li><li><a href="Session.html#event:session_connection_lost">session_connection_lost</a></li><li><a href="Session.html#event:session_disconnect">session_disconnect</a></li><li><a href="Session.html#event:session_fail_connect">session_fail_connect</a></li><li><a href="Session.html#event:session_start_connect">session_start_connect</a></li><li><a href="Session.html#event:status">status</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Mon Feb 16 2026 10:23:22 GMT-0500 (Eastern Standard Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Sat Oct 10 2026 20:42:36 GMT-0500 (Central Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>

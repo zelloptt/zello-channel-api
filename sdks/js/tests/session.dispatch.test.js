@@ -8,15 +8,17 @@
 
 const Session = require('../src/classes/session');
 
-const makeStub = () => {
+const makeStub = (options = { channel: 'kiosk-channel', channels: ['kiosk-channel'] }) => {
   const sent = [];
   const stub = {
-    options: { channel: 'kiosk-channel' },
+    options,
     seq: 0,
     callbacks: {},
     getSeq: Session.prototype.getSeq,
     sendCommand: Session.prototype.sendCommand,
     sendCommandWithCallback: Session.prototype.sendCommandWithCallback,
+    sendChannelCommand: Session.prototype.sendChannelCommand,
+    resolveChannel: Session.prototype.resolveChannel,
     wsConnection: { send: (raw) => sent.push(JSON.parse(raw)) }
   };
   return { stub, sent };
@@ -138,9 +140,7 @@ describe('stopDispatchMessage', () => {
 
     Session.prototype.stopDispatchMessage.call(stub);
 
-    expect(sent).toEqual([
-      { command: 'stop_dispatch_message', channel: 'kiosk-channel', seq: 1 }
-    ]);
+    expect(sent).toEqual([{ command: 'stop_dispatch_message', seq: 1 }]);
   });
 
   test('rejects when nothing is playing', async () => {
@@ -150,5 +150,55 @@ describe('stopDispatchMessage', () => {
     fail(stub, 1, 'not playing');
 
     await expect(promise).rejects.toEqual('not playing');
+  });
+});
+
+describe('multi-channel sessions', () => {
+  const multi = { channels: ['alpha', 'beta'] };
+
+  test('an explicit channel overrides the session default', () => {
+    const { stub, sent } = makeStub();
+
+    Session.prototype.takeDispatchCall.call(stub, 171234, 'beta');
+
+    expect(sent).toEqual([
+      {
+        command: 'take_dispatch_call',
+        channel: 'beta',
+        call_id: 171234,
+        seq: 1
+      }
+    ]);
+  });
+
+  test('the explicit channel works with a trailing callback', () => {
+    const { stub, sent } = makeStub();
+
+    Session.prototype.getDispatchCalls.call(stub, 'beta', () => {});
+
+    expect(sent).toEqual([
+      { command: 'get_dispatch_calls', channel: 'beta', seq: 1 }
+    ]);
+  });
+
+  test('a channels-only session must name the channel on a play', async () => {
+    const { stub, sent } = makeStub(multi);
+
+    const promise = Session.prototype.playDispatchMessage.call(
+      stub,
+      171234,
+      411
+    );
+
+    await expect(promise).rejects.toBeInstanceOf(Error);
+    expect(sent).toEqual([]);
+  });
+
+  test('a channels-only session can stop without a default channel', () => {
+    const { stub, sent } = makeStub(multi);
+
+    Session.prototype.stopDispatchMessage.call(stub);
+
+    expect(sent).toEqual([{ command: 'stop_dispatch_message', seq: 1 }]);
   });
 });
