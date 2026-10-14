@@ -8,6 +8,18 @@ const DEFAULT_HEARTBEAT_INTERVAL_MS = 30 * 1000;
 
 const isChannelName = (value) => typeof value === 'string' && value.length > 0;
 
+// The dispatch methods take an optional channel before the optional callback:
+// method(args..., 'Channel', cb), method(args..., cb), or method(args...).
+const parseChannelOrCallback = (channelOrCallback, userCallback) => {
+  if (Utils.isFunction(channelOrCallback)) {
+    return {channel: undefined, callback: channelOrCallback};
+  }
+  return {
+    channel: isChannelName(channelOrCallback) ? channelOrCallback : undefined,
+    callback: userCallback
+  };
+};
+
 /**
  * @classdesc Session class to start a session with the Zello server and interact with it using
  * the <a href="https://github.com/zelloptt/zello-channel-api">Zello Channel API</a>
@@ -788,13 +800,7 @@ var outgoingMessage = session.startVoiceMessage({
    session.endDispatchCall(123456789, 'Dispatch');
    **/
   endDispatchCall(callId, channelOrCallback = null, userCallback = null) {
-    let channel;
-    let callback = userCallback;
-    if (Utils.isFunction(channelOrCallback)) {
-      callback = channelOrCallback;
-    } else if (isChannelName(channelOrCallback)) {
-      channel = channelOrCallback;
-    }
+    const {channel, callback} = parseChannelOrCallback(channelOrCallback, userCallback);
     const params = {
       call_id: callId
     };
@@ -802,6 +808,119 @@ var outgoingMessage = session.startVoiceMessage({
       params.channel = channel;
     }
     return this.sendChannelCommand('end_dispatch_call', params, callback);
+  }
+
+  /**
+   * Retrieves the dispatch calls visible to this session: for a dispatcher,
+   * every pending call plus their own active ones; for a caller, their own.
+   *
+   * @param {String|function} [channelOrCallback] channel to read the queue of, or the completion
+   * callback. A channel name targets that channel instead of the session default.
+   * @param {function} [userCallback] completion callback, used when the first argument is a channel name.
+   * @return {promise} promise that resolves with <code>{success, calls}</code> where each call is
+   *                   <code>{id, user, status, dispatcher, initiator, messages}</code> and each message is
+   *                   <code>{message_id, type, author, ts, packet_duration}</code>; rejects on error.
+   * @example
+   *
+   session.getDispatchCalls().then(function(result) {
+     console.log(result.calls);
+   });
+   session.getDispatchCalls('Dispatch').then(function(result) {
+     console.log(result.calls);
+   });
+   **/
+  getDispatchCalls(channelOrCallback = null, userCallback = null) {
+    const {channel, callback} = parseChannelOrCallback(channelOrCallback, userCallback);
+    const params = {};
+    if (channel) {
+      params.channel = channel;
+    }
+    return this.sendChannelCommand('get_dispatch_calls', params, callback);
+  }
+
+  /**
+   * Takes a pending dispatch call, making this session's user its dispatcher.
+   *
+   * @param {Number} callId the ID of the pending dispatch call to take.
+   * @param {String|function} [channelOrCallback] channel the call lives on, or the completion
+   * callback. A channel name targets that channel instead of the session default.
+   * @param {function} [userCallback] completion callback, used when the second argument is a channel name.
+   * @return {promise} promise that resolves with <code>{success, call}</code> once the call is taken
+   *                   and rejects if taking it failed. A call another dispatcher already holds
+   *                   fails with error <code>'taken'</code>, and the response names them in
+   *                   <code>dispatcher</code>.
+   * @example
+   *
+   session.takeDispatchCall(123456789);
+   session.takeDispatchCall(123456789, 'Dispatch');
+   **/
+  takeDispatchCall(callId, channelOrCallback = null, userCallback = null) {
+    const {channel, callback} = parseChannelOrCallback(channelOrCallback, userCallback);
+    const params = {
+      call_id: callId
+    };
+    if (channel) {
+      params.channel = channel;
+    }
+    return this.sendChannelCommand('take_dispatch_call', params, callback);
+  }
+
+  /**
+   * Plays back one message from a pending or taken dispatch call. The server
+   * downloads the recorded audio and delivers it like any incoming voice
+   * message: <code>incoming_voice_will_start</code> fires with a message whose
+   * data carries <code>call_id</code> and <code>message_id</code>, followed by
+   * the audio and <code>incoming_voice_did_stop</code>.
+   *
+   * @param {Number} callId the ID of the dispatch call the message belongs to.
+   * @param {Number} messageId the ID of the message to play, from the call's
+   *                 <code>messages</code> list returned by <code>getDispatchCalls</code>.
+   * @param {String|function} [channelOrCallback] channel the call lives on, or the completion
+   * callback. A channel name targets that channel instead of the session default.
+   * @param {function} [userCallback] completion callback, used when the third argument is a channel name.
+   * @return {promise} promise that resolves with <code>{success, stream_id}</code> once playback
+   *                   starts and rejects if it failed. One playback runs at a time per session: a
+   *                   second request while one is running fails with error <code>'busy'</code>, and
+   *                   a playback cancelled by <code>stopDispatchMessage</code> before its audio was
+   *                   ready fails with error <code>'stopped'</code>.
+   * @example
+   *
+   session.playDispatchMessage(123456789, 411);
+   session.playDispatchMessage(123456789, 411, 'Dispatch');
+   **/
+  playDispatchMessage(callId, messageId, channelOrCallback = null, userCallback = null) {
+    const {channel, callback} = parseChannelOrCallback(channelOrCallback, userCallback);
+    const params = {
+      call_id: callId,
+      message_id: messageId
+    };
+    if (channel) {
+      params.channel = channel;
+    }
+    return this.sendChannelCommand('play_dispatch_message', params, callback);
+  }
+
+  /**
+   * Stops the playback started by <code>playDispatchMessage</code>. A playback
+   * that already started closes with <code>incoming_voice_did_stop</code>; one
+   * still being prepared never starts, and its play rejects with
+   * <code>'stopped'</code>.
+   *
+   * @param {function} [userCallback] callback that is fired on the playback stopping or an error.
+   * @return {promise} promise that resolves once the playback is stopped and rejects if there
+   *                   is none in flight (error <code>'not playing'</code>).
+   * @example
+   *
+   session.stopDispatchMessage();
+   **/
+  stopDispatchMessage(userCallback = null) {
+    // Playback is per-session, not per-channel, so the command carries no
+    // channel and works on a multi-channel session with no default channel.
+    return this.sendCommandWithCallback(
+      'stop_dispatch_message',
+      {},
+      userCallback
+    );
   }
 
   sendCommandWithCallback(command, options, userCallback = null) {
