@@ -879,8 +879,10 @@ var outgoingMessage = session.startVoiceMessage({
    * callback. A channel name targets that channel instead of the session default.
    * @param {function} [userCallback] completion callback, used when the third argument is a channel name.
    * @return {promise} promise that resolves with <code>{success, stream_id}</code> once playback
-   *                   starts and rejects if it failed. One playback runs at a time per session; a
-   *                   second request while one is running fails with error <code>'busy'</code>.
+   *                   starts and rejects if it failed. One playback runs at a time per session: a
+   *                   second request while one is running fails with error <code>'busy'</code>, and
+   *                   a playback cancelled by <code>stopDispatchMessage</code> before its audio was
+   *                   ready fails with error <code>'stopped'</code>.
    * @example
    *
    session.playDispatchMessage(123456789, 411);
