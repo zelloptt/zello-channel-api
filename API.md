@@ -530,7 +530,7 @@ Plays one message from a pending or active call back to this session. The server
 {
   "seq": 7,
   "success": true,
-  "stream_id": 22695
+  "stream_id": 31544
 }
 ```
 
@@ -650,7 +650,7 @@ Indicates the start of the new incoming stream. This event corresponds to `start
 | `translations_enabled ` | boolean | (optional) Whether translations are enabled for this channel
 | `language `             | string  | (optional) The ISO 639-1 language code of the sender
 | `call_id `              | integer | (optional) Present when the stream is a `play_dispatch_message` playback: the dispatch call the message belongs to
-| `message_id `           | integer | (optional) Present when the stream is a `play_dispatch_message` playback: the played message's id, equal to `stream_id`
+| `message_id `           | integer | (optional) Present when the stream is a `play_dispatch_message` playback: the played message's id
 
 #### Example:
 
