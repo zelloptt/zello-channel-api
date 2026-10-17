@@ -689,6 +689,18 @@ var outgoingMessage = session.startVoiceMessage({
 var outgoingMessage = session.startVoiceMessage({
   talkPriority: ZCC.OutgoingMessage.talkPriorityNormal
 });
+
+// play a ready-to-send sound once the server accepts the stream; recording
+// starts when the returned promise settles, so the sound is not recorded
+var outgoingMessage = session.startVoiceMessage({
+  beforeRecording: function(result) {
+    var sound = new Audio('ready-to-send.wav');
+    return new Promise(function(resolve) {
+      sound.onended = resolve;
+      sound.play().catch(resolve);
+    });
+  }
+});
  **/
   startVoiceMessage(options = {}, userCallback = null) {
     const library = Utils.getLoadedLibrary();
