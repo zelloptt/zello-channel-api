@@ -6,6 +6,20 @@ const Utils = require('./utils');
 const MIN_HEARTBEAT_INTERVAL_MS = 10 * 1000;
 const DEFAULT_HEARTBEAT_INTERVAL_MS = 30 * 1000;
 
+const isChannelName = (value) => typeof value === 'string' && value.length > 0;
+
+// The dispatch methods take an optional channel before the optional callback:
+// method(args..., 'Channel', cb), method(args..., cb), or method(args...).
+const parseChannelOrCallback = (channelOrCallback, userCallback) => {
+  if (Utils.isFunction(channelOrCallback)) {
+    return {channel: undefined, callback: channelOrCallback};
+  }
+  return {
+    channel: isChannelName(channelOrCallback) ? channelOrCallback : undefined,
+    callback: userCallback
+  };
+};
+
 /**
  * @classdesc Session class to start a session with the Zello server and interact with it using
  * the <a href="https://github.com/zelloptt/zello-channel-api">Zello Channel API</a>
@@ -27,7 +41,9 @@ const DEFAULT_HEARTBEAT_INTERVAL_MS = 30 * 1000;
  **/
 class Session extends Emitter {
   /**
-   * @param {object} options session options. Options can also include <code>player</code>, <code>decoder</code>, <code>recorder</code> and <code>encoder</code> overrides
+   * @param {object} options session options. Options can also include <code>player</code>, <code>decoder</code>, <code>recorder</code> and <code>encoder</code> overrides.
+   * <code>options.channels</code> is the list of channel names to connect to. When it is omitted, the session connects to <code>options.channel</code> only and stores that name as a one-item list.
+   * <code>options.channel</code> is the default channel for outgoing messages. It must be a channel name, and one of <code>options.channels</code> when both are set. When <code>options.channels</code> is set and <code>options.channel</code> is omitted, there is no default until the caller sets one.
    * @return {ZCC.Session} <code>ZCC.Session</code> instance
    **/
   constructor(options) {
@@ -41,6 +57,7 @@ class Session extends Emitter {
       autoSendAudio: true,
       noPersistentPlayer: false
     }, options);
+    Object.assign(this.options, Session.prepareChannels(this.options));
     this.callbacks = {};
     this.wsConnection = null;
     this.refreshToken = null;
@@ -66,7 +83,7 @@ class Session extends Emitter {
     this.wasOnline = false;
     this.reconnectTimeout = null;
     this.connectTimeout = null;
-    this.channelConfigurationError = false;
+    this.channelConfigurationErrors = new Set();
     this.heartbeatTimer = null;
     this.heartbeatAwaitingServerAck = false;
     this.heartbeatMissedAck = 0;
@@ -83,19 +100,68 @@ class Session extends Emitter {
     return ++this.seq;
   }
 
+  get channelConfigurationError() {
+    return this.channelConfigurationErrors.size === this.options.channels.length;
+  }
+
+  static prepareChannels(options) {
+    if (options.channel !== undefined && !isChannelName(options.channel)) {
+      throw new Error(Constants.ERROR_NOT_ENOUGH_PARAMS);
+    }
+    const channel = options.channel;
+    const channels = options.channels;
+    if (channels === undefined) {
+      if (!channel) {
+        throw new Error(Constants.ERROR_NOT_ENOUGH_PARAMS);
+      }
+      return {channel: channel, channels: [channel]};
+    }
+    if (!Array.isArray(channels) || channels.length === 0 || !channels.every(isChannelName)) {
+      throw new Error(Constants.ERROR_NOT_ENOUGH_PARAMS);
+    }
+    if (channel && channels.indexOf(channel) === -1) {
+      throw new Error(Constants.ERROR_CHANNEL_NOT_IN_LIST);
+    }
+    return {channel: channel, channels: channels.slice()};
+  }
+
   static validateInitialOptions(initialOptions) {
     if (
       !initialOptions ||
       !initialOptions.serverUrl ||
-      !initialOptions.channel ||
       (initialOptions.username && !initialOptions.password && !initialOptions.authToken) ||
       (!initialOptions.authToken && !initialOptions.username)
     ) {
       throw new Error(Constants.ERROR_NOT_ENOUGH_PARAMS);
     }
+    Session.prepareChannels(initialOptions);
     if (!initialOptions.serverUrl.match(/^wss?:\/\//i)) {
       throw new Error(Constants.ERROR_INVALID_SERVER_PROTOCOL);
     }
+  }
+
+  resolveChannel(explicitChannel) {
+    if (isChannelName(explicitChannel)) {
+      return explicitChannel;
+    }
+    if (isChannelName(this.options.channel)) {
+      return this.options.channel;
+    }
+    throw new Error(Constants.ERROR_NOT_ENOUGH_PARAMS);
+  }
+
+  sendChannelCommand(command, options, userCallback) {
+    let channel;
+    try {
+      channel = this.resolveChannel(options && options.channel);
+    } catch (err) {
+      if (typeof userCallback === 'function') {
+        userCallback.apply(this, [err]);
+      }
+      return Promise.reject(err);
+    }
+    const params = Object.assign({}, options, {channel: channel});
+    return this.sendCommandWithCallback(command, params, userCallback);
   }
 
   /**
@@ -323,7 +389,7 @@ session.connect(function(err, result) {
     let params = {
       'command': 'logon',
       'seq': this.getSeq(),
-      'channel': this.options.channel
+      'channels': this.options.channels.slice()
     };
 
     if (refreshToken) {
@@ -394,10 +460,10 @@ session.connect(function(err, result) {
          * @property {Number} messageId incoming message id
          * @property {Number} packetId incoming packet id
          */
-        this.emit(Constants.EVENT_INCOMING_VOICE_DATA, parsedData);
+        this.emitTo(Constants.EVENT_INCOMING_VOICE_DATA, parsedData.messageId, parsedData);
         break;
       case Constants.MESSAGE_TYPE_IMAGE:
-        this.emit(Constants.EVENT_INCOMING_IMAGE_DATA, parsedData);
+        this.emitTo(Constants.EVENT_INCOMING_IMAGE_DATA, parsedData.messageId, parsedData);
         break;
 
     }
@@ -441,7 +507,9 @@ session.connect(function(err, result) {
               break;
             case Constants.SN_STATUS_OFFLINE:
               if (jsonData.error && jsonData.error_type === Constants.ERROR_TYPE_CONFIGURATION) {
-                this.channelConfigurationError = true;
+                if (this.options.channels.indexOf(jsonData.channel) !== -1) {
+                  this.channelConfigurationErrors.add(jsonData.channel);
+                }
               }
               break;
           }
@@ -487,7 +555,7 @@ session.connect(function(err, result) {
          * @event Session#incoming_voice_did_stop
          * @param {ZCC.IncomingMessage} incomingMessage incoming message instance
          */
-        this.emit(Constants.EVENT_INCOMING_VOICE_DID_STOP, this.incomingMessages[jsonData.stream_id]);
+        this.emitTo(Constants.EVENT_INCOMING_VOICE_DID_STOP, jsonData.stream_id, this.incomingMessages[jsonData.stream_id]);
         break;
       case 'on_text_message':
         /**
@@ -585,11 +653,11 @@ session.connect(function(err, result) {
    * });
    */
   startStream(options = {}, userCallback = null) {
-    return this.sendCommandWithCallback('start_stream', options, userCallback);
+    return this.sendChannelCommand('start_stream', options, userCallback);
   }
 
   stopStream(options = {}, userCallback = null) {
-    return this.sendCommandWithCallback('stop_stream', options, userCallback);
+    return this.sendChannelCommand('stop_stream', options, userCallback);
   }
 
   /**
@@ -669,17 +737,26 @@ var outgoingMessage = session.startVoiceMessage({
    *                              if set to true (default) you will need to call OutgoingImage.send() to send an image
    * @property {File} File object (optional) if provided this file is send as an image with a source 'library'
    *
+   * @param {function} [userErrorCallback] called with an error when the image cannot be sent,
+   * including when <code>preview</code> is false and no channel can be resolved, or when the server
+   * rejects the image. Those failures happen after the file is read, so they do not throw from
+   * <code>sendImage</code>.
+   *
    * @return {ZCC.OutgoingImage} OutgoingImage object
    * @example
    *
    var outgoingImage = session.sendImage({
     preview: false,
     for: 'username'
+   }, function(err) {
+    if (err) {
+      console.trace(err);
+    }
    });
    **/
-  sendImage(options = {}) {
+  sendImage(options = {}, userErrorCallback = null) {
     const library = Utils.getLoadedLibrary();
-    this.activeOutgoingImage = new library.OutgoingImage(this, options);
+    this.activeOutgoingImage = new library.OutgoingImage(this, options, userErrorCallback);
     return this.activeOutgoingImage;
   }
 
@@ -700,32 +777,148 @@ var outgoingMessage = session.startVoiceMessage({
    * });
    **/
   sendTextMessage(options = {}, userCallback = null) {
-    return this.sendCommandWithCallback('send_text_message', options, userCallback);
+    return this.sendChannelCommand('send_text_message', options, userCallback);
   }
 
   sendLocation(options = {}, userCallback = null) {
-    return this.sendCommandWithCallback('send_location', options, userCallback)
+    return this.sendChannelCommand('send_location', options, userCallback);
   }
 
   /**
    * Stops an ongoing dispatch call
    *
    * @param {Number} callId the ID of the ongoing dispatch call to be over.
-   * @param {function} [userCallback] callback that is fired on dispatch call is over or failed to be stopped.
+   * @param {String|function} [channelOrCallback] channel to end the call on, or the completion callback.
+   * A channel name sends <code>end_dispatch_call</code> to that channel instead of the session default.
+   * A function keeps <code>endDispatchCall(callId, callback)</code> working.
+   * @param {function} [userCallback] completion callback, used when the second argument is a channel name.
    * @return {promise} promise that resolves once session successfully stopped the dispatch call and rejects if
    *                   stopping the dispatch call is failed.
    * @example
    *
    session.endDispatchCall(123456789);
+   session.endDispatchCall(123456789, 'Dispatch');
    **/
-   endDispatchCall(callId, userCallback = null) {
-    const options = {
-      call_id: callId,
-      channel: this.options.channel
+  endDispatchCall(callId, channelOrCallback = null, userCallback = null) {
+    const {channel, callback} = parseChannelOrCallback(channelOrCallback, userCallback);
+    const params = {
+      call_id: callId
     };
+    if (channel) {
+      params.channel = channel;
+    }
+    return this.sendChannelCommand('end_dispatch_call', params, callback);
+  }
+
+  /**
+   * Retrieves the dispatch calls visible to this session: for a dispatcher,
+   * every pending call plus their own active ones; for a caller, their own.
+   *
+   * @param {String|function} [channelOrCallback] channel to read the queue of, or the completion
+   * callback. A channel name targets that channel instead of the session default.
+   * @param {function} [userCallback] completion callback, used when the first argument is a channel name.
+   * @return {promise} promise that resolves with <code>{success, calls}</code> where each call is
+   *                   <code>{id, user, status, dispatcher, initiator, messages}</code> and each message is
+   *                   <code>{message_id, type, author, ts, packet_duration}</code>; rejects on error.
+   * @example
+   *
+   session.getDispatchCalls().then(function(result) {
+     console.log(result.calls);
+   });
+   session.getDispatchCalls('Dispatch').then(function(result) {
+     console.log(result.calls);
+   });
+   **/
+  getDispatchCalls(channelOrCallback = null, userCallback = null) {
+    const {channel, callback} = parseChannelOrCallback(channelOrCallback, userCallback);
+    const params = {};
+    if (channel) {
+      params.channel = channel;
+    }
+    return this.sendChannelCommand('get_dispatch_calls', params, callback);
+  }
+
+  /**
+   * Takes a pending dispatch call, making this session's user its dispatcher.
+   *
+   * @param {Number} callId the ID of the pending dispatch call to take.
+   * @param {String|function} [channelOrCallback] channel the call lives on, or the completion
+   * callback. A channel name targets that channel instead of the session default.
+   * @param {function} [userCallback] completion callback, used when the second argument is a channel name.
+   * @return {promise} promise that resolves with <code>{success, call}</code> once the call is taken
+   *                   and rejects if taking it failed. A call another dispatcher already holds
+   *                   fails with error <code>'taken'</code>, and the response names them in
+   *                   <code>dispatcher</code>.
+   * @example
+   *
+   session.takeDispatchCall(123456789);
+   session.takeDispatchCall(123456789, 'Dispatch');
+   **/
+  takeDispatchCall(callId, channelOrCallback = null, userCallback = null) {
+    const {channel, callback} = parseChannelOrCallback(channelOrCallback, userCallback);
+    const params = {
+      call_id: callId
+    };
+    if (channel) {
+      params.channel = channel;
+    }
+    return this.sendChannelCommand('take_dispatch_call', params, callback);
+  }
+
+  /**
+   * Plays back one message from a pending or taken dispatch call. The server
+   * downloads the recorded audio and delivers it like any incoming voice
+   * message: <code>incoming_voice_will_start</code> fires with a message whose
+   * data carries <code>call_id</code> and <code>message_id</code>, followed by
+   * the audio and <code>incoming_voice_did_stop</code>.
+   *
+   * @param {Number} callId the ID of the dispatch call the message belongs to.
+   * @param {Number} messageId the ID of the message to play, from the call's
+   *                 <code>messages</code> list returned by <code>getDispatchCalls</code>.
+   * @param {String|function} [channelOrCallback] channel the call lives on, or the completion
+   * callback. A channel name targets that channel instead of the session default.
+   * @param {function} [userCallback] completion callback, used when the third argument is a channel name.
+   * @return {promise} promise that resolves with <code>{success, stream_id}</code> once playback
+   *                   starts and rejects if it failed. One playback runs at a time per session: a
+   *                   second request while one is running fails with error <code>'busy'</code>, and
+   *                   a playback cancelled by <code>stopDispatchMessage</code> before its audio was
+   *                   ready fails with error <code>'stopped'</code>.
+   * @example
+   *
+   session.playDispatchMessage(123456789, 411);
+   session.playDispatchMessage(123456789, 411, 'Dispatch');
+   **/
+  playDispatchMessage(callId, messageId, channelOrCallback = null, userCallback = null) {
+    const {channel, callback} = parseChannelOrCallback(channelOrCallback, userCallback);
+    const params = {
+      call_id: callId,
+      message_id: messageId
+    };
+    if (channel) {
+      params.channel = channel;
+    }
+    return this.sendChannelCommand('play_dispatch_message', params, callback);
+  }
+
+  /**
+   * Stops the playback started by <code>playDispatchMessage</code>. A playback
+   * that already started closes with <code>incoming_voice_did_stop</code>; one
+   * still being prepared never starts, and its play rejects with
+   * <code>'stopped'</code>.
+   *
+   * @param {function} [userCallback] callback that is fired on the playback stopping or an error.
+   * @return {promise} promise that resolves once the playback is stopped and rejects if there
+   *                   is none in flight (error <code>'not playing'</code>).
+   * @example
+   *
+   session.stopDispatchMessage();
+   **/
+  stopDispatchMessage(userCallback = null) {
+    // Playback is per-session, not per-channel, so the command carries no
+    // channel and works on a multi-channel session with no default channel.
     return this.sendCommandWithCallback(
-      'end_dispatch_call',
-      options,
+      'stop_dispatch_message',
+      {},
       userCallback
     );
   }

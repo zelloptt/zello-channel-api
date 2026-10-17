@@ -69,6 +69,7 @@ function makeSession() {
   return {
     options: {},
     log: () => {},
+    resolveChannel: (channel) => channel || 'Dispatch',
     startStream: jest.fn(() => startPromise),
     stopStream: jest.fn(() => Promise.resolve()),
     resolveStart: (streamId) => resolveStart({ stream_id: streamId }),

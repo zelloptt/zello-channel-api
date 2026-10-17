@@ -98,7 +98,9 @@ class Utils {
   }
 
   static isFunction(p) {
-    return Utils.instanceOf(p, Function);
+    // typeof also matches functions from another realm, such as an iframe
+    // or a test mock, which instanceof Function does not.
+    return typeof p === 'function';
   }
 
   static isArray(p) {
