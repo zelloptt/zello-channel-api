@@ -176,3 +176,86 @@ describe('OutgoingMessage recorder sequencing', () => {
     expect(recorder.state).toBe('inactive');
   });
 });
+
+describe('OutgoingMessage beforeRecording hook', () => {
+  beforeEach(() => { FakeRecorder.instances = []; });
+
+  // A hook the test settles by hand, recording what it was called with.
+  function deferredHook() {
+    const hook = function (result) {
+      hook.calls.push(result);
+      return new Promise((resolve, reject) => { hook.resolve = resolve; hook.reject = reject; });
+    };
+    hook.calls = [];
+    return hook;
+  }
+
+  async function acceptedStream(options) {
+    const session = makeSession();
+    const message = makeMessage(session, Object.assign({ autoStart: true }, options));
+    const recorder = FakeRecorder.instances[0];
+    recorder.finishInit();
+    await flushMicrotasks();
+    session.resolveStart(42);
+    await flushMicrotasks();
+    return { session, message, recorder };
+  }
+
+  test('recording waits for the hook once the stream is accepted', async () => {
+    const hook = deferredHook();
+    const { recorder } = await acceptedStream({ beforeRecording: hook });
+
+    expect(hook.calls).toEqual([{ stream_id: 42 }]);
+    expect(recorder.state).toBe('ready');
+
+    hook.resolve();
+    await flushMicrotasks();
+    expect(recorder.state).toBe('recording');
+  });
+
+  test('a rejected hook still starts recording', async () => {
+    const hook = deferredHook();
+    const { recorder } = await acceptedStream({ beforeRecording: hook });
+
+    hook.reject(new Error('NotAllowedError'));
+    await flushMicrotasks();
+    expect(recorder.state).toBe('recording');
+  });
+
+  test('a hook that throws still starts recording', async () => {
+    const { recorder } = await acceptedStream({
+      beforeRecording: function () { throw new Error('no audio output'); }
+    });
+
+    expect(recorder.state).toBe('recording');
+  });
+
+  test('a message stopped during the hook never starts recording', async () => {
+    const hook = deferredHook();
+    const { message, recorder } = await acceptedStream({ beforeRecording: hook });
+
+    message.stop();
+    hook.resolve();
+    await flushMicrotasks();
+    expect(recorder.startCalls).toBe(0);
+    expect(recorder.state).toBe('inactive');
+  });
+
+  test('autoStart false: a recorder that becomes ready during the hook still waits for it', async () => {
+    const hook = deferredHook();
+    const session = makeSession();
+    const message = makeMessage(session, { autoStart: false, beforeRecording: hook });
+    const recorder = FakeRecorder.instances[0];
+
+    message.start();
+    session.resolveStart(42);
+    await flushMicrotasks();
+    recorder.finishInit();
+    await flushMicrotasks();
+    expect(recorder.state).toBe('ready');
+
+    hook.resolve();
+    await flushMicrotasks();
+    expect(recorder.state).toBe('recording');
+  });
+});

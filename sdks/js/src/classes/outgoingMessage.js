@@ -34,6 +34,8 @@ class OutgoingMessage extends Emitter {
     this.session = session;
     this.currentMessageId = null;
     this.currentPacketId = 0;
+    // Set once the server has accepted the stream and the beforeRecording hook has settled.
+    this.recordingAllowed = false;
 
     this.initEncoder();
     this.initRecorder();
@@ -105,7 +107,7 @@ class OutgoingMessage extends Emitter {
       this.sendEncoderInitMessage();
       if (this.options.autoStart) {
         this.start().catch(() => {});
-      } else if (this.currentMessageId) {
+      } else if (this.recordingAllowed) {
         // start() was called, and the server accepted the stream, before the
         // recorder finished initializing. Begin recording now that it is ready.
         this.startRecording();
@@ -132,6 +134,9 @@ class OutgoingMessage extends Emitter {
   }
 
   startRecording() {
+    if (this.destroyed) {
+      return;
+    }
     if (this.recorder && this.recorder.start) {
       this.recorder.start();
     }
@@ -231,13 +236,37 @@ outgoingMessage.then(function(result) {
       .startStream(params, this.userCallback)
       .then((result) => {
         this.currentMessageId = result.stream_id;
-        this.startRecording();
-        return result;
+        return this.waitBeforeRecording(result).then(() => {
+          this.recordingAllowed = true;
+          this.startRecording();
+          return result;
+        });
       });
     started.catch(() => {
       this.destroy();
     });
     return started;
+  }
+
+  /**
+   * Runs the <code>beforeRecording</code> option, if any, once the server has accepted
+   * the stream. Recording waits for the promise it returns, so an app can play a
+   * ready-to-send sound without recording it.
+   */
+  waitBeforeRecording(result) {
+    const hook = this.options.beforeRecording;
+    if (!Utils.isFunction(hook)) {
+      return Promise.resolve();
+    }
+    return new Promise((resolve) => resolve(hook(result))).then(
+      () => {},
+      (err) => {
+        // A hook that fails, such as a sound that cannot play, must not keep the user from talking.
+        if (Utils.isFunction(this.options.log)) {
+          this.options.log(`beforeRecording failed, recording anyway: ${err}`);
+        }
+      }
+    );
   }
 
   static get talkPriorityLow() {
