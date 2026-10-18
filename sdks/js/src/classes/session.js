@@ -853,7 +853,9 @@ var outgoingMessage = session.startVoiceMessage({
    * downloads the recorded audio and delivers it like any incoming voice
    * message: <code>incoming_voice_will_start</code> fires with a message whose
    * data carries <code>message_id</code>, followed by the audio and
-   * <code>incoming_voice_did_stop</code>. The stream id equals the message id.
+   * <code>incoming_voice_did_stop</code>. The playback gets its own stream id;
+   * match it to the history entry through <code>message_id</code>. Cancel it
+   * with <code>stopHistoryMessage</code>.
    *
    * @param {Number} messageId the <code>message_id</code> of an <code>audio</code> entry
    *                 returned by <code>getHistory</code>
@@ -865,8 +867,9 @@ var outgoingMessage = session.startVoiceMessage({
    * @return {promise} promise that resolves with <code>{success, message_id, stream_id}</code> once
    *                   playback starts and rejects if it failed. One playback runs at a time; a second
    *                   request while one is running fails with <code>'busy'</code>, an entry that is not
-   *                   audio with <code>'message not playable'</code>, and one the server no longer holds
-   *                   with <code>'no message'</code>
+   *                   audio with <code>'message not playable'</code>, one the server no longer holds
+   *                   with <code>'no message'</code>, and one stopped before it started with
+   *                   <code>'stopped'</code>
    * @example
    *
    session.playHistoryMessage(22695);
@@ -882,6 +885,23 @@ var outgoingMessage = session.startVoiceMessage({
       { message_id: messageId }
     );
     return this.sendCommandWithCallback('play_history_message', params, userCallback);
+  }
+
+  /**
+   * Stops the playback started by <code>playHistoryMessage</code>. A playback
+   * that already started ends with <code>incoming_voice_did_stop</code>; one still
+   * being prepared never starts and its <code>playHistoryMessage</code> rejects
+   * with <code>'stopped'</code>.
+   *
+   * @param {function} [userCallback] callback that is fired on success or an error
+   * @return {promise} promise that resolves once the stop is accepted and rejects with
+   *                   <code>'not playing'</code> when no playback is in flight
+   * @example
+   *
+   session.stopHistoryMessage();
+   **/
+  stopHistoryMessage(userCallback = null) {
+    return this.sendCommandWithCallback('stop_history_message', {}, userCallback);
   }
 
   /**

@@ -532,7 +532,7 @@ The server keeps at most 50 messages per request, newest first, so a busy channe
 
 ### `play_history_message`
 
-Replays one stored voice message to this connection. The message plays exactly like a live incoming stream: [`on_stream_start`](#on_stream_start) with `message_id` set, binary audio packets paced at `packet_duration`, then [`on_stream_stop`](#on_stream_stop). The `stream_id` equals the `message_id`.
+Replays one stored voice message to this connection. The message plays exactly like a live incoming stream: [`on_stream_start`](#on_stream_start) with `message_id` set, binary audio packets paced at `packet_duration`, then [`on_stream_stop`](#on_stream_stop). The playback gets its own `stream_id`, distinct from the `message_id` and from any stream live on the connection, so match the stream to the message through the `message_id` on `on_stream_start`.
 
 #### Attributes
 
@@ -560,11 +560,38 @@ Replays one stored voice message to this connection. The message plays exactly l
   "seq": 10,
   "success": true,
   "message_id": 22695,
-  "stream_id": 22695
+  "stream_id": 31544
 }
 ```
 
-The response is sent when the stream starts. One playback runs at a time per connection; a second request is answered with `busy`. A `message_id` that is not an audio entry is answered with `message not playable`, and one the server no longer holds with `no message`.
+The response is sent when the stream starts. One playback runs at a time per connection; a second request is answered with `busy`. A `message_id` that is not an audio entry is answered with `message not playable`, and one the server no longer holds with `no message`. Cancel a playback with [`stop_history_message`](#stop_history_message); one stopped before its audio was ready fails this command with `stopped`.
+
+### `stop_history_message`
+
+Stops the playback started by `play_history_message`. A playback that already delivered its `on_stream_start` closes with its own [`on_stream_stop`](#on_stream_stop); one still being prepared never starts, and its `play_history_message` fails with `stopped`. With no playback in flight this command fails with `not playing`.
+
+#### Attributes
+
+| Name | Type | Value / Description
+|---|---|---
+| `command` | string | `stop_history_message`
+| `seq` | integer | Command sequence number
+
+#### Request:
+```json
+{
+  "command": "stop_history_message",
+  "seq": 12
+}
+```
+
+#### Response:
+```json
+{
+  "seq": 12,
+  "success": true
+}
+```
 
 ### `get_history_image`
 
@@ -771,7 +798,7 @@ Indicates the start of the new incoming stream. This event corresponds to `start
 | `for `                  | string  | The username of the recipient of the message if it was sent with `for` parameter 
 | `translations_enabled ` | boolean | (optional) Whether translations are enabled for this channel
 | `language `             | string  | (optional) The ISO 639-1 language code of the sender
-| `message_id `           | integer | (optional) Present when the stream is a `play_history_message` playback: the played message's id, equal to `stream_id`
+| `message_id `           | integer | (optional) Present when the stream is a `play_history_message` playback: the played message's id
 
 #### Example:
 
@@ -1015,6 +1042,7 @@ Indicates incoming shared location from the channel.
 |not authorized | Username, password or token are not valid.
 |not logged in | Server received a command before successful `logon`.
 |not enough params | The command doesn't include some of the required attributes.
+|channel not found | The command names a channel the session is not connected to.
 |server closed connection | The connection to Zello network was closed. You can try reconnecting.
 |channel is not ready | Channel you are trying to talk to is not yet connected. Wait for channel `online` status before sending a message.
 |listen only connection | The client tried to send a message over listen-only connection.
@@ -1026,6 +1054,8 @@ Indicates incoming shared location from the channel.
 |not supported | The command needs a feature the client did not request on `logon` (for example `get_user_profiles` without `profiles`, or `send_text_message` with `mentions` without `mentions`), one the network or channel does not offer (for example channel history on a network without offline channel messages), or a contact list the session does not have (`get_contacts` on an anonymous session).
 |too many users | `get_user_profiles` was sent with more than 50 user names.
 |busy | Another request of the same kind is still in progress on this connection. Retry once it completes.
+|stopped | `play_history_message` was cancelled by `stop_history_message` before the stream started.
+|not playing | `stop_history_message` was sent with no playback in flight.
 |no message | The server no longer holds the requested history message.
 |message not playable | The requested history message is not of a kind the command can deliver.
 |download failed | The server could not fetch the stored media for the message.

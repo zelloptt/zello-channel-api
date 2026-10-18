@@ -688,7 +688,7 @@ session.connect(function(err, result) {
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line936">line 936</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line956">line 956</a>
     </li></ul></dd>
     
 
@@ -1791,7 +1791,7 @@ the thumbnail and full image follow on that instance.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line912">line 912</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line932">line 932</a>
     </li></ul></dd>
     
 
@@ -2100,7 +2100,9 @@ session.getUserProfiles(['sherlock', 'watson']);</code></pre>
 downloads the recorded audio and delivers it like any incoming voice
 message: <code>incoming_voice_will_start</code> fires with a message whose
 data carries <code>message_id</code>, followed by the audio and
-<code>incoming_voice_did_stop</code>. The stream id equals the message id.
+<code>incoming_voice_did_stop</code>. The playback gets its own stream id;
+match it to the history entry through <code>message_id</code>. Cancel it
+with <code>stopHistoryMessage</code>.
 </div>
 
 
@@ -2380,7 +2382,7 @@ data carries <code>message_id</code>, followed by the audio and
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line874">line 874</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line877">line 877</a>
     </li></ul></dd>
     
 
@@ -2412,8 +2414,9 @@ data carries <code>message_id</code>, followed by the audio and
     promise that resolves with <code>{success, message_id, stream_id}</code> once
                   playback starts and rejects if it failed. One playback runs at a time; a second
                   request while one is running fails with <code>'busy'</code>, an entry that is not
-                  audio with <code>'message not playable'</code>, and one the server no longer holds
-                  with <code>'no message'</code>
+                  audio with <code>'message not playable'</code>, one the server no longer holds
+                  with <code>'no message'</code>, and one stopped before it started with
+                  <code>'stopped'</code>
 </div>
 
 
@@ -3583,6 +3586,194 @@ var outgoingMessage = session.startVoiceMessage({
 var outgoingMessage = session.startVoiceMessage({
   talkPriority: ZCC.OutgoingMessage.talkPriorityNormal
 });</code></pre>
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="stopHistoryMessage"><span class="type-signature"></span>stopHistoryMessage<span class="signature">(userCallback<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {promise}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Stops the playback started by <code>playHistoryMessage</code>. A playback
+that already started ends with <code>incoming_voice_did_stop</code>; one still
+being prepared never starts and its <code>playHistoryMessage</code> rejects
+with <code>'stopped'</code>.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>userCallback</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">function</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    null
+                
+                </td>
+            
+
+            <td class="description last">callback that is fired on success or an error</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line903">line 903</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    promise that resolves once the stop is accepted and rejects with
+                  <code>'not playing'</code> when no playback is in flight
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">promise</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+    <h5>Example</h5>
+    
+    <pre class="prettyprint"><code>session.stopHistoryMessage();</code></pre>
 
 
 
@@ -6701,7 +6892,7 @@ gets an entry, with the picture fields absent.
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Sun Oct 18 2026 16:49:21 GMT-0500 (Central Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Sun Oct 18 2026 17:58:11 GMT-0500 (Central Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>

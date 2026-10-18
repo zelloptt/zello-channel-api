@@ -1,6 +1,6 @@
 /**
  * Tests for the channel history commands: `get_history`,
- * `play_history_message` and `get_history_image`, plus the way their
+ * `play_history_message`, `stop_history_message` and `get_history_image`, plus the way their
  * replies reach the client through the existing stream and image events.
  *
  * Exercised on a stub `this` via the prototype: constructing a real Session
@@ -184,6 +184,28 @@ describe('playHistoryMessage', () => {
     expect(message.streamId).toBe(22695);
     expect(message.messageData.message_id).toBe(22695);
     expect(emitted[1].args[0]).toBe(message);
+  });
+});
+
+describe('stopHistoryMessage', () => {
+  test('sends the stop with no channel', () => {
+    const { stub, sent } = makeStub();
+
+    Session.prototype.stopHistoryMessage.call(stub);
+
+    expect(sent).toEqual([{ command: 'stop_history_message', seq: 1 }]);
+  });
+
+  test('resolves on success and rejects when nothing is playing', async () => {
+    const { stub } = makeStub();
+    const first = Session.prototype.stopHistoryMessage.call(stub);
+    const second = Session.prototype.stopHistoryMessage.call(stub);
+
+    respond(stub, 1, { success: true });
+    fail(stub, 2, 'not playing');
+
+    await expect(first).resolves.toEqual({ success: true });
+    await expect(second).rejects.toEqual('not playing');
   });
 });
 
