@@ -688,7 +688,7 @@ session.connect(function(err, result) {
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line934">line 934</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line936">line 936</a>
     </li></ul></dd>
     
 
@@ -915,7 +915,7 @@ channels.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line806">line 806</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line808">line 808</a>
     </li></ul></dd>
     
 
@@ -1104,7 +1104,7 @@ to. Not available to anonymous or listen-only sessions.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line787">line 787</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line789">line 789</a>
     </li></ul></dd>
     
 
@@ -1428,7 +1428,7 @@ voice entry with <code>playHistoryMessage</code> and fetch an image with
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line840">line 840</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line842">line 842</a>
     </li></ul></dd>
     
 
@@ -1791,7 +1791,7 @@ the thumbnail and full image follow on that instance.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line910">line 910</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line912">line 912</a>
     </li></ul></dd>
     
 
@@ -1871,8 +1871,8 @@ the thumbnail and full image follow on that instance.
 <div class="description">
     Requests the profiles of the given users. Requires the session to be created
 with <code>features: { profiles: true }</code>. The command only acknowledges
-the request: each profile arrives as a separate <code>user_profile</code>
-event, cached ones right away and the rest once the server has fetched them.
+the request: the profiles arrive in <code>user_profiles</code> events,
+cached ones right away and the rest once the server has fetched them.
 </div>
 
 
@@ -2020,7 +2020,7 @@ event, cached ones right away and the rest once the server has fetched them.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line766">line 766</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line768">line 768</a>
     </li></ul></dd>
     
 
@@ -2073,8 +2073,10 @@ event, cached ones right away and the rest once the server has fetched them.
 
     <h5>Example</h5>
     
-    <pre class="prettyprint"><code>session.on('user_profile', (profile) => {
-  console.log(profile.username, profile.display_name, profile.profile_picture);
+    <pre class="prettyprint"><code>session.on('user_profiles', (profiles) => {
+  profiles.forEach((profile) => {
+    console.log(profile.username, profile.display_name, profile.profile_picture);
+  });
 });
 session.getUserProfiles(['sherlock', 'watson']);</code></pre>
 
@@ -2378,7 +2380,7 @@ data carries <code>message_id</code>, followed by the audio and
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line872">line 872</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line874">line 874</a>
     </li></ul></dd>
     
 
@@ -6364,7 +6366,7 @@ in <code>text</code> (UTF-16 code units); it is absent otherwise.
     
 
     
-    <h4 class="name" id="event:user_profile">user_profile</h4>
+    <h4 class="name" id="event:user_profiles">user_profiles</h4>
     
 
     
@@ -6372,11 +6374,11 @@ in <code>text</code> (UTF-16 code units); it is absent otherwise.
 
 
 <div class="description">
-    Profile of a user the session has encountered (a message author, a
-channel member, a contact) or asked for with <code>getUserProfiles</code>.
-Delivered only when the session was created with
+    Profiles of users the session has encountered (message authors,
+channel members, contacts) or asked for with <code>getUserProfiles</code>,
+one batch at a time. Delivered only when the session was created with
 <code>features: { profiles: true }</code>. A user without a profile still
-produces the event, with the picture fields absent.
+gets an entry, with the picture fields absent.
 </div>
 
 
@@ -6412,10 +6414,15 @@ produces the event, with the picture fields absent.
 
         <tr>
             
-                <td class="name"><code>json</code></td>
+                <td class="name"><code>profiles</code></td>
             
 
             <td class="type">
+            
+                
+<span class="param-type">Array.&lt;Object></span>
+
+
             
             </td>
 
@@ -6423,7 +6430,7 @@ produces the event, with the picture fields absent.
 
             
 
-            <td class="description last">profile user profile JSON object</td>
+            <td class="description last">user profile JSON objects, each with:</td>
         </tr>
 
     
@@ -6688,13 +6695,13 @@ produces the event, with the picture fields absent.
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="IncomingImage.html">IncomingImage</a></li><li><a href="IncomingMessage.html">IncomingMessage</a></li><li><a href="OutgoingImage.html">OutgoingImage</a></li><li><a href="OutgoingMessage.html">OutgoingMessage</a></li><li><a href="Sdk.html">Sdk</a></li><li><a href="Session.html">Session</a></li></ul><h3>Interfaces</h3><ul><li><a href="Decoder.html">Decoder</a></li><li><a href="Encoder.html">Encoder</a></li><li><a href="Player.html">Player</a></li><li><a href="Recorder.html">Recorder</a></li></ul><h3>Events</h3><ul><li><a href="Decoder.html#event:decode">decode</a></li><li><a href="IncomingImage.html#event:image">image</a></li><li><a href="IncomingImage.html#event:image_thumbnail">image_thumbnail</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="OutgoingImage.html#event:image_preview_data">image_preview_data</a></li><li><a href="OutgoingImage.html#event:thumbnail_preview_data">thumbnail_preview_data</a></li><li><a href="OutgoingMessage.html#event:data">data</a></li><li><a href="OutgoingMessage.html#event:data_encoded">data_encoded</a></li><li><a href="Session.html#event:dispatch_call_status">dispatch_call_status</a></li><li><a href="Session.html#event:error">error</a></li><li><a href="Session.html#event:incoming_image">incoming_image</a></li><li><a href="Session.html#event:incoming_location">incoming_location</a></li><li><a href="Session.html#event:incoming_text_message">incoming_text_message</a></li><li><a href="Session.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="Session.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="Session.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="Session.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="Session.html#event:incoming_voice_fail_start">incoming_voice_fail_start</a></li><li><a href="Session.html#event:incoming_voice_will_start">incoming_voice_will_start</a></li><li><a href="Session.html#event:outgoing_voice_did_stop">outgoing_voice_did_stop</a></li><li><a href="Session.html#event:session_connect">session_connect</a></li><li><a href="Session.html#event:session_connection_lost">session_connection_lost</a></li><li><a href="Session.html#event:session_disconnect">session_disconnect</a></li><li><a href="Session.html#event:session_fail_connect">session_fail_connect</a></li><li><a href="Session.html#event:session_start_connect">session_start_connect</a></li><li><a href="Session.html#event:status">status</a></li><li><a href="Session.html#event:user_profile">user_profile</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="IncomingImage.html">IncomingImage</a></li><li><a href="IncomingMessage.html">IncomingMessage</a></li><li><a href="OutgoingImage.html">OutgoingImage</a></li><li><a href="OutgoingMessage.html">OutgoingMessage</a></li><li><a href="Sdk.html">Sdk</a></li><li><a href="Session.html">Session</a></li></ul><h3>Interfaces</h3><ul><li><a href="Decoder.html">Decoder</a></li><li><a href="Encoder.html">Encoder</a></li><li><a href="Player.html">Player</a></li><li><a href="Recorder.html">Recorder</a></li></ul><h3>Events</h3><ul><li><a href="Decoder.html#event:decode">decode</a></li><li><a href="IncomingImage.html#event:image">image</a></li><li><a href="IncomingImage.html#event:image_thumbnail">image_thumbnail</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="OutgoingImage.html#event:image_preview_data">image_preview_data</a></li><li><a href="OutgoingImage.html#event:thumbnail_preview_data">thumbnail_preview_data</a></li><li><a href="OutgoingMessage.html#event:data">data</a></li><li><a href="OutgoingMessage.html#event:data_encoded">data_encoded</a></li><li><a href="Session.html#event:dispatch_call_status">dispatch_call_status</a></li><li><a href="Session.html#event:error">error</a></li><li><a href="Session.html#event:incoming_image">incoming_image</a></li><li><a href="Session.html#event:incoming_location">incoming_location</a></li><li><a href="Session.html#event:incoming_text_message">incoming_text_message</a></li><li><a href="Session.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="Session.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="Session.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="Session.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="Session.html#event:incoming_voice_fail_start">incoming_voice_fail_start</a></li><li><a href="Session.html#event:incoming_voice_will_start">incoming_voice_will_start</a></li><li><a href="Session.html#event:outgoing_voice_did_stop">outgoing_voice_did_stop</a></li><li><a href="Session.html#event:session_connect">session_connect</a></li><li><a href="Session.html#event:session_connection_lost">session_connection_lost</a></li><li><a href="Session.html#event:session_disconnect">session_disconnect</a></li><li><a href="Session.html#event:session_fail_connect">session_fail_connect</a></li><li><a href="Session.html#event:session_start_connect">session_start_connect</a></li><li><a href="Session.html#event:status">status</a></li><li><a href="Session.html#event:user_profiles">user_profiles</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Sun Oct 04 2026 18:10:03 GMT-0500 (Central Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Sun Oct 18 2026 16:49:21 GMT-0500 (Central Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>

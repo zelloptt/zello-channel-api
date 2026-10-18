@@ -1,6 +1,6 @@
 /**
  * Tests for the user profiles pass-through: the `get_user_profiles` command
- * and the `on_user_profile` -> `user_profile` event.
+ * and the `on_user_profiles` -> `user_profiles` event.
  *
  * Exercised on a stub `this` via the prototype: constructing a real Session
  * needs the loaded ZCC library and a websocket.
@@ -81,34 +81,34 @@ describe('getUserProfiles', () => {
   });
 });
 
-describe('on_user_profile', () => {
-  test('is emitted as the user_profile event with the payload untouched', () => {
+describe('on_user_profiles', () => {
+  test('is emitted as the user_profiles event with the profiles array', () => {
     const { stub, emitted } = makeStub();
-    const profile = {
-      command: 'on_user_profile',
-      username: 'sherlock',
-      display_name: 'Sherlock Holmes',
-      profile_picture: 'https://example.com/sherlock.jpg',
-      profile_picture_thumb: 'https://example.com/sherlock_thumb.jpg',
-      profile_ts: 1758700000
-    };
+    const profiles = [
+      {
+        username: 'sherlock',
+        display_name: 'Sherlock Holmes',
+        profile_picture: 'https://example.com/sherlock.jpg',
+        profile_picture_thumb: 'https://example.com/sherlock_thumb.jpg',
+        profile_ts: 1758700000
+      },
+      { username: 'nobody', display_name: 'nobody' }
+    ];
 
-    Session.prototype.jsonDataHandler.call(stub, profile);
+    Session.prototype.jsonDataHandler.call(stub, {
+      command: 'on_user_profiles',
+      profiles
+    });
 
-    expect(Constants.EVENT_USER_PROFILE).toBe('user_profile');
-    expect(emitted).toEqual([{ name: 'user_profile', args: [profile] }]);
+    expect(Constants.EVENT_USER_PROFILES).toBe('user_profiles');
+    expect(emitted).toEqual([{ name: 'user_profiles', args: [profiles] }]);
   });
 
-  test('a profile-less user still reaches the client', () => {
+  test('a malformed event without profiles emits an empty array', () => {
     const { stub, emitted } = makeStub();
-    const profile = {
-      command: 'on_user_profile',
-      username: 'nobody',
-      display_name: 'nobody'
-    };
 
-    Session.prototype.jsonDataHandler.call(stub, profile);
+    Session.prototype.jsonDataHandler.call(stub, { command: 'on_user_profiles' });
 
-    expect(emitted).toEqual([{ name: 'user_profile', args: [profile] }]);
+    expect(emitted).toEqual([{ name: 'user_profiles', args: [[]] }]);
   });
 });
