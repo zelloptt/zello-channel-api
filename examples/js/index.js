@@ -7,15 +7,18 @@ var OpusFileStream = require('./opus-file-stream');
 var zelloSocket = null;
 var zelloStreamId = null;
 
-function zelloAuthorize(ws, opusStream, username, password, token, channel, onCompleteCb) {
-    ws.send(JSON.stringify({
+function zelloAuthorize(ws, username, password, token, channel, onCompleteCb) {
+    const authCommand = {
         seq: 1,
         command: "logon",
-        auth_token: token,
         username: username,
         password: password,
         channel: channel,
-    }));
+    };
+    if (token) {
+        authCommand.auth_token = token;
+    }
+    ws.send(JSON.stringify(authCommand));
 
     let isAuthorized = false, isChannelAvailable = false;
     const authTimeoutMs = 2000;
@@ -23,8 +26,12 @@ function zelloAuthorize(ws, opusStream, username, password, token, channel, onCo
     ws.onmessage = function(event) {
         try {
             const json = JSON.parse(event.data);
-            if (json.refresh_token) {
-                isAuthorized = true;
+            if (json.seq === 1) {
+                if (json.success === true) {
+                    isAuthorized = true;
+                } else {
+                    return onCompleteCb(false);
+                }
             } else if (json.command === "on_channel_status" && json.status === "online") {
                 isChannelAvailable = true;
             }
@@ -148,8 +155,10 @@ function zelloStopStream(ws, streamId) {
     zelloStreamId = null;
 }
 
-function zelloStreamReadyCb(opusStream, username, password, token, channel) {
-    const ws = new WebSocket("wss://zello.io/ws");
+function zelloStreamReadyCb(opusStream, username, password, network, token, channel) {
+    const wsConsumerUrl = "wss://zello.io/ws";
+    const wsWorkUrl = "wss://zellowork.io/ws/";
+    const ws = new WebSocket(network ? wsWorkUrl + network : wsConsumerUrl);
 
     ws.onerror = function() {
         console.error("Websocket error");
@@ -172,7 +181,7 @@ function zelloStreamReadyCb(opusStream, username, password, token, channel) {
     ws.onopen = function() {
         zelloSocket = ws;
 
-        zelloAuthorize(ws, opusStream, username, password, token, channel, function(success) {
+        zelloAuthorize(ws, username, password, token, channel, function(success) {
             ws.onmessage = null;
             if (!success) {
                 console.error("Failed to authorize");
@@ -224,10 +233,11 @@ try {
 
 var zelloUsername = config.get('zello', 'username');
 var zelloPassword = config.get('zello', 'password');
+var zelloNetwork = config.get('zello', 'network');
 var zelloToken = config.get('zello', 'token');
 var zelloChannel = config.get('zello', 'channel');
 var zelloFilename = config.get('media', 'filename');
-if (!zelloUsername || !zelloPassword || !zelloToken || !zelloChannel || !zelloFilename) {
+if (!zelloUsername || !zelloPassword || !zelloChannel || !zelloFilename || (!zelloNetwork && !zelloToken)) {
     console.error("Invalid config file. See example");
     process.exit(1);
 }
@@ -237,5 +247,5 @@ new OpusFileStream(zelloFilename, function(opusStream) {
         console.error("Failed to start Opus media stream");
         process.exit(1);
     }
-    zelloStreamReadyCb(opusStream, zelloUsername, zelloPassword, zelloToken, zelloChannel);
+    zelloStreamReadyCb(opusStream, zelloUsername, zelloPassword, zelloNetwork, zelloToken, zelloChannel);
 });
