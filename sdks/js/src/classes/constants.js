@@ -52,6 +52,9 @@ module.exports = {
   EVENT_INCOMING_VOICE_DID_STOP_PLAYBACK: 'incoming_voice_did_stop_playback',
   EVENT_INCOMING_VOICE_FAIL_START: 'incoming_voice_fail_start',
   EVENT_OUTGOING_VOICE_DID_STOP: 'outgoing_voice_did_stop',
+  EVENT_STREAM_STARTED: 'stream_started',
+  EVENT_STREAM_FAILED: 'stream_failed',
+  EVENT_STREAM_ENDED: 'stream_ended',
 
   EVENT_INCOMING_VOICE_DATA: 'incoming_voice_data',
   EVENT_INCOMING_VOICE_DATA_DECODED: 'incoming_voice_data_decoded',

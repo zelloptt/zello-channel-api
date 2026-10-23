@@ -35,6 +35,7 @@ const bareSession = (options) => {
   session.channelConfigurationErrors = new Set();
   session.channelStatuses = {};
   session.channelsReadyWaiters = [];
+  session.incomingMessages = {};
   session.sent = [];
   session.sendCommand = (params) => {
     session.sent.push(params);
@@ -187,9 +188,13 @@ describe('OutgoingMessage channel routing', () => {
     message.startRecording = () => {};
     message.destroy = () => {};
     message.currentMessageId = 9;
+    message.streams = [];
+    message.pendingFrames = [];
+    message.maxPendingFrames = 250;
+    message.started = false;
     message.session = Object.assign(bareSession(sessionOptions), {
       startStream: jest.fn(() => Promise.resolve({ stream_id: 9 })),
-      stopStream: jest.fn()
+      stopStream: jest.fn(() => Promise.resolve({}))
     });
     return message;
   };
@@ -205,7 +210,7 @@ describe('OutgoingMessage channel routing', () => {
     expect(message.session.startStream.mock.calls[0][0].channel).toBe('Front');
 
     message.session.options.channel = 'Back';
-    message.stop();
+    await message.stop();
     expect(message.session.stopStream.mock.calls[0][0].channel).toBe('Front');
   });
 
@@ -604,5 +609,147 @@ describe('Session muteIncomingAudio', () => {
     streamStart(session);
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(player.mute).not.toHaveBeenCalled();
+  });
+});
+
+describe('OutgoingMessage to several channels', () => {
+  const ids = { Front: 11, Back: 22, Side: 33 };
+
+  // A message with no recorder or encoder, started by hand, on a session that
+  // answers start_stream per channel.
+  const multiMessage = (channels, { refuse = [], instance = {} } = {}) => {
+    setSdk({ OutgoingMessage: OutgoingMessage });
+    const session = Object.assign(bareSession({ channels: ['Front', 'Back', 'Side'] }), {
+      startStream: jest.fn((params) =>
+        refuse.includes(params.channel)
+          ? Promise.reject('failed to start stream')
+          : Promise.resolve({ stream_id: ids[params.channel] })
+      ),
+      stopStream: jest.fn(() => Promise.resolve({})),
+      log: () => {}
+    });
+    const callback = jest.fn();
+    const message = new OutgoingMessage(session, Object.assign({
+      channels: channels,
+      autoStart: false,
+      recorder: false,
+      encoder: false
+    }, instance), callback);
+    const packets = [];
+    message.on(Constants.EVENT_DATA_ENCODED, (packet) => packets.push(packet));
+    return { session, message, callback, packets };
+  };
+
+  const streamIdOf = (packet) => new DataView(packet.buffer).getInt32(1, false);
+  const packetIdOf = (packet) => new DataView(packet.buffer).getInt32(5, false);
+
+  it('opens one stream per channel and sends every frame to each under its own ids', async () => {
+    const { session, message, callback, packets } = multiMessage(['Front', 'Back']);
+    const started = [];
+    message.on(Constants.EVENT_STREAM_STARTED, (channel, streamId) => started.push([channel, streamId]));
+    const result = await message.start();
+    expect(session.startStream.mock.calls.map((call) => call[0].channel)).toEqual(['Front', 'Back']);
+    expect(session.startStream.mock.calls[0][0]).toMatchObject({ type: 'audio', codec: 'opus', packet_duration: 20 });
+    expect(result).toEqual({ stream_id: 11, streams: { Front: { stream_id: 11 }, Back: { stream_id: 22 } } });
+    expect(callback).toHaveBeenCalledWith(null, result);
+    expect(started).toEqual([['Front', 11], ['Back', 22]]);
+
+    message.processEncodedData(new Uint8Array([1]));
+    message.processEncodedData(new Uint8Array([2]));
+    expect(packets.map((packet) => [streamIdOf(packet), packetIdOf(packet), packet[9]])).toEqual([
+      [11, 1, 1], [22, 1, 1], [11, 2, 2], [22, 2, 2]
+    ]);
+    expect(message.currentMessageId).toBe(11);
+    expect(message.currentPacketId).toBe(2);
+
+    const onStop = jest.fn();
+    const stopped = await message.stop(onStop);
+    expect(session.stopStream.mock.calls.map((call) => call[0])).toEqual([
+      { stream_id: 11, channel: 'Front' },
+      { stream_id: 22, channel: 'Back' }
+    ]);
+    expect(stopped.streams).toEqual({ Front: { stream_id: 11 }, Back: { stream_id: 22 } });
+    expect(onStop).toHaveBeenCalledWith(null, stopped);
+  });
+
+  it('holds frames encoded before the server answers and flushes them in order', async () => {
+    const { message, packets } = multiMessage(['Front']);
+    message.processEncodedData(new Uint8Array([7]));
+    message.processEncodedData(new Uint8Array([8]));
+    expect(packets).toEqual([]);
+    await message.start();
+    expect(packets.map((packet) => [streamIdOf(packet), packetIdOf(packet), packet[9]])).toEqual([
+      [11, 1, 7], [11, 2, 8]
+    ]);
+  });
+
+  it('leaves a channel that refuses the stream out and reports it', async () => {
+    const { message, packets, callback } = multiMessage(['Front', 'Back'], { refuse: ['Back'] });
+    const failed = [];
+    message.on(Constants.EVENT_STREAM_FAILED, (channel, err) => failed.push([channel, err]));
+    const result = await message.start();
+    expect(result).toEqual({ stream_id: 11, streams: { Front: { stream_id: 11 }, Back: { error: 'failed to start stream' } } });
+    expect(failed).toEqual([['Back', 'failed to start stream']]);
+    expect(callback).toHaveBeenCalledWith(null, result);
+    message.processEncodedData(new Uint8Array([1]));
+    expect(packets.map(streamIdOf)).toEqual([11]);
+  });
+
+  it('fails only when no channel accepts', async () => {
+    const { message, callback, session } = multiMessage(['Front', 'Back'], { refuse: ['Front', 'Back'] });
+    await expect(message.start()).rejects.toBe('failed to start stream');
+    expect(callback).toHaveBeenCalledWith('failed to start stream');
+    expect(session.stopStream).not.toHaveBeenCalled();
+  });
+
+  it('stops sending to a stream the server ended and skips it on stop', async () => {
+    const { session, message, packets } = multiMessage(['Front', 'Back']);
+    await message.start();
+    const ended = [];
+    message.on(Constants.EVENT_STREAM_ENDED, (channel, streamId) => ended.push([channel, streamId]));
+    session.activeOutgoingMessage = message;
+    const sessionEvents = [];
+    session.emit = (event, ...args) => sessionEvents.push([event, ...args]);
+    session.jsonDataHandler({ command: 'on_stream_stop', stream_id: 22 });
+    expect(ended).toEqual([['Back', 22]]);
+    expect(sessionEvents).toContainEqual([Constants.EVENT_OUTGOING_VOICE_DID_STOP, 22, 'Back']);
+    message.processEncodedData(new Uint8Array([1]));
+    expect(packets.map(streamIdOf)).toEqual([11]);
+    await message.stop();
+    expect(session.stopStream.mock.calls.map((call) => call[0].channel)).toEqual(['Front']);
+  });
+
+  it('closes the streams the server opens after stop was requested', async () => {
+    let accept;
+    const { session, message } = multiMessage(['Front']);
+    session.startStream = jest.fn(() => new Promise((resolve) => { accept = resolve; }));
+    const starting = message.start();
+    const stopping = message.stop();
+    accept({ stream_id: 11 });
+    await starting;
+    await stopping;
+    expect(session.stopStream).toHaveBeenCalledWith({ stream_id: 11, channel: 'Front' });
+  });
+
+  it('rejects channels the session did not join, and an empty list', () => {
+    const { message } = multiMessage(['Front', 'Elsewhere']);
+    expect(() => message.resolveChannels()).toThrow(Constants.ERROR_CHANNEL_NOT_IN_LIST);
+    const empty = multiMessage([]).message;
+    expect(() => empty.resolveChannels()).toThrow(Constants.ERROR_NOT_ENOUGH_PARAMS);
+  });
+
+  it('waits for the encoder to finish before closing a single stream', async () => {
+    const { session, message } = multiMessage(['Front']);
+    await message.start();
+    const encoder = new (require('../src/classes/emitter'))();
+    encoder.destroy = jest.fn();
+    message.encoder = encoder;
+    const stopping = message.stop();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(session.stopStream).not.toHaveBeenCalled();
+    encoder.emit(Constants.EVENT_ENCODER_DONE);
+    await stopping;
+    expect(session.stopStream).toHaveBeenCalledWith({ stream_id: 11, channel: 'Front' });
+    expect(encoder.destroy).toHaveBeenCalled();
   });
 });
