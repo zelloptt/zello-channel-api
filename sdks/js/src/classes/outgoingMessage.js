@@ -2,9 +2,21 @@ const Emitter = require('./emitter');
 const Constants = require('./constants');
 const Utils = require('./utils');
 
+// How much encoded audio to hold back while the server is still answering
+// start_stream, so the first words of a message are not lost.
+const MAX_PENDING_MS = 5000;
+// How long stop() waits for the encoder to hand over its final frames before
+// closing the streams anyway.
+const ENCODER_DONE_TIMEOUT_MS = 1000;
+
 /**
  * @hideconstructor
- * @classdesc Outgoing audio message class. Instances are returned from <code>Session.startVoiceMessage</code> method
+ * @classdesc Outgoing audio message class. Instances are returned from <code>Session.startVoiceMessage</code> method.
+ *
+ * A message goes to one channel (<code>options.channel</code>, or the session default) or to several at once
+ * (<code>options.channels</code>): one stream is opened per channel and every encoded frame is sent to each of
+ * them. Channels that refuse the stream are reported through <code>stream_failed</code> and left out; the message
+ * fails only when none accepts.
  **/
 class OutgoingMessage extends Emitter {
   constructor(session, instanceOptions = {}, userCallback) {
@@ -32,10 +44,17 @@ class OutgoingMessage extends Emitter {
     }
 
     this.session = session;
+    // The first accepted stream, for callers that expect a single id.
     this.currentMessageId = null;
     this.currentPacketId = 0;
     // Set once the server has accepted the stream and the beforeRecording hook has settled.
     this.recordingAllowed = false;
+    // One entry per channel that accepted the stream: {channel, streamId, packetId, ended}.
+    this.streams = [];
+    this.started = false;
+    this.stopRequested = false;
+    this.pendingFrames = [];
+    this.maxPendingFrames = Math.ceil(MAX_PENDING_MS / this.options.encoderFrameSize);
 
     this.initEncoder();
     this.initRecorder();
@@ -64,14 +83,91 @@ class OutgoingMessage extends Emitter {
   }
 
   processEncodedData(data) {
-    let packet = Utils.buildBinaryPacket(1, this.currentMessageId, ++this.currentPacketId, data);
+    if (!this.started) {
+      if (this.pendingFrames.length < this.maxPendingFrames) {
+        this.pendingFrames.push(data);
+      }
+      return;
+    }
+    this.sendFrame(data);
+  }
+
+  // Sends one encoded frame to every open stream, each under its own stream
+  // and packet ids.
+  sendFrame(data) {
+    this.streams.forEach((stream) => {
+      if (stream.ended) {
+        return;
+      }
+      stream.packetId++;
+      if (stream.streamId === this.currentMessageId) {
+        this.currentPacketId = stream.packetId;
+      }
+      /**
+       * Outgoing message packet encoded and ready to be sent to zello server. Session is following this event and sends data automatically
+       *
+       * @event OutgoingMessage#data_encoded
+       * @param {Uint8Array} packet encoded opus packet with headers
+       */
+      this.emit(Constants.EVENT_DATA_ENCODED, Utils.buildBinaryPacket(1, stream.streamId, stream.packetId, data));
+    });
+  }
+
+  /**
+   * The channels this message is addressed to: <code>options.channels</code>, else the single channel resolved
+   * from <code>options.channel</code> and the session default.
+   *
+   * @return {Array<String>}
+   */
+  resolveChannels() {
+    const channels = this.instanceOptions.channels;
+    if (channels === undefined) {
+      return [this.session.resolveChannel(this.instanceOptions.channel)];
+    }
+    if (!Array.isArray(channels) || channels.length === 0 ||
+      !channels.every((channel) => typeof channel === 'string' && channel.length > 0)) {
+      throw new Error(Constants.ERROR_NOT_ENOUGH_PARAMS);
+    }
+    const unique = channels.filter((channel, index) => channels.indexOf(channel) === index);
+    const joined = this.session.options.channels;
+    if (Array.isArray(joined) && unique.some((channel) => joined.indexOf(channel) === -1)) {
+      throw new Error(Constants.ERROR_CHANNEL_NOT_IN_LIST);
+    }
+    return unique;
+  }
+
+  /**
+   * The channel a server stream id belongs to, or <code>undefined</code>.
+   *
+   * @param {Number} streamId
+   * @return {String|undefined}
+   */
+  channelForStream(streamId) {
+    const stream = this.streams.find((item) => item.streamId === streamId);
+    return stream ? stream.channel : undefined;
+  }
+
+  /**
+   * Marks a stream the server closed on its own (another user took the channel, the channel went offline).
+   * No more packets go to it; the other streams carry on. Called by the session on <code>on_stream_stop</code>.
+   *
+   * @param {Number} streamId
+   * @return {String|undefined} the channel the stream was on
+   */
+  streamEnded(streamId) {
+    const stream = this.streams.find((item) => item.streamId === streamId);
+    if (!stream || stream.ended) {
+      return undefined;
+    }
+    stream.ended = true;
     /**
-     * Outgoing message packet encoded and ready to be sent to zello server. Session is following this event and sends data automatically
-     *
-     * @event OutgoingMessage#data_encoded
-     * @param {Uint8Array} packet encoded opus packet with headers
+     * The server ended one of this message's streams while the message was still going
+     * @event OutgoingMessage#stream_ended
+     * @param {String} channel channel name
+     * @param {Number} streamId stream id
      */
-    this.emit(Constants.EVENT_DATA_ENCODED, packet);
+    this.emit(Constants.EVENT_STREAM_ENDED, stream.channel, streamId);
+    return stream.channel;
   }
 
   initRecorder() {
@@ -143,7 +239,7 @@ class OutgoingMessage extends Emitter {
   }
 
   /**
-   * Stops outgoing message
+   * Stops outgoing message: hands the encoder's final frames to every open stream, then closes each one.
    *
    * @param {Function} userCallback user callback that is called when server <code>stop_stream</code> command is done
    * @returns {Promise} promise that resolves when server <code>stop_stream</code> command is done
@@ -165,18 +261,90 @@ outgoingMessage.then(function(result) {
 });
   */
   stop(userCallback) {
-    if (!this.activeChannel) {
-      try {
-        this.activeChannel = this.session.resolveChannel(this.instanceOptions.channel);
-      } catch (err) {
-        return this.fail(err, userCallback);
+    if (!this.started) {
+      // The server has not answered start_stream yet; the streams it opens
+      // are closed as soon as it does.
+      if (!this.startPromise) {
+        try {
+          this.resolveChannels();
+        } catch (err) {
+          return this.fail(err, userCallback);
+        }
       }
+      this.stopRequested = true;
+      this.destroy();
+      const whenStarted = this.startPromise ? this.startPromise.catch(() => null) : Promise.resolve(null);
+      return whenStarted.then((started) => {
+        if (!started) {
+          const result = {streams: {}};
+          if (Utils.isFunction(userCallback)) {
+            userCallback(null, result);
+          }
+          return result;
+        }
+        return this.stopStreams(userCallback);
+      });
     }
-    this.destroy();
-    return this.session.stopStream({
-      stream_id: this.currentMessageId,
-      channel: this.activeChannel
-    }, userCallback);
+    this.started = false;
+    return this.finishEncoding().then(() => {
+      this.destroy();
+      return this.stopStreams(userCallback);
+    });
+  }
+
+  // Resolves once the encoder has emitted the frames for the audio already
+  // recorded, or after a bound, so stop_stream does not cut off the ending.
+  finishEncoding() {
+    const encoder = this.encoder;
+    if (this.recorder && Utils.isFunction(this.recorder.stop)) {
+      // Stops the microphone and tells the encoder the input is over.
+      this.recorder.stop();
+    }
+    if (!encoder || !Utils.isFunction(encoder.once)) {
+      return Promise.resolve();
+    }
+    // Encoded frames keep flowing to the streams until the streams are closed.
+    this.started = true;
+    return new Promise((resolve) => {
+      let settled = false;
+      const done = () => {
+        if (!settled) {
+          settled = true;
+          this.started = false;
+          resolve();
+        }
+      };
+      encoder.once(Constants.EVENT_ENCODER_DONE, done);
+      setTimeout(done, ENCODER_DONE_TIMEOUT_MS);
+    });
+  }
+
+  stopStreams(userCallback) {
+    const open = this.streams.filter((stream) => !stream.ended);
+    const results = {};
+    return Promise.all(open.map((stream) =>
+      this.session.stopStream({stream_id: stream.streamId, channel: stream.channel})
+        .then(() => {
+          results[stream.channel] = {stream_id: stream.streamId};
+        })
+        .catch((err) => {
+          results[stream.channel] = {stream_id: stream.streamId, error: err};
+        })
+    )).then(() => {
+      const result = {stream_id: this.currentMessageId, streams: results};
+      const failed = open.filter((stream) => results[stream.channel].error !== undefined);
+      if (open.length && failed.length === open.length) {
+        const err = results[failed[0].channel].error;
+        if (Utils.isFunction(userCallback)) {
+          userCallback(err);
+        }
+        throw err;
+      }
+      if (Utils.isFunction(userCallback)) {
+        userCallback(null, result);
+      }
+      return result;
+    });
   }
 
   fail(err, userErrorCallback) {
@@ -189,13 +357,14 @@ outgoingMessage.then(function(result) {
 
   destroy() {
     this.destroyed = true;
+    if (this.recorder && Utils.isFunction(this.recorder.stop)) {
+      this.recorder.stop();
+    }
     if (this.encoder && Utils.isFunction(this.encoder.destroy)) {
       this.encoder.destroy();
       this.encoder = null;
     }
-    if (this.recorder && Utils.isFunction(this.recorder.stop)) {
-      this.recorder.stop();
-    }
+    this.pendingFrames = [];
     this.removeAllListeners();
   }
 
@@ -203,10 +372,17 @@ outgoingMessage.then(function(result) {
  * Starts an outgoing message
  * if <code>options.autoStart</code> is <code>true</code> (default behaviour) then message is started automatically
  * when instance is created by <code>session.startVoiceMessage</code>
+ *
+ * Opens one stream per channel. Resolves with <code>{stream_id, streams}</code>: the first accepted stream id,
+ * and per channel either <code>{stream_id}</code> or <code>{error}</code>. Rejects only when no channel accepted.
  * **/
   start() {
+    if (this.startPromise) {
+      return this.startPromise;
+    }
+    let channels;
     try {
-      this.activeChannel = this.session.resolveChannel(this.instanceOptions.channel);
+      channels = this.resolveChannels();
     } catch (err) {
       return this.fail(err, this.userCallback);
     }
@@ -214,8 +390,7 @@ outgoingMessage.then(function(result) {
       'type': 'audio',
       'codec': 'opus',
       'codec_header': Utils.buildCodecHeader(this.options.encoderSampleRate, 1, this.options.encoderFrameSize),
-      'packet_duration': this.options.encoderFrameSize,
-      'channel': this.activeChannel
+      'packet_duration': this.options.encoderFrameSize
     };
     if (this.instanceOptions.for) {
       params.for = this.options.for;
@@ -226,26 +401,76 @@ outgoingMessage.then(function(result) {
     if (this.instanceOptions.talkPriority !== undefined) {
       params.talk_priority = this.options.talkPriority;
     }
+    if (this.instanceOptions.callId !== undefined) {
+      params.call_id = this.instanceOptions.callId;
+    }
+    if (this.instanceOptions.broadcast) {
+      params.broadcast = true;
+    }
     if (this.instanceOptions.retransmissionInterval !== undefined) {
       params.retransmissionInterval = this.instanceOptions.retransmissionInterval;
     }
     if (this.instanceOptions.retransmissionDuration !== undefined) {
       params.retransmissionDuration = this.instanceOptions.retransmissionDuration;
     }
-    const started = this.session
-      .startStream(params, this.userCallback)
-      .then((result) => {
-        this.currentMessageId = result.stream_id;
-        return this.waitBeforeRecording(result).then(() => {
-          this.recordingAllowed = true;
-          this.startRecording();
+    const results = {};
+    const streams = channels.map((channel) =>
+      this.session.startStream(Object.assign({}, params, {channel: channel}))
+        .then((result) => {
+          results[channel] = {stream_id: result.stream_id};
+          this.streams.push({channel: channel, streamId: result.stream_id, packetId: 0, ended: false});
+          /**
+           * A channel accepted the stream
+           * @event OutgoingMessage#stream_started
+           * @param {String} channel channel name
+           * @param {Number} streamId stream id
+           */
+          this.emit(Constants.EVENT_STREAM_STARTED, channel, result.stream_id);
+        })
+        .catch((err) => {
+          results[channel] = {error: err};
+          /**
+           * A channel refused the stream; the message carries on to the others
+           * @event OutgoingMessage#stream_failed
+           * @param {String} channel channel name
+           * @param {*} err the server's error
+           */
+          this.emit(Constants.EVENT_STREAM_FAILED, channel, err);
+        })
+    );
+    this.startPromise = Promise.all(streams).then(() => {
+      if (!this.streams.length) {
+        throw results[channels[0]].error;
+      }
+      // Streams are answered in any order; keep the caller's channel order.
+      this.streams.sort((a, b) => channels.indexOf(a.channel) - channels.indexOf(b.channel));
+      this.activeChannel = this.streams[0].channel;
+      this.currentMessageId = this.streams[0].streamId;
+      this.started = true;
+      this.pendingFrames.splice(0).forEach((frame) => this.sendFrame(frame));
+      const result = {stream_id: this.currentMessageId, streams: results};
+      if (this.stopRequested) {
+        return result;
+      }
+      return this.waitBeforeRecording(result).then(() => {
+        if (this.stopRequested) {
           return result;
-        });
+        }
+        this.recordingAllowed = true;
+        this.startRecording();
+        if (Utils.isFunction(this.userCallback)) {
+          this.userCallback(null, result);
+        }
+        return result;
       });
-    started.catch(() => {
-      this.destroy();
     });
-    return started;
+    this.startPromise.catch((err) => {
+      this.destroy();
+      if (Utils.isFunction(this.userCallback)) {
+        this.userCallback(err);
+      }
+    });
+    return this.startPromise;
   }
 
   /**
