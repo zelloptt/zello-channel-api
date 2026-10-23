@@ -3,6 +3,8 @@
 ## Usage
 See examples in [examples](./examples) folder and documentation in [docs/js](../../docs/js) folder
 
+TypeScript declarations for the `ZCC` global live in [types/zcc.d.ts](./types/zcc.d.ts) (`types` in package.json). In a project that loads the SDK with a script tag, reference the file (`/// <reference path="…/types/zcc.d.ts" />` or `types` in tsconfig) and use `ZCC.Session`, `ZCC.SessionOptions`, `ZCC.SessionEvents` and so on.
+
 ## Build from sources
 
 ### Prerequisites
