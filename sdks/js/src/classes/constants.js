@@ -55,6 +55,7 @@ module.exports = {
   EVENT_STREAM_STARTED: 'stream_started',
   EVENT_STREAM_FAILED: 'stream_failed',
   EVENT_STREAM_ENDED: 'stream_ended',
+  EVENT_REPLAY_PROGRESS: 'replay_progress',
 
   EVENT_INCOMING_VOICE_DATA: 'incoming_voice_data',
   EVENT_INCOMING_VOICE_DATA_DECODED: 'incoming_voice_data_decoded',

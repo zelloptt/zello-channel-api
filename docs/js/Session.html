@@ -798,7 +798,7 @@ A function keeps <code>endDispatchCall(callId, callback)</code> working.</td>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line889">line 889</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line896">line 896</a>
     </li></ul></dd>
     
 
@@ -1187,7 +1187,7 @@ callback. A channel name targets that channel instead of the session default.</t
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line919">line 919</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line926">line 926</a>
     </li></ul></dd>
     
 
@@ -1496,7 +1496,7 @@ callback. A channel name targets that channel instead of the session default.</t
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line978">line 978</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line985">line 985</a>
     </li></ul></dd>
     
 
@@ -1822,7 +1822,7 @@ rejects the image. Those failures happen after the file is read, so they do not 
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line844">line 844</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line851">line 851</a>
     </li></ul></dd>
     
 
@@ -2139,7 +2139,7 @@ rejects the image. Those failures happen after the file is read, so they do not 
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line866">line 866</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line873">line 873</a>
     </li></ul></dd>
     
 
@@ -2646,7 +2646,7 @@ Options can also include <code>recorder</code> and <code>encoder</code> override
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line780">line 780</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line787">line 787</a>
     </li></ul></dd>
     
 
@@ -2706,6 +2706,13 @@ var outgoingMessage = session.startVoiceMessage();
 // reports through the message's stream_started / stream_failed events
 var outgoingMessage = session.startVoiceMessage({
   channels: ['Baker Street 221B', 'Reichenbach Falls']
+});
+
+// send audio already in memory (a recorded announcement) at real-time pace;
+// the message stops itself after the last sample
+var outgoingMessage = session.startVoiceMessage({
+  channels: ['Baker Street 221B', 'Reichenbach Falls'],
+  replay: {samples: recordedPcm, sampleRate: 48000}
 });
 
 // use custom recorder
@@ -2857,7 +2864,7 @@ still being prepared never starts, and its play rejects with
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line1003">line 1003</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line1010">line 1010</a>
     </li></ul></dd>
     
 
@@ -3120,7 +3127,7 @@ callback. A channel name targets that channel instead of the session default.</t
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line944">line 944</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line951">line 951</a>
     </li></ul></dd>
     
 
@@ -4566,7 +4573,7 @@ or when the session disconnects. Resolves with <code>channelsReady</code>.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line805">line 805</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line812">line 812</a>
     </li></ul></dd>
     
 
@@ -4703,7 +4710,7 @@ or when the session disconnects. Resolves with <code>channelsReady</code>.
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line795">line 795</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line802">line 802</a>
     </li></ul></dd>
     
 
@@ -6181,13 +6188,13 @@ or when the session disconnects. Resolves with <code>channelsReady</code>.
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="IncomingImage.html">IncomingImage</a></li><li><a href="IncomingMessage.html">IncomingMessage</a></li><li><a href="OutgoingImage.html">OutgoingImage</a></li><li><a href="OutgoingMessage.html">OutgoingMessage</a></li><li><a href="Sdk.html">Sdk</a></li><li><a href="Session.html">Session</a></li></ul><h3>Interfaces</h3><ul><li><a href="Decoder.html">Decoder</a></li><li><a href="Encoder.html">Encoder</a></li><li><a href="Player.html">Player</a></li><li><a href="Recorder.html">Recorder</a></li></ul><h3>Events</h3><ul><li><a href="Decoder.html#event:decode">decode</a></li><li><a href="IncomingImage.html#event:image">image</a></li><li><a href="IncomingImage.html#event:image_thumbnail">image_thumbnail</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="OutgoingImage.html#event:error">error</a></li><li><a href="OutgoingImage.html#event:image_preview_data">image_preview_data</a></li><li><a href="OutgoingImage.html#event:thumbnail_preview_data">thumbnail_preview_data</a></li><li><a href="OutgoingMessage.html#event:data">data</a></li><li><a href="OutgoingMessage.html#event:data_encoded">data_encoded</a></li><li><a href="OutgoingMessage.html#event:stream_ended">stream_ended</a></li><li><a href="OutgoingMessage.html#event:stream_failed">stream_failed</a></li><li><a href="OutgoingMessage.html#event:stream_started">stream_started</a></li><li><a href="Session.html#event:dispatch_call_status">dispatch_call_status</a></li><li><a href="Session.html#event:error">error</a></li><li><a href="Session.html#event:incoming_image">incoming_image</a></li><li><a href="Session.html#event:incoming_location">incoming_location</a></li><li><a href="Session.html#event:incoming_text_message">incoming_text_message</a></li><li><a href="Session.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="Session.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="Session.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="Session.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="Session.html#event:incoming_voice_fail_start">incoming_voice_fail_start</a></li><li><a href="Session.html#event:incoming_voice_will_start">incoming_voice_will_start</a></li><li><a href="Session.html#event:outgoing_voice_did_stop">outgoing_voice_did_stop</a></li><li><a href="Session.html#event:session_connect">session_connect</a></li><li><a href="Session.html#event:session_connection_lost">session_connection_lost</a></li><li><a href="Session.html#event:session_disconnect">session_disconnect</a></li><li><a href="Session.html#event:session_fail_connect">session_fail_connect</a></li><li><a href="Session.html#event:session_start_connect">session_start_connect</a></li><li><a href="Session.html#event:status">status</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="IncomingImage.html">IncomingImage</a></li><li><a href="IncomingMessage.html">IncomingMessage</a></li><li><a href="OutgoingImage.html">OutgoingImage</a></li><li><a href="OutgoingMessage.html">OutgoingMessage</a></li><li><a href="ReplayRecorder.html">ReplayRecorder</a></li><li><a href="Sdk.html">Sdk</a></li><li><a href="Session.html">Session</a></li></ul><h3>Interfaces</h3><ul><li><a href="Decoder.html">Decoder</a></li><li><a href="Encoder.html">Encoder</a></li><li><a href="Player.html">Player</a></li><li><a href="Recorder.html">Recorder</a></li></ul><h3>Events</h3><ul><li><a href="Decoder.html#event:decode">decode</a></li><li><a href="IncomingImage.html#event:image">image</a></li><li><a href="IncomingImage.html#event:image_thumbnail">image_thumbnail</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="OutgoingImage.html#event:error">error</a></li><li><a href="OutgoingImage.html#event:image_preview_data">image_preview_data</a></li><li><a href="OutgoingImage.html#event:thumbnail_preview_data">thumbnail_preview_data</a></li><li><a href="OutgoingMessage.html#event:data">data</a></li><li><a href="OutgoingMessage.html#event:data_encoded">data_encoded</a></li><li><a href="OutgoingMessage.html#event:replay_progress">replay_progress</a></li><li><a href="OutgoingMessage.html#event:stream_ended">stream_ended</a></li><li><a href="OutgoingMessage.html#event:stream_failed">stream_failed</a></li><li><a href="OutgoingMessage.html#event:stream_started">stream_started</a></li><li><a href="Session.html#event:dispatch_call_status">dispatch_call_status</a></li><li><a href="Session.html#event:error">error</a></li><li><a href="Session.html#event:incoming_image">incoming_image</a></li><li><a href="Session.html#event:incoming_location">incoming_location</a></li><li><a href="Session.html#event:incoming_text_message">incoming_text_message</a></li><li><a href="Session.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="Session.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="Session.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="Session.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="Session.html#event:incoming_voice_fail_start">incoming_voice_fail_start</a></li><li><a href="Session.html#event:incoming_voice_will_start">incoming_voice_will_start</a></li><li><a href="Session.html#event:outgoing_voice_did_stop">outgoing_voice_did_stop</a></li><li><a href="Session.html#event:session_connect">session_connect</a></li><li><a href="Session.html#event:session_connection_lost">session_connection_lost</a></li><li><a href="Session.html#event:session_disconnect">session_disconnect</a></li><li><a href="Session.html#event:session_fail_connect">session_fail_connect</a></li><li><a href="Session.html#event:session_start_connect">session_start_connect</a></li><li><a href="Session.html#event:status">status</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Fri Oct 23 2026 16:18:28 GMT-0500 (Central Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Fri Oct 23 2026 16:21:42 GMT-0500 (Central Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>

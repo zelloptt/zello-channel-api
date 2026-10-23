@@ -760,6 +760,13 @@ var outgoingMessage = session.startVoiceMessage({
   channels: ['Baker Street 221B', 'Reichenbach Falls']
 });
 
+// send audio already in memory (a recorded announcement) at real-time pace;
+// the message stops itself after the last sample
+var outgoingMessage = session.startVoiceMessage({
+  channels: ['Baker Street 221B', 'Reichenbach Falls'],
+  replay: {samples: recordedPcm, sampleRate: 48000}
+});
+
 // use custom recorder
 var outgoingMessage = session.startVoiceMessage({
   recorder: CustomRecorder
