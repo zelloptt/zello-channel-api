@@ -27,19 +27,13 @@ def main():
         password = config['zello']['password']
         channel = config['zello']['channel']
         filename = config['media']['filename']
-
-        token = None
-        network = None
-        if 'network' in config['zello']:
-            network = config['zello']['network']
-
-        if 'token' in config['zello']:
-            token = config['zello']['token']
-        elif network is None:
+        # Both are optional; an empty value is treated the same as a missing key
+        network = config['zello'].get('network') or None
+        token = config['zello'].get('token') or None
+        if token is None and network is None:
             # Zello Consumer requires an auth token
             print("Check config file. Missing token")
             return
-
     except KeyError as error:
         print("Check config file. Missing key:", error)
         return
@@ -85,13 +79,12 @@ async def authenticate(ws, username, password, token, channel):
     auth_command = {
         "command": "logon",
         "seq": 1,
-        "auth_token": token,
         "username": username,
         "password": password,
         "channel": channel
     }
-    if token is None:
-        auth_command.pop("auth_token")
+    if token is not None:
+        auth_command["auth_token"] = token
     await ws.send_str(json.dumps(auth_command))
 
     is_authorized = False
@@ -99,8 +92,11 @@ async def authenticate(ws, username, password, token, channel):
     async for msg in ws:
         if msg.type == aiohttp.WSMsgType.TEXT:
             data = json.loads(msg.data)
-            if "seq" in data and data["seq"] == 1 and "success" in data and data["success"]:
-                is_authorized = True
+            if data.get("seq") == 1:
+                if data.get("success"):
+                    is_authorized = True
+                else:
+                    raise NameError(f"Authentication failed: {data.get('error', 'unknown error')}")
             elif "command" in data and "status" in data and data["command"] == "on_channel_status":
                 is_channel_available = data["status"] == "online"
             if is_authorized and is_channel_available:
@@ -178,18 +174,18 @@ def generate_zello_stream_packet(stream_id, packet_id, data):
 
 
 async def zello_stream_stop(ws, stream_id):
-    # If the websocket is already closing/closed, don't try to write.
-    if getattr(ws, "closed", False):
+    # On KeyboardInterrupt main() calls this on a socket whose event loop has
+    # already been closed, so the transport may be gone. The server ends the
+    # stream on disconnect anyway, so a failed stop_stream is safe to ignore.
+    if ws.closed:
         return
     try:
         await ws.send_str(json.dumps({
             "command": "stop_stream",
             "stream_id": stream_id
         }))
-    except Exception:
-        # Swallow errors like "Cannot write to closing transport"
-        # since shutdown may already be in progress.
-        pass
+    except (aiohttp.ClientError, ConnectionResetError, RuntimeError) as error:
+        print("Could not send stop_stream:", error)
 
 
 if __name__ == "__main__":

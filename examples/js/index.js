@@ -30,6 +30,8 @@ function zelloAuthorize(ws, username, password, token, channel, onCompleteCb) {
                 if (json.success === true) {
                     isAuthorized = true;
                 } else {
+                    console.error("Logon failed: " + (json.error || "unknown error"));
+                    clearTimeout(authTimeout);
                     return onCompleteCb(false);
                 }
             } else if (json.command === "on_channel_status" && json.status === "online") {
