@@ -11,9 +11,10 @@
 // The dist UMD wrapper auto-detects publicPath from document.currentScript
 // or the last script tag, neither of which exist in jsdom. Stub one before
 // requiring so module init does not throw "Automatic publicPath is not
-// supported in this browser".
+// supported in this browser". webpack >= 5.9x also checks tagName to skip
+// SVG script elements, so the stub needs it too.
 Object.defineProperty(document, 'currentScript', {
-  value: { src: 'http://localhost/zcc.recorder.js' },
+  value: { tagName: 'SCRIPT', src: 'http://localhost/zcc.recorder.js' },
   configurable: true
 });
 
