@@ -24,7 +24,12 @@ describe('ReplayRecorder', () => {
     const encoder = { postMessage: jest.fn() };
     const recorder = new ReplayRecorder({ replay: { samples, sampleRate }, encoderFrameSize: frameMs }, encoder);
     const chunks = [];
-    recorder.ondata = (buffers) => chunks.push(buffers[0].length);
+    recorder.ondata = (buffers) => {
+      // Each chunk must own its buffer; a view would drag the whole recording along to the worker.
+      expect(buffers[0].buffer).not.toBe(samples.buffer);
+      expect(buffers[0].buffer.byteLength).toBe(buffers[0].byteLength);
+      chunks.push(buffers[0].length);
+    };
     recorder.onready = jest.fn();
     recorder.onend = jest.fn();
     recorder.onprogress = jest.fn();
@@ -117,6 +122,11 @@ describe('OutgoingMessage with a replay', () => {
         replay: { samples: pcm(640), sampleRate: 16000 }
       });
       expect(message.recorder).toBeInstanceOf(ReplayRecorder);
+      // The encoder's init message carries the options, but never the replay audio.
+      await flush();
+      const init = Encoder.prototype.postMessage.mock.calls.find((call) => call[0].command === 'init');
+      expect(init).toBeDefined();
+      expect(init[0].replay).toBeUndefined();
       const progress = [];
       message.on(Constants.EVENT_REPLAY_PROGRESS, (sent, total) => progress.push([sent, total]));
 

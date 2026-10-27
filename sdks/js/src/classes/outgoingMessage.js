@@ -235,10 +235,14 @@ class OutgoingMessage extends Emitter {
     if (Utils.isFunction(this.recorder.getSampleRate)) {
       recorderSampleRate = this.recorder.getSampleRate();
     }
+    const initOptions = Object.assign({}, this.options);
+    // The replay audio is for the recorder; serializing it into the init
+    // message would copy the whole recording for nothing.
+    delete initOptions.replay;
     this.encoder.postMessage(Object.assign({
       command: 'init',
       originalSampleRate: recorderSampleRate
-    }, this.options));
+    }, initOptions));
   }
 
   startRecording() {

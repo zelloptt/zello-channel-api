@@ -93,7 +93,9 @@ class ReplayRecorder {
     // stretches the message; the server tolerates short bursts.
     const due = Math.floor((Date.now() - this.startedAt) / this.frameMs) + 1;
     while (this.chunksSent < due && this.position < this.samples.length) {
-      const chunk = this.samples.subarray(this.position, this.position + this.chunkSamples);
+      // A copy, not a view: posting a view to the encoder worker would clone the
+      // whole recording's buffer with every chunk.
+      const chunk = this.samples.slice(this.position, this.position + this.chunkSamples);
       this.position += chunk.length;
       this.chunksSent++;
       this.ondata([chunk]);
