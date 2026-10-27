@@ -10,14 +10,14 @@ const DEFAULT_FRAME_MS = 20;
  * like a live one. The server drops a stream whose packets arrive much faster than real time, so the samples are
  * handed to the encoder one frame per frame interval.
  *
- * Picked automatically when <code>startVoiceMessage</code> is given a <code>replay</code> option:
+ * Hand an instance to <code>startVoiceMessage</code> as its recorder:
  * @example
 var message = session.startVoiceMessage({
   channels: ['Baker Street 221B', 'Reichenbach Falls'],
-  replay: {
-    samples: recordedPcm,   // Float32Array, mono, -1..1
-    sampleRate: 48000       // the rate the samples were captured at
-  }
+  recorder: new ZCC.ReplayRecorder(
+    recordedPcm,   // Float32Array, mono, -1..1
+    48000          // the rate the samples were captured at
+  )
 });
 message.on('replay_progress', function(sentMs, totalMs) { ... });
 // the message stops itself once the last sample has gone out; the outcome
@@ -27,21 +27,18 @@ message.on('stop_failed', function(err) { ... });
  **/
 class ReplayRecorder {
   /**
-   * @param {object} options the outgoing message options; reads <code>options.replay.samples</code>,
-   * <code>options.replay.sampleRate</code> and <code>options.encoderFrameSize</code>
-   * @param {object} encoder the encoder to tell when the input is over
+   * @param {Float32Array} samples mono PCM in the -1..1 range
+   * @param {Number} sampleRate the rate the samples were captured at
    */
-  constructor(options, encoder) {
-    const replay = options.replay || {};
-    if (!(replay.samples instanceof Float32Array) || !replay.samples.length ||
-      typeof replay.sampleRate !== 'number' || !(replay.sampleRate > 0)) {
+  constructor(samples, sampleRate) {
+    if (!(samples instanceof Float32Array) || !samples.length ||
+      typeof sampleRate !== 'number' || !(sampleRate > 0)) {
       throw new Error(Constants.ERROR_NOT_ENOUGH_PARAMS);
     }
-    this.samples = replay.samples;
-    this.sampleRate = replay.sampleRate;
-    this.frameMs = options.encoderFrameSize || DEFAULT_FRAME_MS;
-    this.chunkSamples = Math.max(1, Math.round(this.sampleRate * this.frameMs / 1000));
-    this.encoder = encoder;
+    this.samples = samples;
+    this.sampleRate = sampleRate;
+    this.encoder = null;
+    this.setFrameMs(DEFAULT_FRAME_MS);
     this.position = 0;
     this.chunksSent = 0;
     this.startedAt = 0;
@@ -51,6 +48,22 @@ class ReplayRecorder {
 
   static isRecordingSupported() {
     return true;
+  }
+
+  /**
+   * Called by the outgoing message before <code>init()</code> with its options and encoder:
+   * the frames go out at the message's frame size, and the encoder is told when the audio is over.
+   * @param {object} options the outgoing message options
+   * @param {object} encoder the message's encoder
+   */
+  attach(options, encoder) {
+    this.setFrameMs(options.encoderFrameSize || DEFAULT_FRAME_MS);
+    this.encoder = encoder;
+  }
+
+  setFrameMs(frameMs) {
+    this.frameMs = frameMs;
+    this.chunkSamples = Math.max(1, Math.round(this.sampleRate * this.frameMs / 1000));
   }
 
   init() {

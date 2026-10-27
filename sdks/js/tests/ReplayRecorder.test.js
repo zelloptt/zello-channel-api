@@ -22,7 +22,8 @@ describe('ReplayRecorder', () => {
 
   const recorderFor = (samples, sampleRate = 16000, frameMs = 20) => {
     const encoder = { postMessage: jest.fn() };
-    const recorder = new ReplayRecorder({ replay: { samples, sampleRate }, encoderFrameSize: frameMs }, encoder);
+    const recorder = new ReplayRecorder(samples, sampleRate);
+    recorder.attach({ encoderFrameSize: frameMs }, encoder);
     const chunks = [];
     recorder.ondata = (buffers) => {
       // Each chunk must own its buffer; a view would drag the whole recording along to the worker.
@@ -37,9 +38,9 @@ describe('ReplayRecorder', () => {
   };
 
   it('needs samples and a sample rate', () => {
-    expect(() => new ReplayRecorder({ replay: {} }, {})).toThrow(Constants.ERROR_NOT_ENOUGH_PARAMS);
-    expect(() => new ReplayRecorder({ replay: { samples: new Float32Array(0), sampleRate: 16000 } }, {}))
-      .toThrow(Constants.ERROR_NOT_ENOUGH_PARAMS);
+    expect(() => new ReplayRecorder()).toThrow(Constants.ERROR_NOT_ENOUGH_PARAMS);
+    expect(() => new ReplayRecorder(new Float32Array(0), 16000)).toThrow(Constants.ERROR_NOT_ENOUGH_PARAMS);
+    expect(() => new ReplayRecorder(pcm(320), 0)).toThrow(Constants.ERROR_NOT_ENOUGH_PARAMS);
   });
 
   it('reports ready, then hands over one frame per frame interval and ends', async () => {
@@ -117,16 +118,23 @@ describe('OutgoingMessage with a replay', () => {
         startStream: jest.fn(() => Promise.resolve({ stream_id: 5 })),
         stopStream: jest.fn(() => Promise.resolve({}))
       };
+      const replay = new ReplayRecorder(pcm(640), 16000);
       const message = new OutgoingMessage(session, {
         channels: ['Front'],
-        replay: { samples: pcm(640), sampleRate: 16000 }
+        recorder: replay,
+        encoderFrameSize: 20
       });
-      expect(message.recorder).toBeInstanceOf(ReplayRecorder);
-      // The encoder's init message carries the options, but never the replay audio.
+      // The instance is used as is, attached to the message's encoder and frame size.
+      expect(message.recorder).toBe(replay);
+      expect(replay.encoder).toBe(message.encoder);
+      expect(replay.frameMs).toBe(20);
+      // The encoder's init message carries the settings, never the pipeline objects (nor their audio).
       await flush();
       const init = Encoder.prototype.postMessage.mock.calls.find((call) => call[0].command === 'init');
       expect(init).toBeDefined();
-      expect(init[0].replay).toBeUndefined();
+      expect(init[0].recorder).toBeUndefined();
+      expect(init[0].encoder).toBeUndefined();
+      expect(init[0].encoderFrameSize).toBe(20);
       const progress = [];
       message.on(Constants.EVENT_REPLAY_PROGRESS, (sent, total) => progress.push([sent, total]));
 

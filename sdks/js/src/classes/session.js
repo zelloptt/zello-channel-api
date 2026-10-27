@@ -772,7 +772,7 @@ var outgoingMessage = session.startVoiceMessage({
 // the message stops itself after the last sample
 var outgoingMessage = session.startVoiceMessage({
   channels: ['Baker Street 221B', 'Reichenbach Falls'],
-  replay: {samples: recordedPcm, sampleRate: 48000}
+  recorder: new ZCC.ReplayRecorder(recordedPcm, 48000)
 });
 
 // use custom recorder

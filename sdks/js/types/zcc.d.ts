@@ -206,13 +206,6 @@ declare namespace ZCC {
 
   // ---- Outgoing voice ---------------------------------------------------
 
-  interface ReplayOptions {
-    /** Mono PCM in the -1..1 range. */
-    samples: Float32Array;
-    /** The rate the samples were captured at. */
-    sampleRate: number;
-  }
-
   interface VoiceMessageOptions {
     /** One channel; the session default when omitted and `channels` is not given. */
     channel?: string;
@@ -226,9 +219,8 @@ declare namespace ZCC {
     retransmissionInterval?: number;
     retransmissionDuration?: number;
     autoStart?: boolean;
-    /** Send audio already in memory instead of the microphone, at real-time pace. */
-    replay?: ReplayOptions;
-    recorder?: RecorderConstructor | false;
+    /** A recorder constructor, or a ready-made instance such as a `ReplayRecorder` holding audio to send. */
+    recorder?: RecorderConstructor | Recorder | false;
     encoder?: EncoderConstructor | false;
     recorderSampleRate?: number;
     encoderSampleRate?: number;
@@ -330,6 +322,8 @@ declare namespace ZCC {
 
   /** Captures PCM for an outgoing message; a custom one implements this shape. */
   interface Recorder {
+    /** On an instance given to `startVoiceMessage`: receives the message options and encoder before `init()`. */
+    attach?(options: Record<string, unknown>, encoder: Pick<Encoder, 'postMessage'>): void;
     init(): Promise<void> | void;
     start(): void;
     stop(): void;
@@ -357,14 +351,17 @@ declare namespace ZCC {
     getAudioContext(): typeof AudioContext | undefined;
   };
 
+  /** Plays back PCM already in memory at real-time pace; pass an instance as the message's `recorder`. */
   interface ReplayRecorder extends Recorder {
+    attach(options: Record<string, unknown>, encoder: Pick<Encoder, 'postMessage'>): void;
     readonly durationMs: number;
     readonly position: number;
     getSampleRate(): number;
   }
 
-  const ReplayRecorder: RecorderConstructor & {
-    new (options: { replay: ReplayOptions; encoderFrameSize?: number }, encoder: Pick<Encoder, 'postMessage'>): ReplayRecorder;
+  const ReplayRecorder: {
+    /** @param samples mono PCM in the -1..1 range @param sampleRate the rate the samples were captured at */
+    new (samples: Float32Array, sampleRate: number): ReplayRecorder;
     isRecordingSupported(): boolean;
   };
 

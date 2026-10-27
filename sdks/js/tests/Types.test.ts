@@ -14,10 +14,13 @@ const sessionOptions: ZCC.SessionOptions = {
   maxConnectAttempts: 1
 };
 
-const voiceOptions: ZCC.VoiceMessageOptions = {
+// Type-checked only: the ZCC global is not loaded, so the recorder is built lazily.
+const replayFor = (pcm: Float32Array): ZCC.ReplayRecorder => new ZCC.ReplayRecorder(pcm, 16000);
+const voiceOptionsFor = (recorder: ZCC.Recorder): ZCC.VoiceMessageOptions => ({
   channels: ['Front', 'Back'],
-  replay: { samples: new Float32Array(320), sampleRate: 16000 }
-};
+  recorder
+});
+const voiceOptions: ZCC.VoiceMessageOptions = { channels: ['Front', 'Back'], encoderFrameSize: 20 };
 
 const describeSession = (session: ZCC.Session): Promise<string[]> =>
   session
@@ -43,7 +46,9 @@ const stoppedListener: ZCC.OutgoingMessageEvents['stopped'] = (result) =>
 describe('types/zcc.d.ts', () => {
   it('describes the public surface the console and demo use', () => {
     expect(sessionOptions.channels).toEqual(['Front', 'Back']);
-    expect(voiceOptions.replay?.sampleRate).toBe(16000);
+    expect(voiceOptions.encoderFrameSize).toBe(20);
+    expect(typeof replayFor).toBe('function');
+    expect(typeof voiceOptionsFor).toBe('function');
     expect(typeof describeSession).toBe('function');
     expect(typeof onStart).toBe('function');
     expect(statusListener({ command: 'on_channel_status', channel: 'Front', status: 'online', users_online: 3 })).toBe(3);

@@ -2,6 +2,11 @@ const Emitter = require('./emitter');
 const Constants = require('./constants');
 const Utils = require('./utils');
 
+// A recorder handed over ready-made rather than as a constructor.
+function isRecorderInstance(recorder) {
+  return typeof recorder === 'object' && Utils.isFunction(recorder.start) && Utils.isFunction(recorder.stop);
+}
+
 // How much encoded audio to hold back while the server is still answering
 // start_stream, so the first words of a message are not lost.
 const MAX_PENDING_MS = 5000;
@@ -35,9 +40,10 @@ class OutgoingMessage extends Emitter {
     this.userCallback = userCallback;
     this.instanceOptions = instanceOptions;
 
-    if (this.options.recorder && !Utils.isFunction(this.options.recorder)) {
-      // A replay option sends audio already in memory instead of the microphone.
-      this.options.recorder = instanceOptions.replay ? library.ReplayRecorder : library.Recorder;
+    // The recorder option is a constructor, a ready-made instance (such as a
+    // ReplayRecorder holding audio to send), or a flag for the microphone recorder.
+    if (this.options.recorder && !Utils.isFunction(this.options.recorder) && !isRecorderInstance(this.options.recorder)) {
+      this.options.recorder = library.Recorder;
     }
 
     if (this.options.encoder && !Utils.isFunction(this.options.encoder)) {
@@ -171,7 +177,16 @@ class OutgoingMessage extends Emitter {
       return;
     }
 
-    this.options.recorder.prototype.ondata = (data) => {
+    if (Utils.isFunction(this.options.recorder)) {
+      this.recorder = new this.options.recorder(this.options, this.encoder);
+    } else {
+      this.recorder = this.options.recorder;
+      if (Utils.isFunction(this.recorder.attach)) {
+        this.recorder.attach(this.options, this.encoder);
+      }
+    }
+
+    this.recorder.ondata = (data) => {
       if (!this.encoder) {
         return;
       }
@@ -186,12 +201,12 @@ class OutgoingMessage extends Emitter {
     };
     // A recorder that runs out of input (a replay) ends the message itself;
     // the outcome reaches the caller through the stopped / stop_failed events.
-    this.options.recorder.prototype.onend = () => {
+    this.recorder.onend = () => {
       if (!this.destroyed && this.started) {
         this.stop().catch(() => {});
       }
     };
-    this.options.recorder.prototype.onprogress = (sentMs, totalMs) => {
+    this.recorder.onprogress = (sentMs, totalMs) => {
       /**
        * A replayed message's progress
        * @event OutgoingMessage#replay_progress
@@ -200,7 +215,7 @@ class OutgoingMessage extends Emitter {
        */
       this.emit(Constants.EVENT_REPLAY_PROGRESS, sentMs, totalMs);
     };
-    this.options.recorder.prototype.onready = () => {
+    this.recorder.onready = () => {
       if (this.destroyed) {
         if (this.recorder) {
           // This is necessary to fix a race condition where
@@ -221,7 +236,6 @@ class OutgoingMessage extends Emitter {
         this.startRecording();
       }
     };
-    this.recorder = new this.options.recorder(this.options, this.encoder);
     if (Utils.isFunction(this.recorder.init)) {
       this.recorder.init();
     }
@@ -236,9 +250,10 @@ class OutgoingMessage extends Emitter {
       recorderSampleRate = this.recorder.getSampleRate();
     }
     const initOptions = Object.assign({}, this.options);
-    // The replay audio is for the recorder; serializing it into the init
-    // message would copy the whole recording for nothing.
-    delete initOptions.replay;
+    // The worker takes encoder settings; the pipeline objects stay here (a
+    // recorder instance may hold a whole recording).
+    delete initOptions.recorder;
+    delete initOptions.encoder;
     this.encoder.postMessage(Object.assign({
       command: 'init',
       originalSampleRate: recorderSampleRate

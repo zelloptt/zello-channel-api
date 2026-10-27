@@ -8,8 +8,10 @@ const RecorderState = Object.freeze({
 /**
  * Recorder interface. Recorder is used by <code>OutgoingMessage</code> to record and send voice data.
  *
- * A custom recorder (<code>startVoiceMessage({recorder: MyRecorder})</code>) is constructed with the message
- * options and the encoder, and implements:
+ * A custom recorder is given to <code>startVoiceMessage</code> either as a constructor
+ * (<code>{recorder: MyRecorder}</code>), which is called with the message options and the encoder, or as an
+ * instance (<code>{recorder: new MyRecorder(...)}</code>), whose optional <code>attach(options, encoder)</code>
+ * receives the same two before <code>init()</code>. It implements:
  * <ul>
  *   <li><code>init()</code>: opens the input; returns a promise that rejects when it cannot.</li>
  *   <li><code>start()</code>: called once the server has accepted the stream.</li>
@@ -17,7 +19,7 @@ const RecorderState = Object.freeze({
  *     (<code>encoder.postMessage({command: 'done'})</code>).</li>
  *   <li><code>getSampleRate()</code>: the rate of the PCM it hands over.</li>
  * </ul>
- * and calls the hooks <code>OutgoingMessage</code> assigns on its prototype:
+ * and calls the hooks <code>OutgoingMessage</code> assigns on the instance:
  * <ul>
  *   <li><code>onready()</code> once the input is open;</li>
  *   <li><code>ondata(buffers)</code> with one Float32Array per channel for each PCM portion;</li>
@@ -25,7 +27,7 @@ const RecorderState = Object.freeze({
  *     <code>onend()</code> once it is exhausted, which ends the message.</li>
  * </ul>
  * This class records the microphone; <code>ReplayRecorder</code> plays back PCM already in memory through the
- * same interface, using the two optional hooks. <code>types/zcc.d.ts</code> declares the shape as
+ * same interface, using the two optional hooks, and is handed over as an instance since it carries the audio. <code>types/zcc.d.ts</code> declares the shape as
  * <code>ZCC.Recorder</code>.
  *
  * @interface Recorder
