@@ -184,7 +184,8 @@ class OutgoingMessage extends Emitter {
       this.emit(Constants.EVENT_DATA, data);
       this.encoder.encode(data);
     };
-    // A recorder that runs out of input (a replay) ends the message itself.
+    // A recorder that runs out of input (a replay) ends the message itself;
+    // the outcome reaches the caller through the stopped / stop_failed events.
     this.options.recorder.prototype.onend = () => {
       if (!this.destroyed && this.started) {
         this.stop().catch(() => {});

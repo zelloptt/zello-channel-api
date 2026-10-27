@@ -130,11 +130,15 @@ describe('OutgoingMessage with a replay', () => {
       expect(progress[progress.length - 1]).toEqual([40, 40]);
 
       // the recorder ran out: the message stops after the encoder's last frame
+      // and reports the outcome through the stopped event
+      const stopped = jest.fn();
+      message.on(Constants.EVENT_STOPPED, stopped);
       await flush();
       expect(session.stopStream).not.toHaveBeenCalled();
       message.encoder.onceDone();
       await flush();
       expect(session.stopStream).toHaveBeenCalledWith({ stream_id: 5, channel: 'Front' });
+      expect(stopped).toHaveBeenCalledWith({ stream_id: 5, streams: { Front: { stream_id: 5 } } });
     } finally {
       jest.useRealTimers();
       delete window.ZCC;

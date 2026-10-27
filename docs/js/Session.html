@@ -104,7 +104,8 @@ the <a href="https://github.com/zelloptt/zello-channel-api">Zello Channel API</a
 
             <td class="description last">session options. Options can also include <code>player</code>, <code>decoder</code>, <code>recorder</code> and <code>encoder</code> overrides.
 <code>options.channels</code> is the list of channel names to connect to. When it is omitted, the session connects to <code>options.channel</code> only and stores that name as a one-item list.
-<code>options.channel</code> is the default channel for outgoing messages. It must be a channel name, and one of <code>options.channels</code> when both are set. When <code>options.channels</code> is set and <code>options.channel</code> is omitted, there is no default until the caller sets one.</td>
+<code>options.channel</code> is the default channel for outgoing messages. It must be a channel name, and one of <code>options.channels</code> when both are set. When <code>options.channels</code> is set and <code>options.channel</code> is omitted, there is no default until the caller sets one.
+<code>options.muteIncomingAudio</code> keeps incoming voice messages silent while still raising their events, for a session that only sends.</td>
         </tr>
 
     
@@ -145,7 +146,7 @@ the <a href="https://github.com/zelloptt/zello-channel-api">Zello Channel API</a
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line30">line 30</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line43">line 43</a>
     </li></ul></dd>
     
 
@@ -210,6 +211,7 @@ the <a href="https://github.com/zelloptt/zello-channel-api">Zello Channel API</a
   connectTimeoutMs: 60000,
   autoSendAudio: true,
   noPersistentPlayer: false,
+  muteIncomingAudio: false,
   language: 'en'
 );</code></pre>
 
@@ -230,6 +232,73 @@ the <a href="https://github.com/zelloptt/zello-channel-api">Zello Channel API</a
 
     
 
+    
+        <h3 class="subsection-title">Members</h3>
+
+        
+            
+<h4 class="name" id="channelsReady"><span class="type-signature"></span>channelsReady<span class="type-signature"></span></h4>
+
+
+
+
+<div class="description">
+    Whether every channel the session joined has reported a status since logon.
+A stream opened before a channel is ready is refused by the server.
+</div>
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line130">line 130</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+        
     
 
     
@@ -362,7 +431,7 @@ the <a href="https://github.com/zelloptt/zello-channel-api">Zello Channel API</a
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line179">line 179</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line260">line 260</a>
     </li></ul></dd>
     
 
@@ -493,7 +562,7 @@ session.connect(function(err, result) {
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line430">line 430</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line517">line 517</a>
     </li></ul></dd>
     
 
@@ -729,7 +798,7 @@ A function keeps <code>endDispatchCall(callId, callback)</code> working.</td>
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line790">line 790</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line904">line 904</a>
     </li></ul></dd>
     
 
@@ -785,6 +854,707 @@ A function keeps <code>endDispatchCall(callId, callback)</code> working.</td>
     
     <pre class="prettyprint"><code>session.endDispatchCall(123456789);
    session.endDispatchCall(123456789, 'Dispatch');</code></pre>
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="getChannelStatus"><span class="type-signature"></span>getChannelStatus<span class="signature">(channel)</span><span class="type-signature"> &rarr; {Object}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    The last status the server reported for a channel, or <code>undefined</code> before the first one.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>channel</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
+
+
+            
+            </td>
+
+            
+
+            
+
+            <td class="description last">channel name</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line120">line 120</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    the <code>on_channel_status</code> payload (<code>status</code>, <code>users_online</code>, ...)
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Object</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="getDispatchCalls"><span class="type-signature"></span>getDispatchCalls<span class="signature">(channelOrCallback<span class="signature-attributes">opt</span>, userCallback<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {promise}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Retrieves the dispatch calls visible to this session: for a dispatcher,
+every pending call plus their own active ones; for a caller, their own.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>channelOrCallback</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
+|
+
+<span class="param-type">function</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    null
+                
+                </td>
+            
+
+            <td class="description last">channel to read the queue of, or the completion
+callback. A channel name targets that channel instead of the session default.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>userCallback</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">function</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    null
+                
+                </td>
+            
+
+            <td class="description last">completion callback, used when the first argument is a channel name.</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line934">line 934</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    promise that resolves with <code>{success, calls}</code> where each call is
+                  <code>{id, user, status, dispatcher, initiator, messages}</code> and each message is
+                  <code>{message_id, type, author, ts, packet_duration}</code>; rejects on error.
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">promise</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+    <h5>Example</h5>
+    
+    <pre class="prettyprint"><code>session.getDispatchCalls().then(function(result) {
+     console.log(result.calls);
+   });
+   session.getDispatchCalls('Dispatch').then(function(result) {
+     console.log(result.calls);
+   });</code></pre>
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="playDispatchMessage"><span class="type-signature"></span>playDispatchMessage<span class="signature">(callId, messageId, channelOrCallback<span class="signature-attributes">opt</span>, userCallback<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {promise}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Plays back one message from a pending or taken dispatch call. The server
+downloads the recorded audio and delivers it like any incoming voice
+message: <code>incoming_voice_will_start</code> fires with a message whose
+data carries <code>call_id</code> and <code>message_id</code>, followed by
+the audio and <code>incoming_voice_did_stop</code>.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>callId</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Number</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last">the ID of the dispatch call the message belongs to.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>messageId</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Number</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last">the ID of the message to play, from the call's
+                <code>messages</code> list returned by <code>getDispatchCalls</code>.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>channelOrCallback</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
+|
+
+<span class="param-type">function</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    null
+                
+                </td>
+            
+
+            <td class="description last">channel the call lives on, or the completion
+callback. A channel name targets that channel instead of the session default.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>userCallback</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">function</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    null
+                
+                </td>
+            
+
+            <td class="description last">completion callback, used when the third argument is a channel name.</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line993">line 993</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    promise that resolves with <code>{success, stream_id}</code> once playback
+                  starts and rejects if it failed. One playback runs at a time per session: a
+                  second request while one is running fails with error <code>'busy'</code>, and
+                  a playback cancelled by <code>stopDispatchMessage</code> before its audio was
+                  ready fails with error <code>'stopped'</code>.
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">promise</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+    <h5>Example</h5>
+    
+    <pre class="prettyprint"><code>session.playDispatchMessage(123456789, 411);
+   session.playDispatchMessage(123456789, 411, 'Dispatch');</code></pre>
 
 
 
@@ -1052,7 +1822,7 @@ rejects the image. Those failures happen after the file is read, so they do not 
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line745">line 745</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line859">line 859</a>
     </li></ul></dd>
     
 
@@ -1369,7 +2139,7 @@ rejects the image. Those failures happen after the file is read, so they do not 
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line767">line 767</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line881">line 881</a>
     </li></ul></dd>
     
 
@@ -1654,7 +2424,7 @@ rejects the image. Those failures happen after the file is read, so they do not 
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line643">line 643</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line744">line 744</a>
     </li></ul></dd>
     
 
@@ -1876,7 +2646,7 @@ Options can also include <code>recorder</code> and <code>encoder</code> override
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line681">line 681</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line795">line 795</a>
     </li></ul></dd>
     
 
@@ -1932,6 +2702,19 @@ Options can also include <code>recorder</code> and <code>encoder</code> override
     <pre class="prettyprint"><code>// use default recorder and encoder
 var outgoingMessage = session.startVoiceMessage();
 
+// send one message to several channels the session joined; each channel
+// reports through the message's stream_started / stream_failed events
+var outgoingMessage = session.startVoiceMessage({
+  channels: ['Baker Street 221B', 'Reichenbach Falls']
+});
+
+// send audio already in memory (a recorded announcement) at real-time pace;
+// the message stops itself after the last sample
+var outgoingMessage = session.startVoiceMessage({
+  channels: ['Baker Street 221B', 'Reichenbach Falls'],
+  replay: {samples: recordedPcm, sampleRate: 48000}
+});
+
 // use custom recorder
 var outgoingMessage = session.startVoiceMessage({
   recorder: CustomRecorder
@@ -1948,6 +2731,635 @@ var outgoingMessage = session.startVoiceMessage({
 var outgoingMessage = session.startVoiceMessage({
   talkPriority: ZCC.OutgoingMessage.talkPriorityNormal
 });</code></pre>
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="stopDispatchMessage"><span class="type-signature"></span>stopDispatchMessage<span class="signature">(userCallback<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {promise}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Stops the playback started by <code>playDispatchMessage</code>. A playback
+that already started closes with <code>incoming_voice_did_stop</code>; one
+still being prepared never starts, and its play rejects with
+<code>'stopped'</code>.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>userCallback</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">function</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    null
+                
+                </td>
+            
+
+            <td class="description last">callback that is fired on the playback stopping or an error.</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line1018">line 1018</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    promise that resolves once the playback is stopped and rejects if there
+                  is none in flight (error <code>'not playing'</code>).
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">promise</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+    <h5>Example</h5>
+    
+    <pre class="prettyprint"><code>session.stopDispatchMessage();</code></pre>
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="takeDispatchCall"><span class="type-signature"></span>takeDispatchCall<span class="signature">(callId, channelOrCallback<span class="signature-attributes">opt</span>, userCallback<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {promise}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Takes a pending dispatch call, making this session's user its dispatcher.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+        <th>Default</th>
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>callId</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Number</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                </td>
+            
+
+            <td class="description last">the ID of the pending dispatch call to take.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>channelOrCallback</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">String</span>
+|
+
+<span class="param-type">function</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    null
+                
+                </td>
+            
+
+            <td class="description last">channel the call lives on, or the completion
+callback. A channel name targets that channel instead of the session default.</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>userCallback</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">function</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+                <td class="default">
+                
+                    null
+                
+                </td>
+            
+
+            <td class="description last">completion callback, used when the second argument is a channel name.</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line959">line 959</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+<div class="param-desc">
+    promise that resolves with <code>{success, call}</code> once the call is taken
+                  and rejects if taking it failed. A call another dispatcher already holds
+                  fails with error <code>'taken'</code>, and the response names them in
+                  <code>dispatcher</code>.
+</div>
+
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">promise</span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+    <h5>Example</h5>
+    
+    <pre class="prettyprint"><code>session.takeDispatchCall(123456789);
+   session.takeDispatchCall(123456789, 'Dispatch');</code></pre>
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="whenChannelsReady"><span class="type-signature"></span>whenChannelsReady<span class="signature">(timeoutMs<span class="signature-attributes">opt</span>)</span><span class="type-signature"> &rarr; {Promise.&lt;Boolean>}</span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Resolves once every joined channel has reported a status, or after <code>timeoutMs</code>,
+or when the session disconnects. Resolves with <code>channelsReady</code>.
+</div>
+
+
+
+
+
+
+
+
+
+    <h5>Parameters:</h5>
+    
+
+<table class="params">
+    <thead>
+    <tr>
+        
+        <th>Name</th>
+        
+
+        <th>Type</th>
+
+        
+        <th>Attributes</th>
+        
+
+        
+
+        <th class="last">Description</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    
+
+        <tr>
+            
+                <td class="name"><code>timeoutMs</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">Number</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">how long to wait at most; waits indefinitely when omitted</td>
+        </tr>
+
+    
+    </tbody>
+</table>
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line145">line 145</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h5>Returns:</h5>
+
+        
+
+
+<dl>
+    <dt>
+        Type
+    </dt>
+    <dd>
+        
+<span class="param-type">Promise.&lt;Boolean></span>
+
+
+    </dd>
+</dl>
+
+    
+
+
+
+
+    <h5>Example</h5>
+    
+    <pre class="prettyprint"><code>session.connect()
+  .then(() => session.whenChannelsReady(4000))
+  .then((ready) => session.startVoiceMessage());</code></pre>
 
 
 
@@ -2228,7 +3640,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line577">line 577</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line678">line 678</a>
     </li></ul></dd>
     
 
@@ -2365,7 +3777,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line474">line 474</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line562">line 562</a>
     </li></ul></dd>
     
 
@@ -2502,7 +3914,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line565">line 565</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line666">line 666</a>
     </li></ul></dd>
     
 
@@ -2634,7 +4046,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line557">line 557</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line658">line 658</a>
     </li></ul></dd>
     
 
@@ -2766,7 +4178,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line549">line 549</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line650">line 650</a>
     </li></ul></dd>
     
 
@@ -3001,7 +4413,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line443">line 443</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line531">line 531</a>
     </li></ul></dd>
     
 
@@ -3161,7 +4573,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line706">line 706</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line820">line 820</a>
     </li></ul></dd>
     
 
@@ -3298,7 +4710,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line696">line 696</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line810">line 810</a>
     </li></ul></dd>
     
 
@@ -3435,7 +4847,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line541">line 541</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line642">line 642</a>
     </li></ul></dd>
     
 
@@ -3595,7 +5007,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line521">line 521</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line618">line 618</a>
     </li></ul></dd>
     
 
@@ -3732,7 +5144,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line511">line 511</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line608">line 608</a>
     </li></ul></dd>
     
 
@@ -3800,6 +5212,8 @@ var outgoingMessage = session.startVoiceMessage({
         <th>Type</th>
 
         
+        <th>Attributes</th>
+        
 
         
 
@@ -3825,10 +5239,51 @@ var outgoingMessage = session.startVoiceMessage({
             </td>
 
             
+                <td class="attributes">
+                
+
+                
+
+                
+                </td>
+            
 
             
 
             <td class="description last">unique identifier of the stream which has been stopped</td>
+        </tr>
+
+    
+
+        <tr>
+            
+                <td class="name"><code>channel</code></td>
+            
+
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+
+            
+                <td class="attributes">
+                
+                    &lt;optional><br>
+                
+
+                
+
+                
+                </td>
+            
+
+            
+
+            <td class="description last">the channel the stream was on, when it belongs to the active outgoing message</td>
         </tr>
 
     
@@ -3869,7 +5324,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line532">line 532</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line629">line 629</a>
     </li></ul></dd>
     
 
@@ -3957,7 +5412,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line223">line 223</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line309">line 309</a>
     </li></ul></dd>
     
 
@@ -4094,7 +5549,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line299">line 299</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line385">line 385</a>
     </li></ul></dd>
     
 
@@ -4231,7 +5686,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line248">line 248</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line334">line 334</a>
     </li></ul></dd>
     
 
@@ -4368,7 +5823,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line243">line 243</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line329">line 329</a>
     </li></ul></dd>
     
 
@@ -4456,7 +5911,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line208">line 208</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line294">line 294</a>
     </li></ul></dd>
     
 
@@ -4691,7 +6146,7 @@ var outgoingMessage = session.startVoiceMessage({
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="session.js.html">session.js</a>, <a href="session.js.html#line482">line 482</a>
+        <a href="session.js.html">session.js</a>, <a href="session.js.html#line570">line 570</a>
     </li></ul></dd>
     
 
@@ -4733,13 +6188,13 @@ var outgoingMessage = session.startVoiceMessage({
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="IncomingImage.html">IncomingImage</a></li><li><a href="IncomingMessage.html">IncomingMessage</a></li><li><a href="OutgoingImage.html">OutgoingImage</a></li><li><a href="OutgoingMessage.html">OutgoingMessage</a></li><li><a href="Sdk.html">Sdk</a></li><li><a href="Session.html">Session</a></li></ul><h3>Interfaces</h3><ul><li><a href="Decoder.html">Decoder</a></li><li><a href="Encoder.html">Encoder</a></li><li><a href="Player.html">Player</a></li><li><a href="Recorder.html">Recorder</a></li></ul><h3>Events</h3><ul><li><a href="Decoder.html#event:decode">decode</a></li><li><a href="IncomingImage.html#event:image">image</a></li><li><a href="IncomingImage.html#event:image_thumbnail">image_thumbnail</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="OutgoingImage.html#event:error">error</a></li><li><a href="OutgoingImage.html#event:image_preview_data">image_preview_data</a></li><li><a href="OutgoingImage.html#event:thumbnail_preview_data">thumbnail_preview_data</a></li><li><a href="OutgoingMessage.html#event:data">data</a></li><li><a href="OutgoingMessage.html#event:data_encoded">data_encoded</a></li><li><a href="Session.html#event:dispatch_call_status">dispatch_call_status</a></li><li><a href="Session.html#event:error">error</a></li><li><a href="Session.html#event:incoming_image">incoming_image</a></li><li><a href="Session.html#event:incoming_location">incoming_location</a></li><li><a href="Session.html#event:incoming_text_message">incoming_text_message</a></li><li><a href="Session.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="Session.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="Session.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="Session.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="Session.html#event:incoming_voice_fail_start">incoming_voice_fail_start</a></li><li><a href="Session.html#event:incoming_voice_will_start">incoming_voice_will_start</a></li><li><a href="Session.html#event:outgoing_voice_did_stop">outgoing_voice_did_stop</a></li><li><a href="Session.html#event:session_connect">session_connect</a></li><li><a href="Session.html#event:session_connection_lost">session_connection_lost</a></li><li><a href="Session.html#event:session_disconnect">session_disconnect</a></li><li><a href="Session.html#event:session_fail_connect">session_fail_connect</a></li><li><a href="Session.html#event:session_start_connect">session_start_connect</a></li><li><a href="Session.html#event:status">status</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="IncomingImage.html">IncomingImage</a></li><li><a href="IncomingMessage.html">IncomingMessage</a></li><li><a href="OutgoingImage.html">OutgoingImage</a></li><li><a href="OutgoingMessage.html">OutgoingMessage</a></li><li><a href="ReplayRecorder.html">ReplayRecorder</a></li><li><a href="Sdk.html">Sdk</a></li><li><a href="Session.html">Session</a></li></ul><h3>Interfaces</h3><ul><li><a href="Decoder.html">Decoder</a></li><li><a href="Encoder.html">Encoder</a></li><li><a href="Player.html">Player</a></li><li><a href="Recorder.html">Recorder</a></li></ul><h3>Events</h3><ul><li><a href="Decoder.html#event:decode">decode</a></li><li><a href="IncomingImage.html#event:image">image</a></li><li><a href="IncomingImage.html#event:image_thumbnail">image_thumbnail</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="OutgoingImage.html#event:error">error</a></li><li><a href="OutgoingImage.html#event:image_preview_data">image_preview_data</a></li><li><a href="OutgoingImage.html#event:thumbnail_preview_data">thumbnail_preview_data</a></li><li><a href="OutgoingMessage.html#event:data">data</a></li><li><a href="OutgoingMessage.html#event:data_encoded">data_encoded</a></li><li><a href="OutgoingMessage.html#event:replay_progress">replay_progress</a></li><li><a href="OutgoingMessage.html#event:stop_failed">stop_failed</a></li><li><a href="OutgoingMessage.html#event:stopped">stopped</a></li><li><a href="OutgoingMessage.html#event:stream_ended">stream_ended</a></li><li><a href="OutgoingMessage.html#event:stream_failed">stream_failed</a></li><li><a href="OutgoingMessage.html#event:stream_started">stream_started</a></li><li><a href="Session.html#event:dispatch_call_status">dispatch_call_status</a></li><li><a href="Session.html#event:error">error</a></li><li><a href="Session.html#event:incoming_image">incoming_image</a></li><li><a href="Session.html#event:incoming_location">incoming_location</a></li><li><a href="Session.html#event:incoming_text_message">incoming_text_message</a></li><li><a href="Session.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="Session.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="Session.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="Session.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="Session.html#event:incoming_voice_fail_start">incoming_voice_fail_start</a></li><li><a href="Session.html#event:incoming_voice_will_start">incoming_voice_will_start</a></li><li><a href="Session.html#event:outgoing_voice_did_stop">outgoing_voice_did_stop</a></li><li><a href="Session.html#event:session_connect">session_connect</a></li><li><a href="Session.html#event:session_connection_lost">session_connection_lost</a></li><li><a href="Session.html#event:session_disconnect">session_disconnect</a></li><li><a href="Session.html#event:session_fail_connect">session_fail_connect</a></li><li><a href="Session.html#event:session_start_connect">session_start_connect</a></li><li><a href="Session.html#event:status">status</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Sat Oct 10 2026 20:42:36 GMT-0500 (Central Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Oct 27 2026 15:18:09 GMT-0500 (Central Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>

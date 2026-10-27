@@ -4,6 +4,7 @@ const Constants = require('./constants');
 const DEFAULT_FRAME_MS = 20;
 
 /**
+ * @implements Recorder
  * @classdesc A <code>Recorder</code> that plays back PCM already in memory instead of opening the microphone,
  * at the pace it was captured, so a recorded announcement can be sent through <code>Session.startVoiceMessage</code>
  * like a live one. The server drops a stream whose packets arrive much faster than real time, so the samples are
@@ -19,7 +20,10 @@ var message = session.startVoiceMessage({
   }
 });
 message.on('replay_progress', function(sentMs, totalMs) { ... });
-// the message stops itself once the last sample has gone out
+// the message stops itself once the last sample has gone out; the outcome
+// arrives through the message's 'stopped' or 'stop_failed' event
+message.on('stopped', function(result) { ... });
+message.on('stop_failed', function(err) { ... });
  **/
 class ReplayRecorder {
   /**
