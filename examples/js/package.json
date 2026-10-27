@@ -1,7 +1,7 @@
 {
     "dependencies": {
         "configparser": "0.3.6",
-        "ws": "7.5.10",
+        "ws": "7.5.11",
         "buffer": "5.6.0"
     }
 }
