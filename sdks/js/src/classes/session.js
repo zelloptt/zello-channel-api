@@ -36,6 +36,7 @@ const parseChannelOrCallback = (channelOrCallback, userCallback) => {
   connectTimeoutMs: 60000,
   autoSendAudio: true,
   noPersistentPlayer: false,
+  muteIncomingAudio: false,
   language: 'en'
 );
  **/
@@ -44,6 +45,7 @@ class Session extends Emitter {
    * @param {object} options session options. Options can also include <code>player</code>, <code>decoder</code>, <code>recorder</code> and <code>encoder</code> overrides.
    * <code>options.channels</code> is the list of channel names to connect to. When it is omitted, the session connects to <code>options.channel</code> only and stores that name as a one-item list.
    * <code>options.channel</code> is the default channel for outgoing messages. It must be a channel name, and one of <code>options.channels</code> when both are set. When <code>options.channels</code> is set and <code>options.channel</code> is omitted, there is no default until the caller sets one.
+   * <code>options.muteIncomingAudio</code> keeps incoming voice messages silent while still raising their events, for a session that only sends.
    * @return {ZCC.Session} <code>ZCC.Session</code> instance
    **/
   constructor(options) {
@@ -55,7 +57,8 @@ class Session extends Emitter {
       connectRetryTimeoutMs: 1000,
       connectTimeoutMs: 60000,
       autoSendAudio: true,
-      noPersistentPlayer: false
+      noPersistentPlayer: false,
+      muteIncomingAudio: false
     }, options);
     Object.assign(this.options, Session.prepareChannels(this.options));
     this.callbacks = {};
@@ -84,6 +87,10 @@ class Session extends Emitter {
     this.reconnectTimeout = null;
     this.connectTimeout = null;
     this.channelConfigurationErrors = new Set();
+    // The last on_channel_status per channel, and one promise shared by
+    // every caller waiting for all joined channels to report.
+    this.channelStatuses = {};
+    this.channelsReadyDeferred = null;
     this.heartbeatTimer = null;
     this.heartbeatAwaitingServerAck = false;
     this.heartbeatMissedAck = 0;
@@ -102,6 +109,68 @@ class Session extends Emitter {
 
   get channelConfigurationError() {
     return this.channelConfigurationErrors.size === this.options.channels.length;
+  }
+
+  /**
+   * The last status the server reported for a channel, or <code>undefined</code> before the first one.
+   *
+   * @param {String} channel channel name
+   * @return {Object} the <code>on_channel_status</code> payload (<code>status</code>, <code>users_online</code>, ...)
+   */
+  getChannelStatus(channel) {
+    return this.channelStatuses[channel];
+  }
+
+  /**
+   * Whether every channel the session joined has reported a status since logon.
+   * A stream opened before a channel is ready is refused by the server.
+   *
+   * @return {Boolean}
+   */
+  get channelsReady() {
+    return this.options.channels.every((channel) => this.channelStatuses[channel] !== undefined);
+  }
+
+  /**
+   * Resolves once every joined channel has reported a status, or after <code>timeoutMs</code>,
+   * or when the session disconnects. Resolves with <code>channelsReady</code>.
+   *
+   * @param {Number} [timeoutMs] how long to wait at most; waits indefinitely when omitted
+   * @return {Promise<Boolean>}
+   * @example
+session.connect()
+  .then(() => session.whenChannelsReady(4000))
+  .then((ready) => session.startVoiceMessage());
+   */
+  whenChannelsReady(timeoutMs) {
+    if (this.channelsReady) {
+      return Promise.resolve(true);
+    }
+    if (!this.channelsReadyDeferred) {
+      this.channelsReadyDeferred = Promise.defer();
+    }
+    const ready = this.channelsReadyDeferred.promise;
+    if (timeoutMs === undefined) {
+      return ready;
+    }
+    const timeout = Promise.defer();
+    const timer = setTimeout(() => timeout.resolve(this.channelsReady), timeoutMs);
+    return Promise.race([ready, timeout.promise]).finally(() => clearTimeout(timer));
+  }
+
+  // Wakes every caller of whenChannelsReady with the current readiness.
+  settleChannelsReady() {
+    if (this.channelsReadyDeferred) {
+      this.channelsReadyDeferred.resolve(this.channelsReady);
+      this.channelsReadyDeferred = null;
+    }
+  }
+
+  // A fresh logon joins the channels again, so earlier statuses no longer
+  // describe them.
+  resetChannelsReady() {
+    this.channelStatuses = {};
+    this.settleChannelsReady();
   }
 
   static prepareChannels(options) {
@@ -214,7 +283,12 @@ session.connect(function(err, result) {
       this.emit(
         this.channelConfigurationError ? Constants.EVENT_SESSION_DISCONNECT : Constants.EVENT_SESSION_FAIL_CONNECT
       );
-      return dfd.reject('Failed to connect');
+      const error = 'Failed to connect';
+      if (typeof userCallback === 'function') {
+        userCallback.apply(this, [error]);
+      }
+      dfd.reject(error);
+      return dfd.promise;
     }
     if (this.connectAttempts === this.maxConnectAttempts) {
       /**
@@ -385,6 +459,7 @@ session.connect(function(err, result) {
   }
 
   doLogon(refreshToken = '') {
+    this.resetChannelsReady();
     let dfd = Promise.defer();
     let params = {
       'command': 'logon',
@@ -446,6 +521,7 @@ session.connect(function(err, result) {
     if (this.wsConnection) {
       this.wsConnection.close();
     }
+    this.settleChannelsReady();
   }
 
   wsBinaryDataHandler(data) {
@@ -514,12 +590,21 @@ session.connect(function(err, result) {
               break;
           }
         }
+        if (typeof jsonData.channel === 'string') {
+          this.channelStatuses[jsonData.channel] = jsonData;
+          if (this.channelsReady) {
+            this.settleChannelsReady();
+          }
+        }
         this.emit(Constants.EVENT_STATUS, jsonData);
         break;
       case 'on_stream_start':
         const incomingMessage = new library.IncomingMessage(jsonData, this);
         this.incomingMessages[jsonData.stream_id] = incomingMessage;
         incomingMessage.init().then(() => {
+          if (this.options.muteIncomingAudio) {
+            incomingMessage.mute(true);
+          }
           /**
            * Incoming voice message is about to start.
            * @event Session#incoming_voice_will_start

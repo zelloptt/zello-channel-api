@@ -33,6 +33,8 @@ const bareSession = (options) => {
   session.emit = () => {};
   session.wasOnline = false;
   session.channelConfigurationErrors = new Set();
+  session.channelStatuses = {};
+  session.channelsReadyDeferred = null;
   session.sent = [];
   session.sendCommand = (params) => {
     session.sent.push(params);
@@ -497,5 +499,124 @@ describe('Incoming channel identity', () => {
     complete.stopPlayback(true);
     expect(player.endTrack).toHaveBeenCalledWith('6');
     expect(player.reset).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('Session channel readiness', () => {
+  const statusFor = (session, channel, status = 'online') => session.jsonDataHandler({
+    command: 'on_channel_status',
+    channel: channel,
+    status: status,
+    users_online: 3
+  });
+
+  it('keeps the last status per channel and reports when every channel has one', () => {
+    const session = new Session(Object.assign({ channels: ['Front', 'Back'] }, credentials));
+    expect(session.channelsReady).toBe(false);
+    expect(session.getChannelStatus('Front')).toBeUndefined();
+    statusFor(session, 'Front');
+    expect(session.channelsReady).toBe(false);
+    statusFor(session, 'Back', 'offline');
+    expect(session.channelsReady).toBe(true);
+    expect(session.getChannelStatus('Back')).toMatchObject({ status: 'offline', users_online: 3 });
+    // a status for a channel the session did not join is kept but does not count
+    statusFor(session, 'Other');
+    expect(session.channelsReady).toBe(true);
+  });
+
+  it('resolves whenChannelsReady once the last channel reports', async () => {
+    const session = new Session(Object.assign({ channels: ['Front', 'Back'] }, credentials));
+    const ready = session.whenChannelsReady();
+    let settled = false;
+    ready.then(() => { settled = true; });
+    statusFor(session, 'Front');
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(settled).toBe(false);
+    statusFor(session, 'Back');
+    await expect(ready).resolves.toBe(true);
+    // already ready: resolves at once
+    await expect(session.whenChannelsReady()).resolves.toBe(true);
+  });
+
+  // Real timers throughout: Q settles promises on the scheduler it captured at
+  // load, which Jest's fake timers would stall.
+  it('resolves whenChannelsReady with false on timeout and on disconnect', async () => {
+    const session = new Session(Object.assign({ channels: ['Front'] }, credentials));
+    await expect(session.whenChannelsReady(20)).resolves.toBe(false);
+
+    const dropped = session.whenChannelsReady(10000);
+    session.disconnect();
+    await expect(dropped).resolves.toBe(false);
+    expect(session.channelsReadyDeferred).toBeNull();
+  });
+
+  it('shares one wait between callers and starts over on a new logon', async () => {
+    const session = bareSession({ channels: ['Front'] });
+    const first = session.whenChannelsReady();
+    const second = session.whenChannelsReady(10000);
+    statusFor(session, 'Front');
+    await expect(first).resolves.toBe(true);
+    await expect(second).resolves.toBe(true);
+    expect(session.channelsReady).toBe(true);
+    // logging on again forgets the old statuses
+    session.doLogon();
+    expect(session.channelsReady).toBe(false);
+    expect(session.getChannelStatus('Front')).toBeUndefined();
+  });
+
+  it('rejects the connect promise and calls back when every attempt is used up', async () => {
+    const session = new Session(Object.assign({ channels: ['Front'], maxConnectAttempts: 0 }, credentials));
+    const callback = jest.fn();
+    await expect(session.connect(callback)).rejects.toBe('Failed to connect');
+    expect(callback).toHaveBeenCalledWith('Failed to connect');
+  });
+});
+
+describe('Session muteIncomingAudio', () => {
+  const streamStart = (session) => session.jsonDataHandler({
+    command: 'on_stream_start',
+    type: 'audio',
+    codec: 'opus',
+    codec_header: codecHeader,
+    packet_duration: 20,
+    stream_id: 7,
+    channel: 'Front'
+  });
+
+  const withPlayer = () => {
+    const player = {
+      setSampleRate: jest.fn(),
+      setFlushingTime: jest.fn(),
+      feed: jest.fn(),
+      reset: jest.fn(),
+      endTrack: jest.fn(),
+      mute: jest.fn()
+    };
+    IncomingMessage.PersistentPlayer = player;
+    function Decoder() {}
+    Decoder.prototype.decode = () => {};
+    Decoder.prototype.destroy = () => {};
+    setSdk({ Sdk: { initOptions: { decoder: Decoder } }, IncomingMessage: IncomingMessage });
+    return player;
+  };
+
+  it('mutes every incoming message when asked', async () => {
+    const player = withPlayer();
+    const session = new Session(Object.assign({ channels: ['Front'], muteIncomingAudio: true }, credentials));
+    const started = jest.fn();
+    session.on(Constants.EVENT_INCOMING_VOICE_WILL_START, started);
+    streamStart(session);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(player.mute).toHaveBeenCalledWith(true, '7');
+    // the message still reaches the application
+    expect(started).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves playback alone by default', async () => {
+    const player = withPlayer();
+    const session = new Session(Object.assign({ channels: ['Front'] }, credentials));
+    streamStart(session);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(player.mute).not.toHaveBeenCalled();
   });
 });
