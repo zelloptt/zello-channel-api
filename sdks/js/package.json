@@ -1,9 +1,10 @@
 {
   "name": "zello-channels-js-sdk",
   "copyright": "Copyright © 2026 Zello Inc.",
-  "version": "2.6.0",
+  "version": "2.7.0",
   "description": "Zello Channel API JS SDK",
   "main": "index.js",
+  "types": "types/zcc.d.ts",
   "homepage": "https://zello.com/work",
   "scripts": {
     "build": "cross-env NODE_ENV=production npx webpack",
