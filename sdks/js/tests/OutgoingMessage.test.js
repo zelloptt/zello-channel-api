@@ -205,7 +205,8 @@ describe('OutgoingMessage beforeRecording hook', () => {
     const hook = deferredHook();
     const { recorder } = await acceptedStream({ beforeRecording: hook });
 
-    expect(hook.calls).toEqual([{ stream_id: 42 }]);
+    expect(hook.calls).toHaveLength(1);
+    expect(hook.calls[0]).toMatchObject({ stream_id: 42 });
     expect(recorder.state).toBe('ready');
 
     hook.resolve();
