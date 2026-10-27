@@ -8,7 +8,8 @@ import socket
 import configparser
 import opus_file_stream
 
-WS_ENDPOINT = "wss://zello.io/ws"
+WS_CONSUMER_ENDPOINT = "wss://zello.io/ws"
+WS_WORK_ENDPOINT = "wss://zellowork.io/ws/"
 WS_TIMEOUT_SEC = 2
 
 ZelloWS = None
@@ -24,9 +25,15 @@ def main():
         config.read('stream.conf')
         username = config['zello']['username']
         password = config['zello']['password']
-        token = config['zello']['token']
         channel = config['zello']['channel']
         filename = config['media']['filename']
+        # Both are optional; an empty value is treated the same as a missing key
+        network = config['zello'].get('network') or None
+        token = config['zello'].get('token') or None
+        if token is None and network is None:
+            # Zello Consumer requires an auth token
+            print("Check config file. Missing token")
+            return
     except KeyError as error:
         print("Check config file. Missing key:", error)
         return
@@ -35,7 +42,7 @@ def main():
         return
 
     try:
-        asyncio.run(zello_stream_audio_to_channel(username, password, token, channel, filename))
+        asyncio.run(zello_stream_audio_to_channel(username, password, network, token, channel, filename))
     except KeyboardInterrupt:
         if ZelloWS and ZelloStreamID:
             try:
@@ -44,14 +51,15 @@ def main():
                 print("Error during stopping:", error)
 
 
-async def zello_stream_audio_to_channel(username, password, token, channel, opusfile):
+async def zello_stream_audio_to_channel(username, password, network, token, channel, opusfile):
     # Pass out the opened WebSocket and StreamID to handle synchronous keyboard interrupt
     global ZelloWS, ZelloStreamID
+    wss_url = WS_CONSUMER_ENDPOINT if network is None else WS_WORK_ENDPOINT + network
     try:
         opus_stream = opus_file_stream.OpusFileStream(opusfile)
         conn = aiohttp.TCPConnector(family = socket.AF_INET, ssl = False)
         async with aiohttp.ClientSession(connector = conn) as session:
-            async with session.ws_connect(WS_ENDPOINT) as ws:
+            async with session.ws_connect(wss_url) as ws:
                 ZelloWS = ws
                 await asyncio.wait_for(authenticate(ws, username, password, token, channel), WS_TIMEOUT_SEC)
                 print(f"User {username} has been authenticated on {channel} channel")
@@ -67,22 +75,28 @@ async def zello_stream_audio_to_channel(username, password, token, channel, opus
 
 
 async def authenticate(ws, username, password, token, channel):
-    await ws.send_str(json.dumps({
+    # https://github.com/zelloptt/zello-channel-api/blob/master/AUTH.md
+    auth_command = {
         "command": "logon",
         "seq": 1,
-        "auth_token": token,
         "username": username,
         "password": password,
         "channel": channel
-    }))
+    }
+    if token is not None:
+        auth_command["auth_token"] = token
+    await ws.send_str(json.dumps(auth_command))
 
     is_authorized = False
     is_channel_available = False
     async for msg in ws:
         if msg.type == aiohttp.WSMsgType.TEXT:
             data = json.loads(msg.data)
-            if "refresh_token" in data:
-                is_authorized = True
+            if data.get("seq") == 1:
+                if data.get("success"):
+                    is_authorized = True
+                else:
+                    raise NameError(f"Authentication failed: {data.get('error', 'unknown error')}")
             elif "command" in data and "status" in data and data["command"] == "on_channel_status":
                 is_channel_available = data["status"] == "online"
             if is_authorized and is_channel_available:
@@ -160,10 +174,18 @@ def generate_zello_stream_packet(stream_id, packet_id, data):
 
 
 async def zello_stream_stop(ws, stream_id):
-    await ws.send_str(json.dumps({
-        "command": "stop_stream",
-        "stream_id": stream_id
-    }))
+    # On KeyboardInterrupt main() calls this on a socket whose event loop has
+    # already been closed, so the transport may be gone. The server ends the
+    # stream on disconnect anyway, so a failed stop_stream is safe to ignore.
+    if ws.closed:
+        return
+    try:
+        await ws.send_str(json.dumps({
+            "command": "stop_stream",
+            "stream_id": stream_id
+        }))
+    except (aiohttp.ClientError, ConnectionResetError, RuntimeError) as error:
+        print("Could not send stop_stream:", error)
 
 
 if __name__ == "__main__":
