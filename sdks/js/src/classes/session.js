@@ -87,10 +87,10 @@ class Session extends Emitter {
     this.reconnectTimeout = null;
     this.connectTimeout = null;
     this.channelConfigurationErrors = new Set();
-    // The last on_channel_status per channel, and the callers waiting for
-    // every joined channel to report one.
+    // The last on_channel_status per channel, and one promise shared by
+    // every caller waiting for all joined channels to report.
     this.channelStatuses = {};
-    this.channelsReadyWaiters = [];
+    this.channelsReadyDeferred = null;
     this.heartbeatTimer = null;
     this.heartbeatAwaitingServerAck = false;
     this.heartbeatMissedAck = 0;
@@ -146,24 +146,31 @@ session.connect()
     if (this.channelsReady) {
       return Promise.resolve(true);
     }
-    const dfd = Promise.defer();
-    let timer = null;
-    const waiter = () => {
-      if (timer) {
-        clearTimeout(timer);
-      }
-      this.channelsReadyWaiters = this.channelsReadyWaiters.filter((item) => item !== waiter);
-      dfd.resolve(this.channelsReady);
-    };
-    if (timeoutMs !== undefined) {
-      timer = setTimeout(waiter, timeoutMs);
+    if (!this.channelsReadyDeferred) {
+      this.channelsReadyDeferred = Promise.defer();
     }
-    this.channelsReadyWaiters.push(waiter);
-    return dfd.promise;
+    const ready = this.channelsReadyDeferred.promise;
+    if (timeoutMs === undefined) {
+      return ready;
+    }
+    const timeout = Promise.defer();
+    const timer = setTimeout(() => timeout.resolve(this.channelsReady), timeoutMs);
+    return Promise.race([ready, timeout.promise]).finally(() => clearTimeout(timer));
   }
 
-  settleChannelsReadyWaiters() {
-    this.channelsReadyWaiters.slice().forEach((waiter) => waiter());
+  // Wakes every caller of whenChannelsReady with the current readiness.
+  settleChannelsReady() {
+    if (this.channelsReadyDeferred) {
+      this.channelsReadyDeferred.resolve(this.channelsReady);
+      this.channelsReadyDeferred = null;
+    }
+  }
+
+  // A fresh logon joins the channels again, so earlier statuses no longer
+  // describe them.
+  resetChannelsReady() {
+    this.channelStatuses = {};
+    this.settleChannelsReady();
   }
 
   static prepareChannels(options) {
@@ -452,6 +459,7 @@ session.connect(function(err, result) {
   }
 
   doLogon(refreshToken = '') {
+    this.resetChannelsReady();
     let dfd = Promise.defer();
     let params = {
       'command': 'logon',
@@ -513,7 +521,7 @@ session.connect(function(err, result) {
     if (this.wsConnection) {
       this.wsConnection.close();
     }
-    this.settleChannelsReadyWaiters();
+    this.settleChannelsReady();
   }
 
   wsBinaryDataHandler(data) {
@@ -585,7 +593,7 @@ session.connect(function(err, result) {
         if (typeof jsonData.channel === 'string') {
           this.channelStatuses[jsonData.channel] = jsonData;
           if (this.channelsReady) {
-            this.settleChannelsReadyWaiters();
+            this.settleChannelsReady();
           }
         }
         this.emit(Constants.EVENT_STATUS, jsonData);

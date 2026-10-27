@@ -34,7 +34,7 @@ const bareSession = (options) => {
   session.wasOnline = false;
   session.channelConfigurationErrors = new Set();
   session.channelStatuses = {};
-  session.channelsReadyWaiters = [];
+  session.channelsReadyDeferred = null;
   session.sent = [];
   session.sendCommand = (params) => {
     session.sent.push(params);
@@ -547,7 +547,21 @@ describe('Session channel readiness', () => {
     const dropped = session.whenChannelsReady(10000);
     session.disconnect();
     await expect(dropped).resolves.toBe(false);
-    expect(session.channelsReadyWaiters).toEqual([]);
+    expect(session.channelsReadyDeferred).toBeNull();
+  });
+
+  it('shares one wait between callers and starts over on a new logon', async () => {
+    const session = bareSession({ channels: ['Front'] });
+    const first = session.whenChannelsReady();
+    const second = session.whenChannelsReady(10000);
+    statusFor(session, 'Front');
+    await expect(first).resolves.toBe(true);
+    await expect(second).resolves.toBe(true);
+    expect(session.channelsReady).toBe(true);
+    // logging on again forgets the old statuses
+    session.doLogon();
+    expect(session.channelsReady).toBe(false);
+    expect(session.getChannelStatus('Front')).toBeUndefined();
   });
 
   it('rejects the connect promise and calls back when every attempt is used up', async () => {
