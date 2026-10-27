@@ -46,12 +46,18 @@ class OutgoingMessage extends Emitter {
     this.session = session;
     // The first accepted stream, for callers that expect a single id.
     this.currentMessageId = null;
+    /**
+     * @deprecated Packet counters live on <code>streams</code>; this mirrors the first stream's.
+     */
     this.currentPacketId = 0;
     // Set once the server has accepted the stream and the beforeRecording hook has settled.
     this.recordingAllowed = false;
     // One entry per channel that accepted the stream: {channel, streamId, packetId, ended}.
     this.streams = [];
+    // True from the moment the streams are open until they are closed; frames
+    // keep flowing while stop() drains the encoder.
     this.started = false;
+    this.stopping = false;
     this.stopRequested = false;
     this.pendingFrames = [];
     this.maxPendingFrames = Math.ceil(MAX_PENDING_MS / this.options.encoderFrameSize);
@@ -134,17 +140,6 @@ class OutgoingMessage extends Emitter {
       throw new Error(Constants.ERROR_CHANNEL_NOT_IN_LIST);
     }
     return unique;
-  }
-
-  /**
-   * The channel a server stream id belongs to, or <code>undefined</code>.
-   *
-   * @param {Number} streamId
-   * @return {String|undefined}
-   */
-  channelForStream(streamId) {
-    const stream = this.streams.find((item) => item.streamId === streamId);
-    return stream ? stream.channel : undefined;
   }
 
   /**
@@ -261,6 +256,9 @@ outgoingMessage.then(function(result) {
 });
   */
   stop(userCallback) {
+    if (this.stopping) {
+      return this.stopPromise;
+    }
     if (!this.started) {
       // The server has not answered start_stream yet; the streams it opens
       // are closed as soon as it does.
@@ -272,11 +270,12 @@ outgoingMessage.then(function(result) {
         }
       }
       this.stopRequested = true;
+      this.stopping = true;
       this.destroy();
       const whenStarted = this.startPromise ? this.startPromise.catch(() => null) : Promise.resolve(null);
-      return whenStarted.then((started) => {
+      this.stopPromise = whenStarted.then((started) => {
         if (!started) {
-          const result = {streams: {}};
+          const result = {stream_id: this.currentMessageId, streams: {}};
           if (Utils.isFunction(userCallback)) {
             userCallback(null, result);
           }
@@ -284,12 +283,16 @@ outgoingMessage.then(function(result) {
         }
         return this.stopStreams(userCallback);
       });
+      this.stopPromise.finally(() => this.removeAllListeners()).catch(() => {});
+      return this.stopPromise;
     }
-    this.started = false;
-    return this.finishEncoding().then(() => {
+    this.stopping = true;
+    this.stopPromise = this.finishEncoding().then(() => {
       this.destroy();
       return this.stopStreams(userCallback);
     });
+    this.stopPromise.finally(() => this.removeAllListeners()).catch(() => {});
+    return this.stopPromise;
   }
 
   // Resolves once the encoder has emitted the frames for the audio already
@@ -303,14 +306,13 @@ outgoingMessage.then(function(result) {
     if (!encoder || !Utils.isFunction(encoder.once)) {
       return Promise.resolve();
     }
-    // Encoded frames keep flowing to the streams until the streams are closed.
-    this.started = true;
+    // started stays true meanwhile, so the frames the encoder still emits
+    // reach the streams before they are closed.
     return new Promise((resolve) => {
       let settled = false;
       const done = () => {
         if (!settled) {
           settled = true;
-          this.started = false;
           resolve();
         }
       };
@@ -331,6 +333,7 @@ outgoingMessage.then(function(result) {
           results[stream.channel] = {stream_id: stream.streamId, error: err};
         })
     )).then(() => {
+      this.started = false;
       const result = {stream_id: this.currentMessageId, streams: results};
       const failed = open.filter((stream) => results[stream.channel].error !== undefined);
       if (open.length && failed.length === open.length) {
@@ -338,11 +341,23 @@ outgoingMessage.then(function(result) {
         if (Utils.isFunction(userCallback)) {
           userCallback(err);
         }
+        /**
+         * Closing the streams failed on every channel
+         * @event OutgoingMessage#stop_failed
+         * @param {*} err the server's error
+         */
+        this.emit(Constants.EVENT_STOP_FAILED, err);
         throw err;
       }
       if (Utils.isFunction(userCallback)) {
         userCallback(null, result);
       }
+      /**
+       * The message's streams are closed; also fires when the message stopped itself
+       * @event OutgoingMessage#stopped
+       * @param {Object} result <code>{stream_id, streams}</code>, per channel <code>{stream_id}</code> or <code>{stream_id, error}</code>
+       */
+      this.emit(Constants.EVENT_STOPPED, result);
       return result;
     });
   }
@@ -365,7 +380,6 @@ outgoingMessage.then(function(result) {
       this.encoder = null;
     }
     this.pendingFrames = [];
-    this.removeAllListeners();
   }
 
 /**

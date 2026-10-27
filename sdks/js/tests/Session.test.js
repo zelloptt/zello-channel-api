@@ -677,6 +677,8 @@ describe('OutgoingMessage to several channels', () => {
     expect(message.currentPacketId).toBe(2);
 
     const onStop = jest.fn();
+    const stoppedEvent = jest.fn();
+    message.on(Constants.EVENT_STOPPED, stoppedEvent);
     const stopped = await message.stop(onStop);
     expect(session.stopStream.mock.calls.map((call) => call[0])).toEqual([
       { stream_id: 11, channel: 'Front' },
@@ -684,6 +686,11 @@ describe('OutgoingMessage to several channels', () => {
     ]);
     expect(stopped.streams).toEqual({ Front: { stream_id: 11 }, Back: { stream_id: 22 } });
     expect(onStop).toHaveBeenCalledWith(null, stopped);
+    expect(stoppedEvent).toHaveBeenCalledWith(stopped);
+    expect(message.started).toBe(false);
+    // a second stop returns the same outcome instead of closing twice
+    expect(await message.stop()).toBe(stopped);
+    expect(session.stopStream).toHaveBeenCalledTimes(2);
   });
 
   it('holds frames encoded before the server answers and flushes them in order', async () => {
@@ -741,8 +748,29 @@ describe('OutgoingMessage to several channels', () => {
     const stopping = message.stop();
     accept({ stream_id: 11 });
     await starting;
-    await stopping;
+    const result = await stopping;
     expect(session.stopStream).toHaveBeenCalledWith({ stream_id: 11, channel: 'Front' });
+    expect(result.stream_id).toBe(11);
+  });
+
+  it('answers a stop before any channel accepted with no streams and no id', async () => {
+    const { message } = multiMessage(['Front'], { refuse: ['Front'] });
+    const starting = message.start().catch(() => null);
+    const result = await message.stop();
+    await starting;
+    expect(result).toEqual({ stream_id: null, streams: {} });
+  });
+
+  it('reports a close that failed everywhere through the callback, the promise and an event', async () => {
+    const { session, message } = multiMessage(['Front']);
+    await message.start();
+    session.stopStream = jest.fn(() => Promise.reject('timeout'));
+    const failed = jest.fn();
+    message.on(Constants.EVENT_STOP_FAILED, failed);
+    const onStop = jest.fn();
+    await expect(message.stop(onStop)).rejects.toBe('timeout');
+    expect(onStop).toHaveBeenCalledWith('timeout');
+    expect(failed).toHaveBeenCalledWith('timeout');
   });
 
   it('rejects channels the session did not join, and an empty list', () => {
@@ -761,6 +789,8 @@ describe('OutgoingMessage to several channels', () => {
     const stopping = message.stop();
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(session.stopStream).not.toHaveBeenCalled();
+    // frames the encoder still emits while draining reach the stream
+    expect(message.started).toBe(true);
     encoder.emit(Constants.EVENT_ENCODER_DONE);
     await stopping;
     expect(session.stopStream).toHaveBeenCalledWith({ stream_id: 11, channel: 'Front' });

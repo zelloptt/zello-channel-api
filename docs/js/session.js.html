@@ -36,6 +36,18 @@ const DEFAULT_HEARTBEAT_INTERVAL_MS = 30 * 1000;
 
 const isChannelName = (value) => typeof value === 'string' &amp;&amp; value.length > 0;
 
+// The dispatch methods take an optional channel before the optional callback:
+// method(args..., 'Channel', cb), method(args..., cb), or method(args...).
+const parseChannelOrCallback = (channelOrCallback, userCallback) => {
+  if (Utils.isFunction(channelOrCallback)) {
+    return {channel: undefined, callback: channelOrCallback};
+  }
+  return {
+    channel: isChannelName(channelOrCallback) ? channelOrCallback : undefined,
+    callback: userCallback
+  };
+};
+
 /**
  * @classdesc Session class to start a session with the Zello server and interact with it using
  * the &lt;a href="https://github.com/zelloptt/zello-channel-api">Zello Channel API&lt;/a>
@@ -52,6 +64,7 @@ const isChannelName = (value) => typeof value === 'string' &amp;&amp; value.leng
   connectTimeoutMs: 60000,
   autoSendAudio: true,
   noPersistentPlayer: false,
+  muteIncomingAudio: false,
   language: 'en'
 );
  **/
@@ -60,6 +73,7 @@ class Session extends Emitter {
    * @param {object} options session options. Options can also include &lt;code>player&lt;/code>, &lt;code>decoder&lt;/code>, &lt;code>recorder&lt;/code> and &lt;code>encoder&lt;/code> overrides.
    * &lt;code>options.channels&lt;/code> is the list of channel names to connect to. When it is omitted, the session connects to &lt;code>options.channel&lt;/code> only and stores that name as a one-item list.
    * &lt;code>options.channel&lt;/code> is the default channel for outgoing messages. It must be a channel name, and one of &lt;code>options.channels&lt;/code> when both are set. When &lt;code>options.channels&lt;/code> is set and &lt;code>options.channel&lt;/code> is omitted, there is no default until the caller sets one.
+   * &lt;code>options.muteIncomingAudio&lt;/code> keeps incoming voice messages silent while still raising their events, for a session that only sends.
    * @return {ZCC.Session} &lt;code>ZCC.Session&lt;/code> instance
    **/
   constructor(options) {
@@ -71,7 +85,8 @@ class Session extends Emitter {
       connectRetryTimeoutMs: 1000,
       connectTimeoutMs: 60000,
       autoSendAudio: true,
-      noPersistentPlayer: false
+      noPersistentPlayer: false,
+      muteIncomingAudio: false
     }, options);
     Object.assign(this.options, Session.prepareChannels(this.options));
     this.callbacks = {};
@@ -100,6 +115,10 @@ class Session extends Emitter {
     this.reconnectTimeout = null;
     this.connectTimeout = null;
     this.channelConfigurationErrors = new Set();
+    // The last on_channel_status per channel, and one promise shared by
+    // every caller waiting for all joined channels to report.
+    this.channelStatuses = {};
+    this.channelsReadyDeferred = null;
     this.heartbeatTimer = null;
     this.heartbeatAwaitingServerAck = false;
     this.heartbeatMissedAck = 0;
@@ -118,6 +137,68 @@ class Session extends Emitter {
 
   get channelConfigurationError() {
     return this.channelConfigurationErrors.size === this.options.channels.length;
+  }
+
+  /**
+   * The last status the server reported for a channel, or &lt;code>undefined&lt;/code> before the first one.
+   *
+   * @param {String} channel channel name
+   * @return {Object} the &lt;code>on_channel_status&lt;/code> payload (&lt;code>status&lt;/code>, &lt;code>users_online&lt;/code>, ...)
+   */
+  getChannelStatus(channel) {
+    return this.channelStatuses[channel];
+  }
+
+  /**
+   * Whether every channel the session joined has reported a status since logon.
+   * A stream opened before a channel is ready is refused by the server.
+   *
+   * @return {Boolean}
+   */
+  get channelsReady() {
+    return this.options.channels.every((channel) => this.channelStatuses[channel] !== undefined);
+  }
+
+  /**
+   * Resolves once every joined channel has reported a status, or after &lt;code>timeoutMs&lt;/code>,
+   * or when the session disconnects. Resolves with &lt;code>channelsReady&lt;/code>.
+   *
+   * @param {Number} [timeoutMs] how long to wait at most; waits indefinitely when omitted
+   * @return {Promise&lt;Boolean>}
+   * @example
+session.connect()
+  .then(() => session.whenChannelsReady(4000))
+  .then((ready) => session.startVoiceMessage());
+   */
+  whenChannelsReady(timeoutMs) {
+    if (this.channelsReady) {
+      return Promise.resolve(true);
+    }
+    if (!this.channelsReadyDeferred) {
+      this.channelsReadyDeferred = Promise.defer();
+    }
+    const ready = this.channelsReadyDeferred.promise;
+    if (timeoutMs === undefined) {
+      return ready;
+    }
+    const timeout = Promise.defer();
+    const timer = setTimeout(() => timeout.resolve(this.channelsReady), timeoutMs);
+    return Promise.race([ready, timeout.promise]).finally(() => clearTimeout(timer));
+  }
+
+  // Wakes every caller of whenChannelsReady with the current readiness.
+  settleChannelsReady() {
+    if (this.channelsReadyDeferred) {
+      this.channelsReadyDeferred.resolve(this.channelsReady);
+      this.channelsReadyDeferred = null;
+    }
+  }
+
+  // A fresh logon joins the channels again, so earlier statuses no longer
+  // describe them.
+  resetChannelsReady() {
+    this.channelStatuses = {};
+    this.settleChannelsReady();
   }
 
   static prepareChannels(options) {
@@ -230,7 +311,12 @@ session.connect(function(err, result) {
       this.emit(
         this.channelConfigurationError ? Constants.EVENT_SESSION_DISCONNECT : Constants.EVENT_SESSION_FAIL_CONNECT
       );
-      return dfd.reject('Failed to connect');
+      const error = 'Failed to connect';
+      if (typeof userCallback === 'function') {
+        userCallback.apply(this, [error]);
+      }
+      dfd.reject(error);
+      return dfd.promise;
     }
     if (this.connectAttempts === this.maxConnectAttempts) {
       /**
@@ -401,6 +487,7 @@ session.connect(function(err, result) {
   }
 
   doLogon(refreshToken = '') {
+    this.resetChannelsReady();
     let dfd = Promise.defer();
     let params = {
       'command': 'logon',
@@ -462,6 +549,7 @@ session.connect(function(err, result) {
     if (this.wsConnection) {
       this.wsConnection.close();
     }
+    this.settleChannelsReady();
   }
 
   wsBinaryDataHandler(data) {
@@ -530,12 +618,21 @@ session.connect(function(err, result) {
               break;
           }
         }
+        if (typeof jsonData.channel === 'string') {
+          this.channelStatuses[jsonData.channel] = jsonData;
+          if (this.channelsReady) {
+            this.settleChannelsReady();
+          }
+        }
         this.emit(Constants.EVENT_STATUS, jsonData);
         break;
       case 'on_stream_start':
         const incomingMessage = new library.IncomingMessage(jsonData, this);
         this.incomingMessages[jsonData.stream_id] = incomingMessage;
         incomingMessage.init().then(() => {
+          if (this.options.muteIncomingAudio) {
+            incomingMessage.mute(true);
+          }
           /**
            * Incoming voice message is about to start.
            * @event Session#incoming_voice_will_start
@@ -561,9 +658,13 @@ session.connect(function(err, result) {
          * Outgoing voice message stopped by the server
          * @event Session#outgoing_voice_did_stop
          * @param {number} streamId unique identifier of the stream which has been stopped
+         * @param {string} [channel] the channel the stream was on, when it belongs to the active outgoing message
          */
         if (!this.incomingMessages[jsonData.stream_id]) {
-          this.emit(Constants.EVENT_OUTGOING_VOICE_DID_STOP, jsonData.stream_id);
+          const endedChannel = this.activeOutgoingMessage
+            ? this.activeOutgoingMessage.streamEnded(jsonData.stream_id)
+            : undefined;
+          this.emit(Constants.EVENT_OUTGOING_VOICE_DID_STOP, jsonData.stream_id, endedChannel);
           break;
         }
         /**
@@ -688,6 +789,12 @@ session.connect(function(err, result) {
    *
 // use default recorder and encoder
 var outgoingMessage = session.startVoiceMessage();
+
+// send one message to several channels the session joined; each channel
+// reports through the message's stream_started / stream_failed events
+var outgoingMessage = session.startVoiceMessage({
+  channels: ['Baker Street 221B', 'Reichenbach Falls']
+});
 
 // use custom recorder
 var outgoingMessage = session.startVoiceMessage({
@@ -816,13 +923,7 @@ var outgoingMessage = session.startVoiceMessage({
    session.endDispatchCall(123456789, 'Dispatch');
    **/
   endDispatchCall(callId, channelOrCallback = null, userCallback = null) {
-    let channel;
-    let callback = userCallback;
-    if (Utils.isFunction(channelOrCallback)) {
-      callback = channelOrCallback;
-    } else if (isChannelName(channelOrCallback)) {
-      channel = channelOrCallback;
-    }
+    const {channel, callback} = parseChannelOrCallback(channelOrCallback, userCallback);
     const params = {
       call_id: callId
     };
@@ -830,6 +931,119 @@ var outgoingMessage = session.startVoiceMessage({
       params.channel = channel;
     }
     return this.sendChannelCommand('end_dispatch_call', params, callback);
+  }
+
+  /**
+   * Retrieves the dispatch calls visible to this session: for a dispatcher,
+   * every pending call plus their own active ones; for a caller, their own.
+   *
+   * @param {String|function} [channelOrCallback] channel to read the queue of, or the completion
+   * callback. A channel name targets that channel instead of the session default.
+   * @param {function} [userCallback] completion callback, used when the first argument is a channel name.
+   * @return {promise} promise that resolves with &lt;code>{success, calls}&lt;/code> where each call is
+   *                   &lt;code>{id, user, status, dispatcher, initiator, messages}&lt;/code> and each message is
+   *                   &lt;code>{message_id, type, author, ts, packet_duration}&lt;/code>; rejects on error.
+   * @example
+   *
+   session.getDispatchCalls().then(function(result) {
+     console.log(result.calls);
+   });
+   session.getDispatchCalls('Dispatch').then(function(result) {
+     console.log(result.calls);
+   });
+   **/
+  getDispatchCalls(channelOrCallback = null, userCallback = null) {
+    const {channel, callback} = parseChannelOrCallback(channelOrCallback, userCallback);
+    const params = {};
+    if (channel) {
+      params.channel = channel;
+    }
+    return this.sendChannelCommand('get_dispatch_calls', params, callback);
+  }
+
+  /**
+   * Takes a pending dispatch call, making this session's user its dispatcher.
+   *
+   * @param {Number} callId the ID of the pending dispatch call to take.
+   * @param {String|function} [channelOrCallback] channel the call lives on, or the completion
+   * callback. A channel name targets that channel instead of the session default.
+   * @param {function} [userCallback] completion callback, used when the second argument is a channel name.
+   * @return {promise} promise that resolves with &lt;code>{success, call}&lt;/code> once the call is taken
+   *                   and rejects if taking it failed. A call another dispatcher already holds
+   *                   fails with error &lt;code>'taken'&lt;/code>, and the response names them in
+   *                   &lt;code>dispatcher&lt;/code>.
+   * @example
+   *
+   session.takeDispatchCall(123456789);
+   session.takeDispatchCall(123456789, 'Dispatch');
+   **/
+  takeDispatchCall(callId, channelOrCallback = null, userCallback = null) {
+    const {channel, callback} = parseChannelOrCallback(channelOrCallback, userCallback);
+    const params = {
+      call_id: callId
+    };
+    if (channel) {
+      params.channel = channel;
+    }
+    return this.sendChannelCommand('take_dispatch_call', params, callback);
+  }
+
+  /**
+   * Plays back one message from a pending or taken dispatch call. The server
+   * downloads the recorded audio and delivers it like any incoming voice
+   * message: &lt;code>incoming_voice_will_start&lt;/code> fires with a message whose
+   * data carries &lt;code>call_id&lt;/code> and &lt;code>message_id&lt;/code>, followed by
+   * the audio and &lt;code>incoming_voice_did_stop&lt;/code>.
+   *
+   * @param {Number} callId the ID of the dispatch call the message belongs to.
+   * @param {Number} messageId the ID of the message to play, from the call's
+   *                 &lt;code>messages&lt;/code> list returned by &lt;code>getDispatchCalls&lt;/code>.
+   * @param {String|function} [channelOrCallback] channel the call lives on, or the completion
+   * callback. A channel name targets that channel instead of the session default.
+   * @param {function} [userCallback] completion callback, used when the third argument is a channel name.
+   * @return {promise} promise that resolves with &lt;code>{success, stream_id}&lt;/code> once playback
+   *                   starts and rejects if it failed. One playback runs at a time per session: a
+   *                   second request while one is running fails with error &lt;code>'busy'&lt;/code>, and
+   *                   a playback cancelled by &lt;code>stopDispatchMessage&lt;/code> before its audio was
+   *                   ready fails with error &lt;code>'stopped'&lt;/code>.
+   * @example
+   *
+   session.playDispatchMessage(123456789, 411);
+   session.playDispatchMessage(123456789, 411, 'Dispatch');
+   **/
+  playDispatchMessage(callId, messageId, channelOrCallback = null, userCallback = null) {
+    const {channel, callback} = parseChannelOrCallback(channelOrCallback, userCallback);
+    const params = {
+      call_id: callId,
+      message_id: messageId
+    };
+    if (channel) {
+      params.channel = channel;
+    }
+    return this.sendChannelCommand('play_dispatch_message', params, callback);
+  }
+
+  /**
+   * Stops the playback started by &lt;code>playDispatchMessage&lt;/code>. A playback
+   * that already started closes with &lt;code>incoming_voice_did_stop&lt;/code>; one
+   * still being prepared never starts, and its play rejects with
+   * &lt;code>'stopped'&lt;/code>.
+   *
+   * @param {function} [userCallback] callback that is fired on the playback stopping or an error.
+   * @return {promise} promise that resolves once the playback is stopped and rejects if there
+   *                   is none in flight (error &lt;code>'not playing'&lt;/code>).
+   * @example
+   *
+   session.stopDispatchMessage();
+   **/
+  stopDispatchMessage(userCallback = null) {
+    // Playback is per-session, not per-channel, so the command carries no
+    // channel and works on a multi-channel session with no default channel.
+    return this.sendCommandWithCallback(
+      'stop_dispatch_message',
+      {},
+      userCallback
+    );
   }
 
   sendCommandWithCallback(command, options, userCallback = null) {
@@ -866,13 +1080,13 @@ module.exports = Session;
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="IncomingImage.html">IncomingImage</a></li><li><a href="IncomingMessage.html">IncomingMessage</a></li><li><a href="OutgoingImage.html">OutgoingImage</a></li><li><a href="OutgoingMessage.html">OutgoingMessage</a></li><li><a href="Sdk.html">Sdk</a></li><li><a href="Session.html">Session</a></li></ul><h3>Interfaces</h3><ul><li><a href="Decoder.html">Decoder</a></li><li><a href="Encoder.html">Encoder</a></li><li><a href="Player.html">Player</a></li><li><a href="Recorder.html">Recorder</a></li></ul><h3>Events</h3><ul><li><a href="Decoder.html#event:decode">decode</a></li><li><a href="IncomingImage.html#event:image">image</a></li><li><a href="IncomingImage.html#event:image_thumbnail">image_thumbnail</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="OutgoingImage.html#event:error">error</a></li><li><a href="OutgoingImage.html#event:image_preview_data">image_preview_data</a></li><li><a href="OutgoingImage.html#event:thumbnail_preview_data">thumbnail_preview_data</a></li><li><a href="OutgoingMessage.html#event:data">data</a></li><li><a href="OutgoingMessage.html#event:data_encoded">data_encoded</a></li><li><a href="Session.html#event:dispatch_call_status">dispatch_call_status</a></li><li><a href="Session.html#event:error">error</a></li><li><a href="Session.html#event:incoming_image">incoming_image</a></li><li><a href="Session.html#event:incoming_location">incoming_location</a></li><li><a href="Session.html#event:incoming_text_message">incoming_text_message</a></li><li><a href="Session.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="Session.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="Session.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="Session.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="Session.html#event:incoming_voice_fail_start">incoming_voice_fail_start</a></li><li><a href="Session.html#event:incoming_voice_will_start">incoming_voice_will_start</a></li><li><a href="Session.html#event:outgoing_voice_did_stop">outgoing_voice_did_stop</a></li><li><a href="Session.html#event:session_connect">session_connect</a></li><li><a href="Session.html#event:session_connection_lost">session_connection_lost</a></li><li><a href="Session.html#event:session_disconnect">session_disconnect</a></li><li><a href="Session.html#event:session_fail_connect">session_fail_connect</a></li><li><a href="Session.html#event:session_start_connect">session_start_connect</a></li><li><a href="Session.html#event:status">status</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Classes</h3><ul><li><a href="IncomingImage.html">IncomingImage</a></li><li><a href="IncomingMessage.html">IncomingMessage</a></li><li><a href="OutgoingImage.html">OutgoingImage</a></li><li><a href="OutgoingMessage.html">OutgoingMessage</a></li><li><a href="Sdk.html">Sdk</a></li><li><a href="Session.html">Session</a></li></ul><h3>Interfaces</h3><ul><li><a href="Decoder.html">Decoder</a></li><li><a href="Encoder.html">Encoder</a></li><li><a href="Player.html">Player</a></li><li><a href="Recorder.html">Recorder</a></li></ul><h3>Events</h3><ul><li><a href="Decoder.html#event:decode">decode</a></li><li><a href="IncomingImage.html#event:image">image</a></li><li><a href="IncomingImage.html#event:image_thumbnail">image_thumbnail</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="IncomingMessage.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="IncomingMessage.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="OutgoingImage.html#event:error">error</a></li><li><a href="OutgoingImage.html#event:image_preview_data">image_preview_data</a></li><li><a href="OutgoingImage.html#event:thumbnail_preview_data">thumbnail_preview_data</a></li><li><a href="OutgoingMessage.html#event:data">data</a></li><li><a href="OutgoingMessage.html#event:data_encoded">data_encoded</a></li><li><a href="OutgoingMessage.html#event:stop_failed">stop_failed</a></li><li><a href="OutgoingMessage.html#event:stopped">stopped</a></li><li><a href="OutgoingMessage.html#event:stream_ended">stream_ended</a></li><li><a href="OutgoingMessage.html#event:stream_failed">stream_failed</a></li><li><a href="OutgoingMessage.html#event:stream_started">stream_started</a></li><li><a href="Session.html#event:dispatch_call_status">dispatch_call_status</a></li><li><a href="Session.html#event:error">error</a></li><li><a href="Session.html#event:incoming_image">incoming_image</a></li><li><a href="Session.html#event:incoming_location">incoming_location</a></li><li><a href="Session.html#event:incoming_text_message">incoming_text_message</a></li><li><a href="Session.html#event:incoming_voice_data">incoming_voice_data</a></li><li><a href="Session.html#event:incoming_voice_data_decoded">incoming_voice_data_decoded</a></li><li><a href="Session.html#event:incoming_voice_did_start">incoming_voice_did_start</a></li><li><a href="Session.html#event:incoming_voice_did_stop">incoming_voice_did_stop</a></li><li><a href="Session.html#event:incoming_voice_fail_start">incoming_voice_fail_start</a></li><li><a href="Session.html#event:incoming_voice_will_start">incoming_voice_will_start</a></li><li><a href="Session.html#event:outgoing_voice_did_stop">outgoing_voice_did_stop</a></li><li><a href="Session.html#event:session_connect">session_connect</a></li><li><a href="Session.html#event:session_connection_lost">session_connection_lost</a></li><li><a href="Session.html#event:session_disconnect">session_disconnect</a></li><li><a href="Session.html#event:session_fail_connect">session_fail_connect</a></li><li><a href="Session.html#event:session_start_connect">session_start_connect</a></li><li><a href="Session.html#event:status">status</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 3.6.10</a> on Sat Oct 10 2026 20:42:36 GMT-0500 (Central Daylight Time)
+    Documentation generated by <a href="https://github.com/jsdoc/jsdoc">JSDoc 4.0.5</a> on Tue Oct 27 2026 15:14:49 GMT-0500 (Central Daylight Time)
 </footer>
 
 <script> prettyPrint(); </script>
