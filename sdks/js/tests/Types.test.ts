@@ -37,6 +37,8 @@ const statusListener: ZCC.SessionEvents['status'] = (status) => status.users_onl
 const endedListener: ZCC.SessionEvents['outgoing_voice_did_stop'] = (streamId, channel) =>
   `${streamId}:${channel ?? ''}`;
 const progressListener: ZCC.OutgoingMessageEvents['replay_progress'] = (sent, total) => sent / total;
+const stoppedListener: ZCC.OutgoingMessageEvents['stopped'] = (result) =>
+  result.stream_id === null ? 0 : Object.keys(result.streams).length;
 
 describe('types/zcc.d.ts', () => {
   it('describes the public surface the console and demo use', () => {
@@ -47,5 +49,6 @@ describe('types/zcc.d.ts', () => {
     expect(statusListener({ command: 'on_channel_status', channel: 'Front', status: 'online', users_online: 3 })).toBe(3);
     expect(endedListener(7, 'Front')).toBe('7:Front');
     expect(progressListener(1, 2)).toBe(0.5);
+    expect(stoppedListener({ stream_id: null, streams: {} })).toBe(0);
   });
 });

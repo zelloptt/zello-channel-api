@@ -249,6 +249,7 @@ declare namespace ZCC {
   }
 
   interface VoiceMessageStopResult {
+    /** The first accepted stream id, or null when no channel had accepted before the stop. */
     stream_id: number | null;
     streams: ChannelStreamResults;
   }
@@ -261,18 +262,14 @@ declare namespace ZCC {
   }
 
   interface OutgoingMessage extends Emitter {
+    /** The first accepted stream id. */
     readonly currentMessageId: number | null;
-    readonly currentPacketId: number;
     /** One entry per channel that accepted the stream. */
-    readonly streams: OutgoingStream[];
-    readonly started: boolean;
+    readonly streams: ReadonlyArray<Readonly<OutgoingStream>>;
     readonly recorder?: Recorder;
-    readonly encoder?: Encoder | null;
     start(): Promise<VoiceMessageStartResult>;
     stop(callback?: Callback<VoiceMessageStopResult>): Promise<VoiceMessageStopResult>;
     resolveChannels(): string[];
-    channelForStream(streamId: number): string | undefined;
-    streamEnded(streamId: number): string | undefined;
   }
 
   const OutgoingMessage: {
@@ -442,6 +439,8 @@ declare namespace ZCC {
     readonly EVENT_STREAM_STARTED: 'stream_started';
     readonly EVENT_STREAM_FAILED: 'stream_failed';
     readonly EVENT_STREAM_ENDED: 'stream_ended';
+    readonly EVENT_STOPPED: 'stopped';
+    readonly EVENT_STOP_FAILED: 'stop_failed';
     readonly EVENT_REPLAY_PROGRESS: 'replay_progress';
     readonly EVENT_INCOMING_VOICE_DATA: 'incoming_voice_data';
     readonly EVENT_INCOMING_VOICE_DATA_DECODED: 'incoming_voice_data_decoded';
@@ -492,6 +491,9 @@ declare namespace ZCC {
     stream_started: (channel: string, streamId: number) => void;
     stream_failed: (channel: string, error: unknown) => void;
     stream_ended: (channel: string, streamId: number) => void;
+    /** The streams are closed; also fires when the message stopped itself after a replay. */
+    stopped: (result: VoiceMessageStopResult) => void;
+    stop_failed: (error: unknown) => void;
     replay_progress: (sentMs: number, totalMs: number) => void;
   }
 }
