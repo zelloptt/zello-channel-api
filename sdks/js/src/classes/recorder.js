@@ -1,5 +1,6 @@
 const RecorderState = Object.freeze({
   Inactive: "inactive",
+  Ready: "ready",
   Recording: "recording",
   Paused: "paused"
 });
@@ -265,10 +266,8 @@ class Recorder {
           err.code = 'RecorderTornDown';
           throw err;
         }
-        this.state = RecorderState.Recording;
         this.sourceNode = sourceNode;
-        this.sourceNode.connect(this.monitorGainNode);
-        this.sourceNode.connect(this.recordingGainNode);
+        this.state = RecorderState.Ready;
         this.onready();
       });
     })
@@ -315,7 +314,20 @@ class Recorder {
     }
   }
 
-  start() {}
+  /**
+   * Connects the internal gain nodes to start recording. Must be called
+   * after init. May throw exceptions from the underlyling AudioNode.connect
+   *
+   * @method Recorder#start
+   */
+  start() {
+    if (this.state !== RecorderState.Ready || !this.sourceNode) {
+      return;
+    }
+    this.state = RecorderState.Recording;
+    this.sourceNode.connect(this.monitorGainNode);
+    this.sourceNode.connect(this.recordingGainNode);
+  }
 
   /**
    * Emit recorded data portion to let <code>OutgoingMessage</code> instance get recorder data.

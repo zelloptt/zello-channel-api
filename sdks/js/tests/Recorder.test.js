@@ -186,6 +186,104 @@ describe('Recorder teardown race', () => {
     await initPromise;
 
     expect(stream.getTracks()[0].stop).not.toHaveBeenCalled();
+    expect(recorder.state).toBe('ready');
+    expect(recorder.sourceNode.connect).not.toHaveBeenCalled();
+  });
+});
+
+describe('Recorder start/stop lifecycle', () => {
+  afterEach(() => { jest.restoreAllMocks(); });
+
+  async function initRecorder() {
+    const gum = installGlobals();
+    const stream = new MockMediaStream();
+    const recorder = makeRecorder();
+    recorder.onready = jest.fn();
+
+    const initPromise = recorder.init();
+    gum.resolve(stream);
+    await initPromise;
+
+    return { recorder, stream };
+  }
+
+  test('init() calls onready and leaves the recorder ready without connecting the source', async () => {
+    const { recorder } = await initRecorder();
+
+    expect(recorder.onready).toHaveBeenCalledTimes(1);
+    expect(recorder.state).toBe('ready');
+    expect(recorder.sourceNode.connect).not.toHaveBeenCalled();
+  });
+
+  test('start() after init connects the source to both gain nodes and enters recording', async () => {
+    const { recorder } = await initRecorder();
+
+    recorder.start();
+
     expect(recorder.state).toBe('recording');
+    expect(recorder.sourceNode.connect).toHaveBeenCalledTimes(2);
+    expect(recorder.sourceNode.connect).toHaveBeenCalledWith(recorder.monitorGainNode);
+    expect(recorder.sourceNode.connect).toHaveBeenCalledWith(recorder.recordingGainNode);
+  });
+
+  test('start() is a no-op once recording', async () => {
+    const { recorder } = await initRecorder();
+
+    recorder.start();
+    recorder.start();
+
+    expect(recorder.state).toBe('recording');
+    expect(recorder.sourceNode.connect).toHaveBeenCalledTimes(2);
+  });
+
+  test('start() before init completes is a no-op and init still lands in ready', async () => {
+    const gum = installGlobals();
+    const stream = new MockMediaStream();
+    const recorder = makeRecorder();
+
+    const initPromise = recorder.init();
+    await flushMicrotasks();
+    recorder.start();
+    expect(recorder.state).toBe('inactive');
+
+    gum.resolve(stream);
+    await initPromise;
+
+    expect(recorder.state).toBe('ready');
+    expect(recorder.sourceNode.connect).not.toHaveBeenCalled();
+  });
+
+  test('audio buffers are not emitted while ready, only while recording', async () => {
+    const { recorder } = await initRecorder();
+    recorder.ondata = jest.fn();
+    const inputBuffer = {
+      numberOfChannels: 1,
+      getChannelData: () => new Float32Array(4)
+    };
+
+    // First buffer after graph init is intentionally dropped by the recorder.
+    recorder.scriptProcessorNode.onaudioprocess({ inputBuffer });
+    recorder.scriptProcessorNode.onaudioprocess({ inputBuffer });
+    expect(recorder.ondata).not.toHaveBeenCalled();
+
+    recorder.start();
+    recorder.scriptProcessorNode.onaudioprocess({ inputBuffer });
+    expect(recorder.ondata).toHaveBeenCalledTimes(1);
+  });
+
+  test('stop() from ready tears down cleanly and a later start() is a no-op', async () => {
+    const { recorder, stream } = await initRecorder();
+    const sourceNode = recorder.sourceNode;
+
+    expect(() => recorder.stop()).not.toThrow();
+
+    expect(recorder.state).toBe('inactive');
+    expect(sourceNode.disconnect).toHaveBeenCalledTimes(1);
+    expect(stream.getTracks()[0].stop).toHaveBeenCalledTimes(1);
+    expect(recorder.encoder.postMessage).toHaveBeenCalledWith({ command: 'done' });
+
+    recorder.start();
+    expect(recorder.state).toBe('inactive');
+    expect(sourceNode.connect).not.toHaveBeenCalled();
   });
 });
