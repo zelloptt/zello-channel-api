@@ -36,7 +36,8 @@ class OutgoingMessage extends Emitter {
     this.instanceOptions = instanceOptions;
 
     if (this.options.recorder && !Utils.isFunction(this.options.recorder)) {
-      this.options.recorder = library.Recorder;
+      // A replay option sends audio already in memory instead of the microphone.
+      this.options.recorder = instanceOptions.replay ? library.ReplayRecorder : library.Recorder;
     }
 
     if (this.options.encoder && !Utils.isFunction(this.options.encoder)) {
@@ -182,6 +183,22 @@ class OutgoingMessage extends Emitter {
        */
       this.emit(Constants.EVENT_DATA, data);
       this.encoder.encode(data);
+    };
+    // A recorder that runs out of input (a replay) ends the message itself;
+    // the outcome reaches the caller through the stopped / stop_failed events.
+    this.options.recorder.prototype.onend = () => {
+      if (!this.destroyed && this.started) {
+        this.stop().catch(() => {});
+      }
+    };
+    this.options.recorder.prototype.onprogress = (sentMs, totalMs) => {
+      /**
+       * A replayed message's progress
+       * @event OutgoingMessage#replay_progress
+       * @param {Number} sentMs milliseconds handed to the encoder so far
+       * @param {Number} totalMs total length of the audio
+       */
+      this.emit(Constants.EVENT_REPLAY_PROGRESS, sentMs, totalMs);
     };
     this.options.recorder.prototype.onready = () => {
       if (this.destroyed) {
