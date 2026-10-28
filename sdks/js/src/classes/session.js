@@ -630,9 +630,13 @@ session.connect(function(err, result) {
          * Outgoing voice message stopped by the server
          * @event Session#outgoing_voice_did_stop
          * @param {number} streamId unique identifier of the stream which has been stopped
+         * @param {string} [channel] the channel the stream was on, when it belongs to the active outgoing message
          */
         if (!this.incomingMessages[jsonData.stream_id]) {
-          this.emit(Constants.EVENT_OUTGOING_VOICE_DID_STOP, jsonData.stream_id);
+          const endedChannel = this.activeOutgoingMessage
+            ? this.activeOutgoingMessage.streamEnded(jsonData.stream_id)
+            : undefined;
+          this.emit(Constants.EVENT_OUTGOING_VOICE_DID_STOP, jsonData.stream_id, endedChannel);
           break;
         }
         /**
@@ -757,6 +761,19 @@ session.connect(function(err, result) {
    *
 // use default recorder and encoder
 var outgoingMessage = session.startVoiceMessage();
+
+// send one message to several channels the session joined; each channel
+// reports through the message's stream_started / stream_failed events
+var outgoingMessage = session.startVoiceMessage({
+  channels: ['Baker Street 221B', 'Reichenbach Falls']
+});
+
+// send audio already in memory (a recorded announcement) at real-time pace;
+// the message stops itself after the last sample
+var outgoingMessage = session.startVoiceMessage({
+  channels: ['Baker Street 221B', 'Reichenbach Falls'],
+  recorder: new ZCC.ReplayRecorder(recordedPcm, 48000)
+});
 
 // use custom recorder
 var outgoingMessage = session.startVoiceMessage({

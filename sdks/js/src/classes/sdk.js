@@ -123,6 +123,9 @@ ZCC.Sdk.init({
     if (Sdk.initOptions.recorder && !Utils.isFunction(Sdk.initOptions.recorder)) {
       scriptsToLoad.push(url + 'zcc.recorder.js');
       scriptNames.push('Recorder');
+      // ZCC.ReplayRecorder sends PCM already in memory in place of the microphone.
+      scriptsToLoad.push(url + 'zcc.replayrecorder.js');
+      scriptNames.push('ReplayRecorder');
     }
     if (Sdk.initOptions.encoder && !Utils.isFunction(Sdk.initOptions.encoder)) {
       scriptsToLoad.push(url + 'zcc.encoder.js');

@@ -6,9 +6,29 @@ const RecorderState = Object.freeze({
 });
 
 /**
- * Recorder interface. Recorder is used by <code>OutgoingMessage</code> to record and send voice data
- * Custom recorder implementation should call method <code>onready</code> once recorder is initialized and method
- * <code>ondata</code> once PCM data portion is ready
+ * Recorder interface. Recorder is used by <code>OutgoingMessage</code> to record and send voice data.
+ *
+ * A custom recorder is given to <code>startVoiceMessage</code> either as a constructor
+ * (<code>{recorder: MyRecorder}</code>), which is called with the message options and the encoder, or as an
+ * instance (<code>{recorder: new MyRecorder(...)}</code>), whose optional <code>attach(options, encoder)</code>
+ * receives the same two before <code>init()</code>. It implements:
+ * <ul>
+ *   <li><code>init()</code>: opens the input; returns a promise that rejects when it cannot.</li>
+ *   <li><code>start()</code>: called once the server has accepted the stream.</li>
+ *   <li><code>stop()</code>: releases the input and tells the encoder the input is over
+ *     (<code>encoder.postMessage({command: 'done'})</code>).</li>
+ *   <li><code>getSampleRate()</code>: the rate of the PCM it hands over.</li>
+ * </ul>
+ * and calls the hooks <code>OutgoingMessage</code> assigns on the instance:
+ * <ul>
+ *   <li><code>onready()</code> once the input is open;</li>
+ *   <li><code>ondata(buffers)</code> with one Float32Array per channel for each PCM portion;</li>
+ *   <li>optionally <code>onprogress(sentMs, totalMs)</code> while a bounded input is going out, and
+ *     <code>onend()</code> once it is exhausted, which ends the message.</li>
+ * </ul>
+ * This class records the microphone; <code>ReplayRecorder</code> plays back PCM already in memory through the
+ * same interface, using the two optional hooks, and is handed over as an instance since it carries the audio. <code>types/zcc.d.ts</code> declares the shape as
+ * <code>ZCC.Recorder</code>.
  *
  * @interface Recorder
  */
