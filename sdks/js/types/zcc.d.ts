@@ -219,6 +219,11 @@ declare namespace ZCC {
     retransmissionInterval?: number;
     retransmissionDuration?: number;
     autoStart?: boolean;
+    /**
+     * Runs once the server has accepted the stream; recording waits for the returned promise to
+     * settle, so a ready-to-send sound played here is not recorded. A rejection still records.
+     */
+    beforeRecording?: (result: VoiceMessageStartResult) => Promise<unknown> | unknown;
     /** A recorder constructor, or a ready-made instance such as a `ReplayRecorder` holding audio to send. */
     recorder?: RecorderConstructor | Recorder | false;
     encoder?: EncoderConstructor | false;

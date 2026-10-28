@@ -20,7 +20,11 @@ const voiceOptionsFor = (recorder: ZCC.Recorder): ZCC.VoiceMessageOptions => ({
   channels: ['Front', 'Back'],
   recorder
 });
-const voiceOptions: ZCC.VoiceMessageOptions = { channels: ['Front', 'Back'], encoderFrameSize: 20 };
+const voiceOptions: ZCC.VoiceMessageOptions = {
+  channels: ['Front', 'Back'],
+  encoderFrameSize: 20,
+  beforeRecording: (result) => new Promise<void>((resolve) => setTimeout(resolve, result.stream_id))
+};
 
 const describeSession = (session: ZCC.Session): Promise<string[]> =>
   session
