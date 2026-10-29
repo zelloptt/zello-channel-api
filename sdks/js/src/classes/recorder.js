@@ -22,12 +22,15 @@ const RecorderState = Object.freeze({
  * and calls the hooks <code>OutgoingMessage</code> assigns on the instance:
  * <ul>
  *   <li><code>onready()</code> once the input is open;</li>
- *   <li><code>ondata(buffers)</code> with one Float32Array per channel for each PCM portion;</li>
+ *   <li><code>ondata(buffers)</code> with one Float32Array per channel for each PCM portion, or
+ *     <code>onencoded(frame)</code> with a frame that is already Opus, sent as is (pair it with
+ *     <code>encoder: false</code> on the message);</li>
  *   <li>optionally <code>onprogress(sentMs, totalMs)</code> while a bounded input is going out, and
  *     <code>onend()</code> once it is exhausted, which ends the message.</li>
  * </ul>
- * This class records the microphone; <code>ReplayRecorder</code> plays back PCM already in memory through the
- * same interface, using the two optional hooks, and is handed over as an instance since it carries the audio. <code>types/zcc.d.ts</code> declares the shape as
+ * This class records the microphone; <code>ReplayRecorder</code> plays back PCM already in memory and
+ * <code>OpusReplayRecorder</code> frames already encoded, through the same interface with the optional hooks;
+ * both are handed over as instances since they carry the audio. <code>types/zcc.d.ts</code> declares the shape as
  * <code>ZCC.Recorder</code>.
  *
  * @interface Recorder

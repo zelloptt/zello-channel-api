@@ -1,14 +1,12 @@
 const Constants = require('./constants');
-
-// Default frame size when the message gives none: the encoder's own default.
-const DEFAULT_FRAME_MS = 20;
+const PacedReplay = require('./pacedReplay');
 
 /**
  * @implements Recorder
  * @classdesc A <code>Recorder</code> that plays back PCM already in memory instead of opening the microphone,
  * at the pace it was captured, so a recorded announcement can be sent through <code>Session.startVoiceMessage</code>
- * like a live one. The server drops a stream whose packets arrive much faster than real time, so the samples are
- * handed to the encoder one frame per frame interval.
+ * like a live one. The samples are handed to the message's encoder one frame per frame interval.
+ * For audio that is already Opus, see <code>OpusReplayRecorder</code>.
  *
  * Hand an instance to <code>startVoiceMessage</code> as its recorder:
  * @example
@@ -25,7 +23,7 @@ message.on('replay_progress', function(sentMs, totalMs) { ... });
 message.on('stopped', function(result) { ... });
 message.on('stop_failed', function(err) { ... });
  **/
-class ReplayRecorder {
+class ReplayRecorder extends PacedReplay {
   /**
    * @param {Float32Array} samples mono PCM in the -1..1 range
    * @param {Number} sampleRate the rate the samples were captured at
@@ -35,19 +33,10 @@ class ReplayRecorder {
       typeof sampleRate !== 'number' || !(sampleRate > 0)) {
       throw new Error(Constants.ERROR_NOT_ENOUGH_PARAMS);
     }
+    super();
     this.samples = samples;
     this.sampleRate = sampleRate;
-    this.encoder = null;
-    this.setFrameMs(DEFAULT_FRAME_MS);
-    this.position = 0;
-    this.chunksSent = 0;
-    this.startedAt = 0;
-    this.timer = null;
-    this.state = 'inactive';
-  }
-
-  static isRecordingSupported() {
-    return true;
+    this.setFrameMs(PacedReplay.DEFAULT_FRAME_MS);
   }
 
   /**
@@ -57,8 +46,8 @@ class ReplayRecorder {
    * @param {object} encoder the message's encoder
    */
   attach(options, encoder) {
-    this.setFrameMs(options.encoderFrameSize || DEFAULT_FRAME_MS);
-    this.encoder = encoder;
+    super.attach(options, encoder);
+    this.setFrameMs(options.encoderFrameSize || PacedReplay.DEFAULT_FRAME_MS);
   }
 
   setFrameMs(frameMs) {
@@ -66,107 +55,33 @@ class ReplayRecorder {
     this.chunkSamples = Math.max(1, Math.round(this.sampleRate * this.frameMs / 1000));
   }
 
-  init() {
-    this.state = 'ready';
-    return Promise.resolve().then(() => {
-      if (this.state === 'ready') {
-        this.onready();
-      }
-    });
-  }
-
   getSampleRate() {
     return this.sampleRate;
   }
 
-  /**
-   * Total length of the audio in milliseconds.
-   * @return {Number}
-   */
+  get frameCount() {
+    return Math.ceil(this.samples.length / this.chunkSamples);
+  }
+
+  // Samples handed over so far.
+  get position() {
+    return Math.min(this.frameIndex * this.chunkSamples, this.samples.length);
+  }
+
   get durationMs() {
     return this.samples.length / this.sampleRate * 1000;
   }
 
-  start() {
-    if (this.state !== 'ready') {
-      return;
-    }
-    this.state = 'replaying';
-    this.startedAt = Date.now();
-    this.chunksSent = 0;
-    this.tick();
+  get sentMs() {
+    return this.position / this.sampleRate * 1000;
   }
 
-  tick() {
-    this.timer = null;
-    if (this.state !== 'replaying') {
-      return;
-    }
-    // Every frame whose slot has passed goes out now, so a late timer never
-    // stretches the message; the server tolerates short bursts.
-    const due = Math.floor((Date.now() - this.startedAt) / this.frameMs) + 1;
-    while (this.chunksSent < due && this.position < this.samples.length) {
-      // A copy, not a view: posting a view to the encoder worker would clone the
-      // whole recording's buffer with every chunk.
-      const chunk = this.samples.slice(this.position, this.position + this.chunkSamples);
-      this.position += chunk.length;
-      this.chunksSent++;
-      this.ondata([chunk]);
-    }
-    this.onprogress(this.position / this.sampleRate * 1000, this.durationMs);
-    if (this.position >= this.samples.length) {
-      this.finish();
-      return;
-    }
-    const nextAt = this.startedAt + this.chunksSent * this.frameMs;
-    this.timer = setTimeout(() => this.tick(), Math.max(0, nextAt - Date.now()));
+  deliver(index) {
+    // A copy, not a view: posting a view to the encoder worker would clone the
+    // whole recording's buffer with every chunk.
+    const chunk = this.samples.slice(index * this.chunkSamples, (index + 1) * this.chunkSamples);
+    this.ondata([chunk]);
   }
-
-  finish() {
-    this.stop();
-    this.onend();
-  }
-
-  stop() {
-    if (this.state === 'inactive') {
-      return;
-    }
-    this.state = 'inactive';
-    if (this.timer) {
-      clearTimeout(this.timer);
-      this.timer = null;
-    }
-    if (this.encoder && typeof this.encoder.postMessage === 'function') {
-      this.encoder.postMessage({command: 'done'});
-    }
-  }
-
-  setRecordingGain() {}
-
-  setMonitorGain() {}
-
-  /**
-   * Emit a PCM portion for the outgoing message to encode.
-   * @method ReplayRecorder#ondata
-   * @param {Array<Float32Array>} buffers one buffer per channel
-   */
-  ondata(buffers) {}
-
-  onready() {}
-
-  /**
-   * Fired as the audio goes out.
-   * @method ReplayRecorder#onprogress
-   * @param {Number} sentMs milliseconds handed to the encoder so far
-   * @param {Number} totalMs total length
-   */
-  onprogress(sentMs, totalMs) {}
-
-  /**
-   * Fired once the last sample has been handed to the encoder.
-   * @method ReplayRecorder#onend
-   */
-  onend() {}
 }
 
 module.exports = ReplayRecorder;
