@@ -16,6 +16,12 @@ const sessionOptions: ZCC.SessionOptions = {
 
 // Type-checked only: the ZCC global is not loaded, so the recorder is built lazily.
 const replayFor = (pcm: Float32Array): ZCC.ReplayRecorder => new ZCC.ReplayRecorder(pcm, 16000);
+const opusReplayFor = (frames: Uint8Array[]): ZCC.VoiceMessageOptions => ({
+  channels: ['Front'],
+  encoder: false,
+  encoderFrameSize: 20,
+  recorder: new ZCC.OpusReplayRecorder(frames, 20)
+});
 const voiceOptionsFor = (recorder: ZCC.Recorder): ZCC.VoiceMessageOptions => ({
   channels: ['Front', 'Back'],
   recorder
@@ -52,6 +58,7 @@ describe('types/zcc.d.ts', () => {
     expect(sessionOptions.channels).toEqual(['Front', 'Back']);
     expect(voiceOptions.encoderFrameSize).toBe(20);
     expect(typeof replayFor).toBe('function');
+    expect(typeof opusReplayFor).toBe('function');
     expect(typeof voiceOptionsFor).toBe('function');
     expect(typeof describeSession).toBe('function');
     expect(typeof onStart).toBe('function');

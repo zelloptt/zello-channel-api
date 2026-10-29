@@ -11,6 +11,7 @@ let entryFiles = {
   'Encoder': './src/classes/encoder.js',
   'Recorder': './src/classes/recorder.js',
   'ReplayRecorder': './src/classes/replayRecorder.js',
+  'OpusReplayRecorder': './src/classes/opusReplayRecorder.js',
   'Widget': './src/classes/widget/index.js',
   'Constants': './src/classes/constants.js',
   'IncomingImage': './src/classes/incomingImage.js',
