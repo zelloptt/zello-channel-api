@@ -123,9 +123,12 @@ ZCC.Sdk.init({
     if (Sdk.initOptions.recorder && !Utils.isFunction(Sdk.initOptions.recorder)) {
       scriptsToLoad.push(url + 'zcc.recorder.js');
       scriptNames.push('Recorder');
-      // ZCC.ReplayRecorder sends PCM already in memory in place of the microphone.
+      // The replay recorders send audio already in memory in place of the
+      // microphone: PCM through the encoder, or Opus frames as they are.
       scriptsToLoad.push(url + 'zcc.replayrecorder.js');
       scriptNames.push('ReplayRecorder');
+      scriptsToLoad.push(url + 'zcc.opusreplayrecorder.js');
+      scriptNames.push('OpusReplayRecorder');
     }
     if (Sdk.initOptions.encoder && !Utils.isFunction(Sdk.initOptions.encoder)) {
       scriptsToLoad.push(url + 'zcc.encoder.js');
