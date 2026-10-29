@@ -141,6 +141,31 @@ describe('OpusReplayRecorder', () => {
     expect(sent).toHaveLength(3);
   });
 
+  it('sends nothing more once a listener stops it mid catch-up', async () => {
+    const recorder = new OpusReplayRecorder(frames(10));
+    const sent = [];
+    // the second frame's listener stops the replay, as a message.stop() would
+    recorder.onencoded = (frame) => {
+      sent.push(frame);
+      if (sent.length === 2) {
+        recorder.stop();
+      }
+    };
+    recorder.onend = jest.fn();
+    recorder.onprogress = jest.fn();
+    await recorder.init();
+    recorder.start();
+    // the 20 ms timer fires 100 ms late: six frames are due
+    const now = jest.spyOn(Date, 'now').mockReturnValue(120);
+    recorder.tick();
+    now.mockRestore();
+    expect(sent).toHaveLength(2);
+    expect(recorder.onend).not.toHaveBeenCalled();
+    expect(recorder.onprogress).toHaveBeenCalledTimes(1);
+    jest.advanceTimersByTime(500);
+    expect(sent).toHaveLength(2);
+  });
+
   it('stops early without ending', async () => {
     const recorder = new OpusReplayRecorder(frames(10));
     const sent = [];

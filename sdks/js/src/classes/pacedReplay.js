@@ -9,6 +9,8 @@ const DEFAULT_FRAME_MS = 20;
  *
  * Implements the <code>Recorder</code> interface, so an instance is handed to <code>startVoiceMessage</code>
  * as its <code>recorder</code>.
+ *
+ * @abstract
  */
 class PacedReplay {
   constructor(frameMs) {
@@ -25,12 +27,20 @@ class PacedReplay {
     return true;
   }
 
-  // How many frames the source holds.
+  /**
+   * How many frames the source holds.
+   * @abstract
+   * @return {Number}
+   */
   get frameCount() {
     return 0;
   }
 
-  // Hands frame <code>index</code> to the message.
+  /**
+   * Hands frame <code>index</code> to the message, through <code>ondata</code> or <code>onencoded</code>.
+   * @abstract
+   * @param {Number} index
+   */
   deliver(index) {} // eslint-disable-line no-unused-vars
 
   /**
@@ -81,14 +91,22 @@ class PacedReplay {
       return;
     }
     // Every frame whose slot has passed goes out now, so a late timer never
-    // stretches the message; the server tolerates short bursts.
+    // stretches the message; the server tolerates short bursts. A listener
+    // may stop the replay from inside deliver or onprogress, so the state is
+    // checked again after each.
     const due = Math.floor((Date.now() - this.startedAt) / this.frameMs) + 1;
     while (this.framesSent < due && this.frameIndex < this.frameCount) {
       this.deliver(this.frameIndex);
       this.frameIndex++;
       this.framesSent++;
+      if (this.state !== 'replaying') {
+        return;
+      }
     }
     this.onprogress(this.sentMs, this.durationMs);
+    if (this.state !== 'replaying') {
+      return;
+    }
     if (this.frameIndex >= this.frameCount) {
       this.finish();
       return;
