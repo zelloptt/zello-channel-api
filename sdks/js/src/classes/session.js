@@ -786,6 +786,14 @@ var outgoingMessage = session.startVoiceMessage({
   encoder: CustomEncoder
 });
 
+// reply to a dispatch call the session holds, or broadcast to every channel user
+var outgoingMessage = session.startVoiceMessage({
+  callId: 1758300000123
+});
+var outgoingMessage = session.startVoiceMessage({
+  broadcast: true
+});
+
 // specify custom talk priority
 // standard values are talkPriorityNormal and talkPriorityLow
 var outgoingMessage = session.startVoiceMessage({

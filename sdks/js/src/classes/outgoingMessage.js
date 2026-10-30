@@ -59,6 +59,8 @@ class OutgoingMessage extends Emitter {
     this.currentPacketId = 0;
     // Set once the server has accepted the stream and the beforeRecording hook has settled.
     this.recordingAllowed = false;
+    // Set when recorder.init() fails; start() then rejects with it.
+    this.recorderError = null;
     // One entry per channel that accepted the stream: {channel, streamId, packetId, ended}.
     this.streams = [];
     // True from the moment the streams are open until they are closed; frames
@@ -239,7 +241,26 @@ class OutgoingMessage extends Emitter {
       }
     };
     if (Utils.isFunction(this.recorder.init)) {
-      this.recorder.init();
+      const ready = this.recorder.init();
+      // A recorder that fails to start (no microphone, a missing input device)
+      // never calls onready, so report the failure instead of waiting forever.
+      if (ready && Utils.isFunction(ready.catch)) {
+        ready.catch((err) => {
+          if (this.destroyed || (err && err.code === 'RecorderTornDown')) {
+            return;
+          }
+          this.recorderError = err;
+          if (!this.startPromise) {
+            // Nothing started yet. Fail now; a later start() rejects with the same error.
+            this.fail(err, this.userCallback).catch(() => {});
+          } else if (this.recordingAllowed) {
+            // start() already succeeded, but nothing can be recorded: close the streams.
+            this.stop().catch(() => {});
+          }
+          // Otherwise start() is still waiting on the server or beforeRecording,
+          // and rejects with this error once they are done.
+        });
+      }
     }
   }
 
@@ -432,6 +453,10 @@ outgoingMessage.then(function(result) {
     if (this.startPromise) {
       return this.startPromise;
     }
+    if (this.recorderError) {
+      // The start callback already heard about it from initRecorder.
+      return Promise.reject(this.recorderError);
+    }
     let channels;
     try {
       channels = this.resolveChannels();
@@ -507,6 +532,11 @@ outgoingMessage.then(function(result) {
       return this.waitBeforeRecording(result).then(() => {
         if (this.stopRequested) {
           return result;
+        }
+        if (this.recorderError) {
+          // The recorder failed while the server was answering: close what it opened.
+          const err = this.recorderError;
+          return this.stopStreams().then(() => { throw err; }, () => { throw err; });
         }
         this.recordingAllowed = true;
         this.startRecording();

@@ -35,12 +35,14 @@ class FakeRecorder {
   }
 
   init() {
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       this.finishInit = () => {
         this.state = 'ready';
         this.onready();
         resolve();
       };
+      // No microphone, or a missing input device: onready never comes.
+      this.failInit = (err) => reject(err);
     });
   }
 
@@ -174,6 +176,71 @@ describe('OutgoingMessage recorder sequencing', () => {
 
     expect(recorder.stopCalls).toBeGreaterThan(0);
     expect(recorder.state).toBe('inactive');
+  });
+});
+
+describe('OutgoingMessage recorder that fails to start', () => {
+  beforeEach(() => { FakeRecorder.instances = []; });
+
+  function withCallback(session, options) {
+    const callback = jest.fn();
+    const message = new OutgoingMessage(session, Object.assign({
+      recorder: FakeRecorder,
+      encoder: FakeEncoder
+    }, options), callback);
+    return { message, callback, recorder: FakeRecorder.instances[0] };
+  }
+
+  test('autoStart: the start callback gets the error and no stream is opened', async () => {
+    const session = makeSession();
+    const { callback, recorder } = withCallback(session, { autoStart: true });
+    const err = new Error('Requested device not found');
+
+    recorder.failInit(err);
+    await flushMicrotasks();
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(callback).toHaveBeenCalledWith(err);
+    expect(session.startStream).not.toHaveBeenCalled();
+  });
+
+  test('autoStart false: start() after the failure rejects without opening a stream', async () => {
+    const session = makeSession();
+    const { message, callback, recorder } = withCallback(session, { autoStart: false });
+    const err = new Error('Permission denied');
+
+    recorder.failInit(err);
+    await flushMicrotasks();
+    await expect(message.start()).rejects.toBe(err);
+    expect(session.startStream).not.toHaveBeenCalled();
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(callback).toHaveBeenCalledWith(err);
+  });
+
+  test('autoStart false: a failure while start_stream is pending rejects start() and closes the stream', async () => {
+    const session = makeSession();
+    const { message, callback, recorder } = withCallback(session, { autoStart: false });
+    const err = new Error('Permission denied');
+
+    const started = message.start();
+    started.catch(() => {});
+    recorder.failInit(err);
+    await flushMicrotasks();
+    session.resolveStart(42);
+
+    await expect(started).rejects.toBe(err);
+    expect(session.stopStream).toHaveBeenCalledWith(expect.objectContaining({ stream_id: 42 }));
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(callback).toHaveBeenCalledWith(err);
+  });
+
+  test('autoStart false: a failure after start() succeeded closes the stream', async () => {
+    const session = makeSession();
+    const { message, recorder } = withCallback(session, { autoStart: false });
+
+    await Promise.all([message.start(), session.resolveStart(42)]);
+    recorder.failInit(new Error('Permission denied'));
+    await flushMicrotasks(8);
+    expect(session.stopStream).toHaveBeenCalledWith(expect.objectContaining({ stream_id: 42 }));
   });
 });
 
