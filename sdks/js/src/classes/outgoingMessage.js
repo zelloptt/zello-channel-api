@@ -201,6 +201,8 @@ class OutgoingMessage extends Emitter {
     };
     // A recorder that runs out of input (a replay) ends the message itself;
     // the outcome reaches the caller through the stopped / stop_failed events.
+    // A recorder that already has encoded frames hands them over as they are.
+    this.recorder.onencoded = (frame) => this.processEncodedData(frame);
     this.recorder.onend = () => {
       if (!this.destroyed && this.started) {
         this.stop().catch(() => {});

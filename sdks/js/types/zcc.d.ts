@@ -340,6 +340,8 @@ declare namespace ZCC {
     resume?(): void;
     /** Called with one buffer per channel when PCM is ready. */
     ondata: (buffers: Float32Array[]) => void;
+    /** Called with a frame that is already Opus, sent as is; pair with `encoder: false` on the message. */
+    onencoded?: (frame: Uint8Array) => void;
     onready: () => void;
     /** Called when the input is exhausted (a replay); ends the message. */
     onend?: () => void;
@@ -367,6 +369,24 @@ declare namespace ZCC {
   const ReplayRecorder: {
     /** @param samples mono PCM in the -1..1 range @param sampleRate the rate the samples were captured at */
     new (samples: Float32Array, sampleRate: number): ReplayRecorder;
+    isRecordingSupported(): boolean;
+  };
+
+  /**
+   * Sends Opus frames already in memory, one per frame interval, with no microphone and no encoder: give
+   * the message `encoder: false` and an `encoderFrameSize`/`encoderSampleRate` matching the frames.
+   */
+  interface OpusReplayRecorder extends Recorder {
+    attach(options: Record<string, unknown>, encoder: Pick<Encoder, 'postMessage'> | null): void;
+    readonly durationMs: number;
+    /** Frames handed over so far. */
+    readonly position: number;
+    onencoded: (frame: Uint8Array) => void;
+  }
+
+  const OpusReplayRecorder: {
+    /** @param frames one Opus frame each, in order @param frameMs the duration of each frame, 20 by default */
+    new (frames: Uint8Array[], frameMs?: number): OpusReplayRecorder;
     isRecordingSupported(): boolean;
   };
 
