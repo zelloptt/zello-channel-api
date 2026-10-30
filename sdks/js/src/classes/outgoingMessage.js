@@ -237,7 +237,17 @@ class OutgoingMessage extends Emitter {
       }
     };
     if (Utils.isFunction(this.recorder.init)) {
-      this.recorder.init();
+      const ready = this.recorder.init();
+      // A recorder that fails to start (no microphone, a missing input device)
+      // never calls onready, so report the failure instead of waiting forever.
+      if (ready && Utils.isFunction(ready.catch)) {
+        ready.catch((err) => {
+          if (this.destroyed || (err && err.code === 'RecorderTornDown')) {
+            return;
+          }
+          this.fail(err, this.userCallback).catch(() => {});
+        });
+      }
     }
   }
 

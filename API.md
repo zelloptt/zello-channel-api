@@ -393,6 +393,8 @@ Sends user's location to the channel.
 
 On a channel configured as a dispatch channel, audio from a regular channel user opens a *call*: it enters a queue as `pending`, a dispatcher takes it to make it `active`, and from then on the two talk one-on-one until the call is ended. The commands below let an API client act as the dispatcher; queue changes are delivered to all parties through the [`on_dispatch_call_status`](#on_dispatch_call_status) event. Taking, playing back, and ending calls require the authenticated user to hold the dispatcher role in the channel. Once a call is taken, the dispatcher replies by passing the `call_id` on [`start_stream`](#start_stream) or [`send_text_message`](#send_text_message), which routes the message to that call's user alone.
 
+On a channel that is not a dispatch channel, `get_dispatch_calls`, `take_dispatch_call`, `play_dispatch_message`, and `end_dispatch_call` fail with the error `not a dispatch channel`.
+
 ### `get_dispatch_calls`
 
 Retrieves the dispatch calls visible to this session: for a dispatcher, every pending call plus their own active ones; for a regular user, their own calls.
@@ -869,6 +871,7 @@ Indicates incoming shared location from the channel.
 |failed to stop stream | Unable to stop the stream for unknown reason. This error is safe to ignore.
 |failed to send data | An error occured while trying to send stream data packet.
 |invalid audio packet | Malformed audio packet is received.
+|not a dispatch channel | A dispatch command was sent to a channel that is not configured as a dispatch channel.
 
 
 

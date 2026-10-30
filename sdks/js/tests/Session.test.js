@@ -242,6 +242,45 @@ describe('OutgoingMessage channel routing', () => {
   });
 });
 
+describe('OutgoingMessage recorder failures', () => {
+  const initWith = (init) => {
+    const message = Object.create(OutgoingMessage.prototype);
+    function FakeRecorder() {}
+    FakeRecorder.prototype.init = init;
+    message.options = { recorder: FakeRecorder };
+    message.encoder = {};
+    message.userCallback = jest.fn();
+    message.destroy = jest.fn(() => { message.destroyed = true; });
+    message.initRecorder();
+    return message;
+  };
+  const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+  it('reports a recorder that fails to start to the start callback', async () => {
+    const err = new Error('Requested device not found');
+    const message = initWith(() => Promise.reject(err));
+    await settle();
+    expect(message.userCallback).toHaveBeenCalledWith(err);
+    expect(message.destroy).toHaveBeenCalled();
+  });
+
+  it('stays quiet when the recorder was torn down on purpose', async () => {
+    const err = Object.assign(new Error('torn down'), { code: 'RecorderTornDown' });
+    const message = initWith(() => Promise.reject(err));
+    await settle();
+    expect(message.userCallback).not.toHaveBeenCalled();
+  });
+
+  it('stays quiet when the message was already stopped', async () => {
+    let rejectInit;
+    const message = initWith(() => new Promise((resolve, reject) => { rejectInit = reject; }));
+    message.destroyed = true;
+    rejectInit(new Error('Permission denied'));
+    await settle();
+    expect(message.userCallback).not.toHaveBeenCalled();
+  });
+});
+
 describe('OutgoingImage channel routing', () => {
   beforeEach(() => {
     jest.spyOn(OutgoingImage.prototype, 'handleCamera').mockImplementation(() => {});
