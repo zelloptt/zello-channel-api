@@ -1,4 +1,5 @@
 const ReplayRecorder = require('../src/classes/replayRecorder');
+const OpusReplayRecorder = require('../src/classes/opusReplayRecorder');
 const OutgoingMessage = require('../src/classes/outgoingMessage');
 const Constants = require('../src/classes/constants');
 
@@ -91,6 +92,141 @@ describe('ReplayRecorder', () => {
     expect(chunks).toHaveLength(2);
     expect(encoder.postMessage).toHaveBeenCalledTimes(1);
     expect(recorder.onend).not.toHaveBeenCalled();
+  });
+});
+
+describe('OpusReplayRecorder', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(0);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  const frames = (count) => Array.from({ length: count }, (_, i) => new Uint8Array([i, i + 1]));
+
+  it('needs frames and a frame length', () => {
+    expect(() => new OpusReplayRecorder()).toThrow(Constants.ERROR_NOT_ENOUGH_PARAMS);
+    expect(() => new OpusReplayRecorder([])).toThrow(Constants.ERROR_NOT_ENOUGH_PARAMS);
+    expect(() => new OpusReplayRecorder([[1, 2]])).toThrow(Constants.ERROR_NOT_ENOUGH_PARAMS);
+    expect(() => new OpusReplayRecorder(frames(1), 0)).toThrow(Constants.ERROR_NOT_ENOUGH_PARAMS);
+  });
+
+  it('hands the frames over as they are, one per interval, and ends', async () => {
+    const recorder = new OpusReplayRecorder(frames(3), 40);
+    const sent = [];
+    recorder.onencoded = (frame) => sent.push(frame);
+    recorder.ondata = jest.fn();
+    recorder.onend = jest.fn();
+    recorder.onprogress = jest.fn();
+    // no encoder: the message runs without one
+    recorder.attach({ encoderFrameSize: 20 }, null);
+    expect(recorder.frameMs).toBe(40);
+    expect(recorder.durationMs).toBe(120);
+    await recorder.init();
+    recorder.start();
+    expect(sent).toEqual([frames(3)[0]]);
+    expect(recorder.position).toBe(1);
+    jest.advanceTimersByTime(40);
+    expect(sent).toHaveLength(2);
+    expect(recorder.onprogress).toHaveBeenLastCalledWith(80, 120);
+    jest.advanceTimersByTime(40);
+    expect(sent).toHaveLength(3);
+    expect(recorder.ondata).not.toHaveBeenCalled();
+    expect(recorder.onend).toHaveBeenCalledTimes(1);
+    expect(recorder.onprogress).toHaveBeenLastCalledWith(120, 120);
+    jest.advanceTimersByTime(200);
+    expect(sent).toHaveLength(3);
+  });
+
+  it('sends nothing more once a listener stops it mid catch-up', async () => {
+    const recorder = new OpusReplayRecorder(frames(10));
+    const sent = [];
+    // the second frame's listener stops the replay, as a message.stop() would
+    recorder.onencoded = (frame) => {
+      sent.push(frame);
+      if (sent.length === 2) {
+        recorder.stop();
+      }
+    };
+    recorder.onend = jest.fn();
+    recorder.onprogress = jest.fn();
+    await recorder.init();
+    recorder.start();
+    // the 20 ms timer fires 100 ms late: six frames are due
+    const now = jest.spyOn(Date, 'now').mockReturnValue(120);
+    recorder.tick();
+    now.mockRestore();
+    expect(sent).toHaveLength(2);
+    expect(recorder.onend).not.toHaveBeenCalled();
+    expect(recorder.onprogress).toHaveBeenCalledTimes(1);
+    jest.advanceTimersByTime(500);
+    expect(sent).toHaveLength(2);
+  });
+
+  it('stops early without ending', async () => {
+    const recorder = new OpusReplayRecorder(frames(10));
+    const sent = [];
+    recorder.onencoded = (frame) => sent.push(frame);
+    recorder.onend = jest.fn();
+    await recorder.init();
+    recorder.start();
+    jest.advanceTimersByTime(20);
+    recorder.stop();
+    jest.advanceTimersByTime(200);
+    expect(sent).toHaveLength(2);
+    expect(recorder.onend).not.toHaveBeenCalled();
+  });
+});
+
+describe('OutgoingMessage with an Opus replay', () => {
+  it('sends the stored frames straight to the stream with no encoder, then stops itself', async () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(0);
+    try {
+      window.ZCC = { Sdk: { initOptions: {} }, Recorder: function Mic() {} };
+      const session = {
+        options: { channels: ['Front'], channel: 'Front', encoder: false, recorder: true },
+        log: () => {},
+        resolveChannel: () => 'Front',
+        startStream: jest.fn(() => Promise.resolve({ stream_id: 9 })),
+        stopStream: jest.fn(() => Promise.resolve({}))
+      };
+      const stored = [new Uint8Array([0xaa, 0xbb]), new Uint8Array([0xcc])];
+      const replay = new OpusReplayRecorder(stored, 20);
+      const message = new OutgoingMessage(session, {
+        channels: ['Front'],
+        encoder: false,
+        encoderFrameSize: 20,
+        recorder: replay
+      });
+      expect(message.recorder).toBe(replay);
+      expect(message.encoder).toBeUndefined();
+      const packets = [];
+      message.on(Constants.EVENT_DATA_ENCODED, (packet) => packets.push(Array.from(packet)));
+      const stopped = jest.fn();
+      message.on(Constants.EVENT_STOPPED, stopped);
+
+      await flush();
+      expect(session.startStream).toHaveBeenCalledWith(
+        expect.objectContaining({ channel: 'Front', packet_duration: 20 })
+      );
+      expect(message.started).toBe(true);
+      // {type, stream_id(32), packet_id(32), frame}
+      expect(packets).toEqual([[1, 0, 0, 0, 9, 0, 0, 0, 1, 0xaa, 0xbb]]);
+      jest.advanceTimersByTime(20);
+      expect(packets[1]).toEqual([1, 0, 0, 0, 9, 0, 0, 0, 2, 0xcc]);
+
+      // the last frame is out: with no encoder to drain, the streams close at once
+      await flush();
+      expect(session.stopStream).toHaveBeenCalledWith({ stream_id: 9, channel: 'Front' });
+      expect(stopped).toHaveBeenCalledWith({ stream_id: 9, streams: { Front: { stream_id: 9 } } });
+    } finally {
+      jest.useRealTimers();
+      delete window.ZCC;
+    }
   });
 });
 
