@@ -245,7 +245,16 @@ class OutgoingMessage extends Emitter {
           if (this.destroyed || (err && err.code === 'RecorderTornDown')) {
             return;
           }
-          this.fail(err, this.userCallback).catch(() => {});
+          this.recorderError = err;
+          if (!this.startPromise) {
+            // Nothing started yet. Fail now; a later start() rejects with the same error.
+            this.fail(err, this.userCallback).catch(() => {});
+          } else if (this.recordingAllowed) {
+            // start() already succeeded, but nothing can be recorded: close the streams.
+            this.stop().catch(() => {});
+          }
+          // Otherwise start() is still waiting on the server or beforeRecording,
+          // and rejects with this error once they are done.
         });
       }
     }
@@ -440,6 +449,10 @@ outgoingMessage.then(function(result) {
     if (this.startPromise) {
       return this.startPromise;
     }
+    if (this.recorderError) {
+      // The start callback already heard about it from initRecorder.
+      return Promise.reject(this.recorderError);
+    }
     let channels;
     try {
       channels = this.resolveChannels();
@@ -515,6 +528,11 @@ outgoingMessage.then(function(result) {
       return this.waitBeforeRecording(result).then(() => {
         if (this.stopRequested) {
           return result;
+        }
+        if (this.recorderError) {
+          // The recorder failed while the server was answering: close what it opened.
+          const err = this.recorderError;
+          return this.stopStreams().then(() => { throw err; }, () => { throw err; });
         }
         this.recordingAllowed = true;
         this.startRecording();
