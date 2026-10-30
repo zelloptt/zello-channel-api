@@ -59,6 +59,8 @@ class OutgoingMessage extends Emitter {
     this.currentPacketId = 0;
     // Set once the server has accepted the stream and the beforeRecording hook has settled.
     this.recordingAllowed = false;
+    // Set when recorder.init() fails; start() then rejects with it.
+    this.recorderError = null;
     // One entry per channel that accepted the stream: {channel, streamId, packetId, ended}.
     this.streams = [];
     // True from the moment the streams are open until they are closed; frames
