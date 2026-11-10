@@ -797,3 +797,103 @@ describe('OutgoingMessage to several channels', () => {
     expect(encoder.destroy).toHaveBeenCalled();
   });
 });
+
+describe('Session socket lifecycle', () => {
+  // A socket in the given state that records what was sent and whether it
+  // was closed.
+  const fakeSocket = (readyState) => ({
+    readyState,
+    sent: [],
+    closed: false,
+    send(data) {
+      this.sent.push(data);
+    },
+    close() {
+      this.closed = true;
+    }
+  });
+
+  const connected = (readyState) => {
+    const session = new Session(Object.assign({ channels: ['Front'] }, credentials));
+    session.wsConnection = fakeSocket(readyState);
+    return session;
+  };
+
+  it('drops a command and a packet while the socket is not open', () => {
+    const session = connected(WebSocket.CONNECTING);
+    const callback = jest.fn();
+    expect(() => {
+      session.sendCommand({ command: 'start_stream', seq: 1 }, callback);
+      session.sendBinary(new Uint8Array([1]));
+    }).not.toThrow();
+    expect(session.wsConnection.sent).toEqual([]);
+    // never answered, as on a closed socket
+    expect(session.callbacks).toEqual({});
+    expect(callback).not.toHaveBeenCalled();
+
+    session.wsConnection = null;
+    expect(() => session.sendBinary(new Uint8Array([1]))).not.toThrow();
+  });
+
+  it('sends on an open socket', () => {
+    const session = connected(WebSocket.OPEN);
+    const callback = jest.fn();
+    session.sendCommand({ command: 'start_stream', seq: 1 }, callback);
+    session.sendBinary(new Uint8Array([1]));
+    expect(session.wsConnection.sent).toEqual([
+      JSON.stringify({ command: 'start_stream', seq: 1 }),
+      new Uint8Array([1])
+    ]);
+    expect(session.callbacks[1]).toBe(callback);
+  });
+
+  it('closes an open socket on disconnect and tells the close apart from a drop', () => {
+    const session = connected(WebSocket.OPEN);
+    session.disconnect();
+    expect(session.wsConnection.closed).toBe(true);
+    expect(session.selfDisconnect).toBe(true);
+  });
+
+  it('leaves a closed socket alone on disconnect, so the next drop is still reported', () => {
+    const session = connected(WebSocket.CLOSED);
+    session.disconnect();
+    expect(session.wsConnection.closed).toBe(false);
+    expect(session.selfDisconnect).toBe(false);
+  });
+
+  it('cancels the reconnect a dropped socket armed when the caller disconnects', () => {
+    jest.useFakeTimers();
+    try {
+      const session = connected(WebSocket.CLOSED);
+      session.connectOrReconnect = jest.fn();
+      // as the close handler does after a drop
+      session.reconnectTimeout = setTimeout(() => session.connectOrReconnect(null, true), 1000);
+      session.disconnect();
+      jest.advanceTimersByTime(5000);
+      expect(session.connectOrReconnect).not.toHaveBeenCalled();
+      expect(session.reconnectTimeout).toBeNull();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('does not arm another attempt when a reconnect fails after the caller disconnected', async () => {
+    const session = connected(WebSocket.CLOSED);
+    session.doConnect = () => Promise.reject('WebSocket error');
+    session.disconnect();
+    await expect(session.connectOrReconnect(null, true)).rejects.toBe('WebSocket error');
+    expect(session.reconnectTimeout).toBeNull();
+    expect(session.connectAttempts).toBeGreaterThan(0);
+  });
+
+  // Real timers: the failure settles on Q's scheduler.
+  it('arms another attempt when a connect fails on its own', async () => {
+    const session = connected(WebSocket.CLOSED);
+    session.doConnect = () => Promise.reject('WebSocket error');
+    session.connect().catch(() => {});
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(session.reconnectTimeout).not.toBeNull();
+    session.disconnect();
+    expect(session.reconnectTimeout).toBeNull();
+  });
+});

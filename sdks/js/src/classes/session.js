@@ -3,6 +3,9 @@ const Promise = require('q');
 const Constants = require('./constants');
 const Utils = require('./utils');
 
+// Only an open socket takes data: sending on one still connecting throws.
+const isOpen = (socket) => !!socket && socket.readyState === WebSocket.OPEN;
+
 const MIN_HEARTBEAT_INTERVAL_MS = 10 * 1000;
 const DEFAULT_HEARTBEAT_INTERVAL_MS = 30 * 1000;
 
@@ -80,6 +83,9 @@ class Session extends Emitter {
     this.heartbeatConsecutiveMissedAcksThreshold = this.options.clientPing?.consecutiveMissedPongsThreshold;
     this.heartbeatEnabled = !!this.heartbeatIntervalMs && !!this.heartbeatConsecutiveMissedAcksThreshold;
     this.selfDisconnect = false;
+    // Set by disconnect() until the next connect(): a reconnect attempt that
+    // fails in between must not arm another.
+    this.disconnectRequested = false;
     this.incomingMessages = {};
     this.activeOutgoingMessage = null;
     this.activeOutgoingImage = null;
@@ -258,6 +264,7 @@ session.connect(function(err, result) {
 });
    ***/
   connect(userCallback = null) {
+    this.disconnectRequested = false;
     return this.connectOrReconnect(userCallback);
   }
 
@@ -315,8 +322,9 @@ session.connect(function(err, result) {
         dfd.resolve(result);
       })
       .catch((err) => {
+        const leaving = this.disconnectRequested;
         this.disconnect(); // this prevents reconnect on ws.close event
-        if (this.connectAttempts) {
+        if (this.connectAttempts && !leaving) {
           this.clearExistingReconnectTimeout();
           this.reconnectTimeout = setTimeout(() => {
             this.connectOrReconnect(userCallback, isReconnect);
@@ -515,10 +523,16 @@ session.connect(function(err, result) {
    * Closes session and disconnects from zello server. To start session again you need to call <code>session.connect</code>
    */
   disconnect() {
-    this.selfDisconnect = true;
+    this.disconnectRequested = true;
+    // A reconnect armed by a dropped socket would otherwise outlive this
+    // call and open a socket nobody asked for.
+    this.clearExistingReconnectTimeout();
     this.clearConnectTimeout();
     this.stopHeartbeat();
-    if (this.wsConnection) {
+    if (this.wsConnection && this.wsConnection.readyState !== WebSocket.CLOSED) {
+      // Only a socket not yet closed will fire the close event that
+      // selfDisconnect tells apart from a drop; a closed one already did.
+      this.selfDisconnect = true;
       this.wsConnection.close();
     }
     this.settleChannelsReady();
@@ -714,7 +728,15 @@ session.connect(function(err, result) {
     delete this.callbacks[jsonData.seq];
   }
 
+  // Only an open socket takes data. Sending on one still connecting throws,
+  // and a frame the encoder flushes after a drop reaches here from the
+  // worker's message handler, where nothing catches it; a command dropped
+  // here is answered no more than one sent on a closed socket.
   sendCommand(params, callback = null) {
+    if (!isOpen(this.wsConnection)) {
+      this.log(`Not connected, dropping command: ${params.command}`);
+      return;
+    }
     if (params.seq && callback) {
       this.callbacks[params.seq] = callback;
     }
@@ -722,6 +744,9 @@ session.connect(function(err, result) {
   }
 
   sendBinary(data) {
+    if (!isOpen(this.wsConnection)) {
+      return;
+    }
     this.wsConnection.send(data);
   }
 

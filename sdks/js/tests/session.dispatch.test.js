@@ -19,7 +19,8 @@ const makeStub = (options = { channel: 'kiosk-channel', channels: ['kiosk-channe
     sendCommandWithCallback: Session.prototype.sendCommandWithCallback,
     sendChannelCommand: Session.prototype.sendChannelCommand,
     resolveChannel: Session.prototype.resolveChannel,
-    wsConnection: { send: (raw) => sent.push(JSON.parse(raw)) }
+    log: () => {},
+    wsConnection: { readyState: WebSocket.OPEN, send: (raw) => sent.push(JSON.parse(raw)) }
   };
   return { stub, sent };
 };
