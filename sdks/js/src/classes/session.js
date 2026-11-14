@@ -37,7 +37,11 @@ const parseChannelOrCallback = (channelOrCallback, userCallback) => {
   autoSendAudio: true,
   noPersistentPlayer: false,
   muteIncomingAudio: false,
-  language: 'en'
+  language: 'en',
+  features: {
+    transcriptions: true,
+    profiles: true
+  }
 );
  **/
 class Session extends Emitter {
@@ -673,6 +677,23 @@ session.connect(function(err, result) {
         break;
       case 'on_transcription':
         this.emit(Constants.EVENT_TRANSCRIPTION, jsonData);
+        break;
+      case 'on_user_profiles':
+        /**
+         * Profiles of users the session has encountered (message authors,
+         * channel members, contacts), one batch at a time. Delivered only
+         * when the session was created with
+         * <code>features: { profiles: true }</code>. A user without a profile
+         * still gets an entry, with the picture fields absent.
+         * @event Session#user_profiles
+         * @param {Array<Object>} profiles user profile JSON objects, each with:
+         * @property {string} username user name the profile belongs to.
+         * @property {string} display_name name to show for the user.
+         * @property {string} [profile_picture] profile picture URL.
+         * @property {string} [profile_picture_thumb] profile picture thumbnail URL.
+         * @property {number} [profile_ts] profile timestamp, absent when the user has no profile.
+         */
+        this.emit(Constants.EVENT_USER_PROFILES, jsonData.profiles || []);
         break;
       case 'on_dispatch_call_status':
         /**
