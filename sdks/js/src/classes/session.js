@@ -684,7 +684,8 @@ session.connect(function(err, result) {
          * channel members, contacts), one batch at a time. Delivered only
          * when the session was created with
          * <code>features: { profiles: true }</code>. A user without a profile
-         * still gets an entry, with the picture fields absent.
+         * gets no entry; an entry without picture fields and without
+         * <code>profile_ts</code> retracts a profile sent earlier.
          * @event Session#user_profiles
          * @param {Array<Object>} profiles user profile JSON objects, each with:
          * @property {string} username user name the profile belongs to.

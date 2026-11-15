@@ -599,7 +599,7 @@ Ends an active call.
 ```
 
 ## User profiles
-Log on with `features` including `"profiles": true` and the server keeps the client informed about the users it encounters: every message author, every connected member of a dispatch channel, and every contact whose status the session receives gets an entry in an [`on_user_profiles`](#on_user_profiles) event. Profiles are push-only; there is no command to request one. Profiles fetched together arrive together, so the contact list resolving after `logon` produces a handful of events rather than one per user. The event is sent after the message it relates to, so audio is never delayed by a profile lookup. Profiles are cached per connection and refreshed as they change.
+Log on with `features` including `"profiles": true` and the server keeps the client informed about the users it encounters: message authors, connected members of a dispatch channel, and contacts whose status the session receives. Each user who has a profile gets an entry in an [`on_user_profiles`](#on_user_profiles) event; a user without one produces no entry, so clients should fall back to the username until a profile arrives. If a profile the client was already sent is removed, the server retracts it with an entry that has no picture fields. Profiles are push-only; there is no command to request one. Profiles fetched together arrive together, so the contact list resolving after `logon` produces a handful of events rather than one per user. The event is sent after the message it relates to, so audio is never delayed by a profile lookup. Profiles are cached per connection and refreshed as they change.
 
 ## Events
 
@@ -750,7 +750,7 @@ Carries the profiles of one or more users. Sent only when the client requested t
 
 ##### `profiles` entries
 
-`display_name` is always present and follows the same rules Zello apps use: the name set in the Zello Work console, then the profile display name, then the username. Picture fields are omitted when the user has no picture.
+`display_name` is always present and follows the same rules Zello apps use: the name set in the Zello Work console, then the profile display name, then the username. Picture fields are omitted when the user has no picture. An entry with no picture fields and no `profile_ts` retracts a profile sent earlier: the user no longer has one.
 
 | Name                    | Type    | Value / Description
 |-------------------------|---------|---
