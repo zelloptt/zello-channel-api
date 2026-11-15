@@ -925,6 +925,28 @@ var outgoingMessage = session.startVoiceMessage({
   }
 
   /**
+   * Fetches the users currently connected to a channel, whether or not they
+   * are in the account's contact list. The reply is the online roster, not
+   * the channel's full membership. The channel must be one of the session's
+   * channels.
+   *
+   * @param {String} [channel] channel name; defaults to the session's channel option
+   * @param {function} [userCallback] callback that is fired with the user list or an error
+   * @return {promise} promise that resolves with <code>{ users }</code> and rejects if
+   *                   the server refused the request
+   * @example
+   * session.getChannelUsers().then(({ users }) => {
+   *   users.forEach((u) => console.log(u.username, u.display_name, u.dispatcher));
+   * });
+   **/
+  getChannelUsers(channel = null, userCallback = null) {
+    const options = {
+      channel: channel || this.options.channel
+    };
+    return this.sendCommandWithCallback('get_channel_users', options, userCallback);
+  }
+
+  /**
    * Stops an ongoing dispatch call
    *
    * @param {Number} callId the ID of the ongoing dispatch call to be over.
