@@ -597,6 +597,73 @@ Ends an active call.
 }
 ```
 
+## Contacts
+
+### `get_contacts`
+Returns the contact list of the logged-in user as Zello delivers it: every user the account can reach and every channel it belongs to, including team channels. The list is a snapshot; call again after reconnecting or when the network's users or channels change. Anonymous and listen-only sessions have no contact list and receive `not supported`.
+
+| Name | Type | Value / Description
+|---|---|---
+| `command` | string | `get_contacts`
+| `seq` | integer | Command sequence number
+
+#### Request:
+```json
+{
+  "command": "get_contacts",
+  "seq": 5
+}
+```
+
+#### Response:
+```json
+{
+  "seq": 5,
+  "success": true,
+  "users": [
+    {
+      "username": "sherlock",
+      "display_name": "Sherlock Holmes",
+      "full_name": "Sherlock Holmes",
+      "job_title": "Consulting detective",
+      "status": "online",
+      "tags": ["Everyone", "Baker Street"]
+    },
+    {
+      "username": "watson",
+      "display_name": "watson",
+      "tags": ["Everyone"]
+    }
+  ],
+  "channels": [
+    { "name": "Baker Street", "dispatch": false, "team": true },
+    { "name": "Dispatch", "dispatch": true, "team": false },
+    { "name": "Everyone", "dispatch": false, "team": true }
+  ]
+}
+```
+
+Users are sorted by `display_name`, channels by `name`.
+
+##### `users` entries
+
+| Name | Type | Value / Description
+|---|---|---
+| `username` | string | The username
+| `display_name` | string | The name to show: the name set in the Zello Work console, then the profile display name, then the username
+| `full_name` | string | (optional) The name set in the Zello Work console
+| `job_title` | string | (optional) The job title set in the Zello Work console
+| `status` | string | (optional) Last known presence: `online`, `offline`, `away`, `busy`, `headphones` or `standby`. Absent until the server has received a status update for the user.
+| `tags` | array of strings | Names of the team channels the user belongs to
+
+##### `channels` entries
+
+| Name | Type | Value / Description
+|---|---|---
+| `name` | string | The channel name
+| `dispatch` | boolean | Whether the channel is a dispatch channel
+| `team` | boolean | Whether the channel is a team channel (derived from user tags) rather than a regular channel
+
 ## Events
 
 ### `on_channel_status`
@@ -872,6 +939,7 @@ Indicates incoming shared location from the channel.
 |failed to send data | An error occured while trying to send stream data packet.
 |invalid audio packet | Malformed audio packet is received.
 |not a dispatch channel | A dispatch command was sent to a channel that is not configured as a dispatch channel.
+|not supported | The command needs something the session does not have, for example `get_contacts` on an anonymous or listen-only session, which has no contact list.
 
 
 
